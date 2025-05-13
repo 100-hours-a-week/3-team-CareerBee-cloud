@@ -5,7 +5,7 @@ exec > >(gawk '{ print strftime("[%Y-%m-%d %H:%M:%S]"), $0; fflush(); }' >> ../l
 
 BACKEND_DIR=../backend
 FRONTEND_DIR=../frontend
-AI_DIR=../ai-server/summarizer_pipeline
+AI_DIR=../ai-server
 VERSION_TAG=$(date +v%Y%m%d%H%M%S)
 
 echo "========== [0] 코드 rsync로 서버로 전송 =========="
@@ -104,7 +104,7 @@ sudo rm -rf /var/www/html/*
 sudo cp -r dist/* /var/www/html/
 
 echo "[1-5] AI 서버 준비 및 패키지 설치..."
-cd ~/release/ai-server
+cd ~/release/ai-server/summarizer_pipeline
 if [ ! -d "venv" ]; then
   python3.12 -m venv venv
 fi
