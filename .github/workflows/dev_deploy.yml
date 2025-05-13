@@ -27,7 +27,7 @@ jobs:
       - name: Upload to GCS
         run: |
             echo "Uploading to GCS path: ${{ secrets.GCS_BUCKET_PATH }}"
-            gsutil -m cp -r ./build/* ${{ secrets.GCS_BUCKET_PATH }}/
+            gsutil cp ./test.txt  ${{ secrets.GCS_BUCKET_PATH }}/
 
       - name: Setup SSH key
         run: |
