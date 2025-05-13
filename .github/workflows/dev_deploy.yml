@@ -1,0 +1,39 @@
+name: Deploy to GCE with GCS Artifacts
+
+on:
+  push:
+    branches: [ develop ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      GCS_DEST_PATH: gs://careerbee-artifacts/${{ github.repository_owner }}/$(basename ${{ github.repository }})
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: 'latest'
+          service_account_key: ${{ secrets.GCP_SA_KEY }} # ✅ 여기가 핵심
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Upload to GCS
+        run: |
+          echo "Uploading to GCS path: $GCS_DEST_PATH"
+          gsutil -m cp -r ./* $GCS_DEST_PATH/
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.GCE_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.GCE_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Trigger remote deploy script on GCE
+        run: |
+          ssh ${{ secrets.GCE_USER }}@${{ secrets.GCE_HOST }} "bash ~/deploy-test.sh"
