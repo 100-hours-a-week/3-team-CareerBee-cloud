@@ -38,4 +38,4 @@ jobs:
 
       - name: Trigger remote deploy script on GCE
         run: |
-          ssh ${{ secrets.GCE_USER }}@${{ secrets.GCE_HOST }} "bash ~/deploy-test.sh"
+          ssh ${{ secrets.GCE_USER }}@${{ secrets.GCE_HOST }} "bash ~/release/deploy-test.sh"
