@@ -1,0 +1,27 @@
+# 상태 파일
+*.tfstate
+*.tfstate.backup
+.terraform/
+
+# 변수 값
+terraform.tfvars
+*.tfvars
+
+# GCP/SSH 키
+*.json
+*.pem
+*.key
+id_rsa*
+google-credentials.json
+
+# 로그, 충돌
+crash.log
+*.log
+
+# 배포 디렉토리 무시
+*/deploy/ai-server/
+*/deploy/backend/
+*/deploy/frontend/
+
+# 환경변수 스크립트 파일 무시
+app-variables.sh
