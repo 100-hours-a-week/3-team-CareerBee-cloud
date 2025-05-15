@@ -51,7 +51,7 @@ jobs:
       - name: Notify Discord on Success
         if: success()
         run: |
-            curl -H "Content-Type: application/json" \
+              curl -H "Content-Type: application/json" \
                 -X POST \
                 -d '{
                       "embeds": [
