@@ -1,0 +1,85 @@
+name: PROD Deploy to GCE with GCS Artifacts
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+  
+    env:
+      COMMIT_HASH: ${{ github.sha }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: google auth
+        id: "auth"
+        uses: "google-github-actions/auth@v1"
+        with:
+          credentials_json: "${{ secrets.GCP_SA_KEY }}"
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: 'latest'
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+      
+      - name: Set timestamp-based path
+        run: |
+            TIMESTAMP=$(TZ='Asia/Seoul' date +%Y-%m-%d_%H_%M_%S)
+            echo "DEPLOY_PATH=${TIMESTAMP}_${COMMIT_HASH}" >> $GITHUB_ENV
+
+      - name: Upload to GCS
+        run: |
+            echo "Uploading to: ${{ secrets.GCS_PROD_BUCKET_PATH }}/test/$DEPLOY_PATH"
+            gcloud storage cp -r ./test/*  "${{ secrets.GCS_PROD_BUCKET_PATH }}/test/$DEPLOY_PATH/"
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.GCE_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.GCE_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Trigger remote deploy script on GCE
+        run: |
+          ssh ${{ secrets.GCE_USER }}@${{ secrets.GCE_HOST }} "bash ~/release/deploy-test.sh"
+      
+          - name: Notify Discord on Success
+            if: success()
+            run: |
+              curl -H "Content-Type: application/json" \
+                -X POST \
+                -d '{
+                      "embeds": [
+                        {
+                          "title": "✅ 프로덕션 환경에 배포 성공",
+                          "description": "**Repository:** `${{ github.repository }}`\n**Branch:** `${{ github.ref_name }}`\n**Commit:** `${{ github.sha }}`",
+                          "color": 65280,  
+                          "footer": {
+                            "text": "GitHub Actions - PROD Deploy"
+                          },
+                          "timestamp": "'${{ github.event.head_commit.timestamp }}'"
+                        }
+                      ]
+                    }' \
+                ${{ secrets.DISCORD_WEBHOOK_URL }}
+          
+          - name: Notify Discord on Failure
+            if: failure()
+            run: |
+              curl -H "Content-Type: application/json" \
+                -X POST \
+                -d '{
+                      "embeds": [
+                        {
+                          "title": "❌ 프로덕션 환경에 배포 실패",
+                          "description": "**Repository:** `${{ github.repository }}`\n**Branch:** `${{ github.ref_name }}`\n**Commit:** `${{ github.sha }}`",
+                          "color": 16711680  
+                        }
+                      ]
+                    }' \
+                ${{ secrets.DISCORD_WEBHOOK_URL }}
