@@ -47,11 +47,11 @@ jobs:
       - name: Trigger remote deploy script on GCE
         run: |
           ssh ${{ secrets.GCE_USER }}@${{ secrets.GCE_HOST }} "bash ~/release/deploy-test.sh"
-      
+
       - name: Notify Discord on Success
         if: success()
         run: |
-              curl -H "Content-Type: application/json" \
+            curl -H "Content-Type: application/json" \
                 -X POST \
                 -d '{
                       "embeds": [
