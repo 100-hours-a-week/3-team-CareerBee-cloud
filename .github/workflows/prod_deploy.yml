@@ -10,7 +10,7 @@ jobs:
   
     env:
       COMMIT_HASH: ${{ github.sha }}
-      GCS_DEST: ${{ secrets.GCS_DEV_BUCKET_PATH }}/test/${{ github.sha }}
+      GCS_DEST: ${{ secrets.GCS_PROD_BUCKET_PATH }}/test/${{ github.sha }}
 
     steps:
       - name: Checkout code
