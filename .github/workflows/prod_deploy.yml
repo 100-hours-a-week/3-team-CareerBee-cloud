@@ -1,4 +1,4 @@
-name: Deploy to GCE with GCS Artifacts
+name: PROD Deploy to GCE with GCS Artifacts
 
 on:
   push:
@@ -30,8 +30,8 @@ jobs:
 
       - name: Upload to GCS
         run: |
-            echo "Uploading to: $GCS_DEST"
-            gsutil -m cp -r ./* "$GCS_DEST/"
+            echo "Uploading to GCS path: $GCS_DEST"
+            gcloud storage cp -r .  "$GCS_DEST/"
 
       - name: Setup SSH key
         run: |
