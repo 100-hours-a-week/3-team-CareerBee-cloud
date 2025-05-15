@@ -1,0 +1,7 @@
+# 빌드 외 기타 파일 무시
+*.json
+*.env
+*.log
+.git/
+node_modules/
+.github/
