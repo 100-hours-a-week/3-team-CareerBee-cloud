@@ -57,7 +57,7 @@ jobs:
                       "embeds": [
                         {
                           "title": "✅ 프로덕션 환경에 배포 성공",
-                          "description": "**Repository:** `${{ github.repository }}`\n**Branch:** `${{ github.ref_name }}`\n**Commit:** `${{ github.sha }}`",
+                          "description": "**Repository:** `${{ github.repository }}`\n**Branch:** `${{ github.ref_name }}`\n**Commit:** `${{ github.event.head_commit.message }}`\n\n[🔗 실행 로그 보기](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})",
                           "color": 65280,  
                           "footer": {
                             "text": "GitHub Actions - PROD Deploy"
@@ -77,7 +77,7 @@ jobs:
                       "embeds": [
                         {
                           "title": "❌ 프로덕션 환경에 배포 실패",
-                          "description": "**Repository:** `${{ github.repository }}`\n**Branch:** `${{ github.ref_name }}`\n**Commit:** `${{ github.sha }}`",
+                          "description": "**Repository:** `${{ github.repository }}`\n**Branch:** `${{ github.ref_name }}`\n**Commit:** `${{ github.event.head_commit.message }}`\n\n[🔗 실행 로그 보기](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})",
                           "color": 16711680  
                         }
                       ]
