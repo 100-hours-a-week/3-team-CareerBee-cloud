@@ -30,8 +30,8 @@ jobs:
 
       - name: Upload to GCS
         run: |
-            echo "Uploading to GCS path: ${{ secrets.GCS_BUCKET_PATH }}"
-            gsutil cp ./test.txt  ${{ secrets.GCS_BUCKET_PATH }}/
+            echo "Uploading to: $GCS_DEST"
+            gsutil -m cp -r ./* "$GCS_DEST/"
 
       - name: Setup SSH key
         run: |
