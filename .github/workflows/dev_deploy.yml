@@ -51,35 +51,37 @@ jobs:
       - name: Notify Discord on Success
         if: success()
         run: |
-            curl -H "Content-Type: application/json" \
-              -X POST \
-              -d '{
-                    "embeds": [
-                      {
-                        "title": "✅ 개발 환경에 배포 성공",
-                        "description": "**Repository:** `${{ github.repository }}`\n**Branch:** `${{ github.ref_name }}`\n**Commit:** `${{ github.event.head_commit.message }}`\n\n[🔗 실행 로그 보기](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})",
-                        "color": 65280,  
-                        "footer": {
-                          "text": "GitHub Actions - DEV Deploy"
-                        },
-                        "timestamp": "'${{ github.event.head_commit.timestamp }}'"
-                      }
-                    ]
-                  }' \
-              ${{ secrets.DISCORD_WEBHOOK_URL }}
-        
+              COMMIT_MSG=$(echo '${{ github.event.head_commit.message }}' | jq -Rsa .)
+              curl -H "Content-Type: application/json" \
+                -X POST \
+                -d '{
+                      "embeds": [
+                        {
+                          "title": "✅ 개발 환경에 배포 성공",
+                          "description": "**Repository:** `${{ github.repository }}`\n**Branch:** `${{ github.ref_name }}`\n**Commit:** '"$COMMIT_MSG"'\n\n[🔗 실행 로그 보기](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})",
+                          "color": 65280,
+                          "footer": {
+                            "text": "GitHub Actions - PROD Deploy"
+                          },
+                          "timestamp": "'${{ github.event.head_commit.timestamp }}'"
+                        }
+                      ]
+                    }' \
+                ${{ secrets.DISCORD_WEBHOOK_URL }}
+            
       - name: Notify Discord on Failure
         if: failure()
         run: |
-            curl -H "Content-Type: application/json" \
-              -X POST \
-              -d '{
-                    "embeds": [
-                      {
-                        "title": "❌ 개발 환경에 배포 실패",
-                        "description": "**Repository:** `${{ github.repository }}`\n**Branch:** `${{ github.ref_name }}`\n**Commit:** `${{ github.event.head_commit.message }}`\n\n[🔗 실행 로그 보기](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})",
-                        "color": 16711680  
-                      }
-                    ]
-                  }' \
-              ${{ secrets.DISCORD_WEBHOOK_URL }}
+                  COMMIT_MSG=$(echo '${{ github.event.head_commit.message }}' | jq -Rsa .)
+                  curl -H "Content-Type: application/json" \
+                    -X POST \
+                    -d '{
+                          "embeds": [
+                            {
+                              "title": "❌ 개발 환경에 배포 실패",
+                              "description": "**Repository:** `${{ github.repository }}`\n**Branch:** `${{ github.ref_name }}`\n**Commit:** '"$COMMIT_MSG"'\n\n[🔗 실행 로그 보기](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})",
+                              "color": 16711680
+                            }
+                          ]
+                        }' \
+                    ${{ secrets.DISCORD_WEBHOOK_URL }}
