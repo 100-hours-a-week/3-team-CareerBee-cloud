@@ -58,7 +58,7 @@ jobs:
                       {
                         "title": "✅ 개발 환경에 배포 성공",
                         "description": "**Repository:** `${{ github.repository }}`\n**Branch:** `${{ github.ref_name }}`\n**Commit:** `${{ github.sha }}`",
-                        "color": 65280,  # 초록색
+                        "color": 65280,  
                         "footer": {
                           "text": "GitHub Actions - DEV Deploy"
                         },
@@ -78,7 +78,7 @@ jobs:
                       {
                         "title": "❌ 개발 환경에 배포 실패",
                         "description": "**Repository:** `${{ github.repository }}`\n**Branch:** `${{ github.ref_name }}`\n**Commit:** `${{ github.sha }}`",
-                        "color": 16711680  # 빨간색
+                        "color": 16711680  
                       }
                     ]
                   }' \
