@@ -10,7 +10,6 @@ jobs:
   
     env:
       COMMIT_HASH: ${{ github.sha }}
-      GCS_DEST: ${{ secrets.GCS_PROD_BUCKET_PATH }}/test/${{ github.sha }}
 
     steps:
       - name: Checkout code
@@ -27,11 +26,16 @@ jobs:
         with:
           version: 'latest'
           project_id: ${{ secrets.GCP_PROJECT_ID }}
+      
+      - name: Set timestamp-based path
+        run: |
+            TIMESTAMP=$(date +%Y-%m-%d_%H%M%S)
+            echo "DEPLOY_PATH=${TIMESTAMP}_${COMMIT_HASH}" >> $GITHUB_ENV
 
       - name: Upload to GCS
         run: |
-            echo "Uploading to GCS path: $GCS_DEST"
-            gcloud storage cp -r .  "$GCS_DEST/"
+            echo "Uploading to: ${{ secrets.GCS_PROD_BUCKET_PATH }}/test/$DEPLOY_PATH"
+            gcloud storage cp -r ./test/*  "${{ secrets.GCS_PROD_BUCKET_PATH }}/test/$DEPLOY_PATH/"
 
       - name: Setup SSH key
         run: |
