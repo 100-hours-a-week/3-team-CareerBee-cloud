@@ -48,38 +48,71 @@ jobs:
         run: |
           ssh ${{ secrets.GCE_USER }}@${{ secrets.GCE_HOST }} "bash ~/release/deploy-test.sh"
 
+
       - name: Notify Discord on Success
         if: success()
         run: |
-            curl -H "Content-Type: application/json" \
-              -X POST \
-              -d '{
-                    "embeds": [
-                      {
-                        "title": "✅ 개발 환경에 배포 성공",
-                        "description": "**Repository:** `${{ github.repository }}`\n**Branch:** `${{ github.ref_name }}`\n**Commit:** `${{ github.event.head_commit.message }}`\n\n[🔗 실행 로그 보기](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})",
-                        "color": 65280,  
-                        "footer": {
-                          "text": "GitHub Actions - DEV Deploy"
-                        },
-                        "timestamp": "'${{ github.event.head_commit.timestamp }}'"
-                      }
-                    ]
-                  }' \
-              ${{ secrets.DISCORD_WEBHOOK_URL }}
-        
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          REPO="${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          TIMESTAMP="${{ github.event.head_commit.timestamp }}"
+      
+          DESCRIPTION="**Repository:** \`${REPO}\`
+          **Branch:** \`${BRANCH}\`
+          **Commit:** \`${COMMIT_MSG}\`
+          [🔗 실행 로그 보기](${RUN_URL})"
+      
+          jq -n \
+            --arg desc "$DESCRIPTION" \
+            --arg timestamp "$TIMESTAMP" \
+            '{
+              "embeds": [
+                {
+                  "title": "✅ 개발 환경에 배포 성공",
+                  "description": $desc,
+                  "color": 65280,
+                  "footer": { "text": "GitHub Actions - DEV Deploy" },
+                  "timestamp": $timestamp
+                }
+              ]
+            }' > payload.json
+      
+          curl -H "Content-Type: application/json" \
+                -X POST \
+                -d @payload.json \
+                ${{ secrets.DISCORD_WEBHOOK_URL }}
+  
       - name: Notify Discord on Failure
         if: failure()
         run: |
-            curl -H "Content-Type: application/json" \
-              -X POST \
-              -d '{
-                    "embeds": [
-                      {
-                        "title": "❌ 개발 환경에 배포 실패",
-                        "description": "**Repository:** `${{ github.repository }}`\n**Branch:** `${{ github.ref_name }}`\n**Commit:** `${{ github.event.head_commit.message }}`\n\n[🔗 실행 로그 보기](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})",
-                        "color": 16711680  
-                      }
-                    ]
-                  }' \
-              ${{ secrets.DISCORD_WEBHOOK_URL }}
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          REPO="${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          TIMESTAMP="${{ github.event.head_commit.timestamp }}"
+      
+          DESCRIPTION="**Repository:** \`${REPO}\`
+          **Branch:** \`${BRANCH}\`
+          **Commit:** \`${COMMIT_MSG}\`
+          [🔗 실행 로그 보기](${RUN_URL})"
+      
+          jq -n \
+            --arg desc "$DESCRIPTION" \
+            --arg timestamp "$TIMESTAMP" \
+            '{
+              "embeds": [
+                {
+                  "title": "❌ 개발 환경에 배포 실패",
+                  "description": $desc,
+                  "color": 16711680,
+                  "footer": { "text": "GitHub Actions - DEV Deploy" },
+                  "timestamp": $timestamp
+                }
+              ]
+            }' > payload.json
+      
+          curl -H "Content-Type: application/json" \
+                -X POST \
+                -d @payload.json \
+                ${{ secrets.DISCORD_WEBHOOK_URL }}
