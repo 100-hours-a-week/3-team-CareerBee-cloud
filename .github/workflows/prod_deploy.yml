@@ -51,49 +51,63 @@ jobs:
       - name: Notify Discord on Success
         if: success()
         run: |
-            COMMIT_MSG=$(echo '${{ github.event.head_commit.message }}' | jq -Rsa .)
-            DESCRIPTION="**Repository:** \`${{ github.repository }}\`\n**Branch:** \`${{ github.ref_name }}\`\n**Commit:** $COMMIT_MSG\n\n[🔗 실행 로그 보기](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-        
-            PAYLOAD=$(jq -n --arg desc "$DESCRIPTION" --arg time "${{ github.event.head_commit.timestamp }}" '{
+          COMMIT_MSG=$(echo "${{ github.event.head_commit.message }}" | jq -Rs .)
+          REPO="${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          TIMESTAMP="${{ github.event.head_commit.timestamp }}"
+      
+          jq -n \
+            --arg repo "$REPO" \
+            --arg branch "$BRANCH" \
+            --arg commit "$COMMIT_MSG" \
+            --arg run_url "$RUN_URL" \
+            --arg timestamp "$TIMESTAMP" \
+            '{
               "embeds": [
                 {
                   "title": "✅ 프로덕션 환경에 배포 성공",
-                  "description": $desc,
+                  "description": "**Repository:** \(`$repo`)\n**Branch:** \(`$branch`)\n**Commit:** \($commit)\n\n[🔗 실행 로그 보기]($run_url)",
                   "color": 65280,
-                  "footer": {
-                    "text": "GitHub Actions - PROD Deploy"
-                  },
-                  "timestamp": $time
+                  "footer": { "text": "GitHub Actions - DEV Deploy" },
+                  "timestamp": $timestamp
                 }
               ]
-            }')
-        
-            curl -H "Content-Type: application/json" \
-                 -X POST \
-                 -d "$PAYLOAD" \
-                 ${{ secrets.DISCORD_WEBHOOK_URL }}
-
+            }' > payload.json
+      
+          curl -H "Content-Type: application/json" \
+                -X POST \
+                -d @payload.json \
+                ${{ secrets.DISCORD_WEBHOOK_URL }}
+    
       - name: Notify Discord on Failure
         if: failure()
         run: |
-          COMMIT_MSG=$(echo '${{ github.event.head_commit.message }}' | jq -Rsa .)
-          DESCRIPTION="**Repository:** \`${{ github.repository }}\`\n**Branch:** \`${{ github.ref_name }}\`\n**Commit:** $COMMIT_MSG\n\n[🔗 실행 로그 보기](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-        
-          PAYLOAD=$(jq -n --arg desc "$DESCRIPTION" --arg time "${{ github.event.head_commit.timestamp }}" '{
+          COMMIT_MSG=$(echo "${{ github.event.head_commit.message }}" | jq -Rs .)
+          REPO="${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          TIMESTAMP="${{ github.event.head_commit.timestamp }}"
+      
+          jq -n \
+            --arg repo "$REPO" \
+            --arg branch "$BRANCH" \
+            --arg commit "$COMMIT_MSG" \
+            --arg run_url "$RUN_URL" \
+            --arg timestamp "$TIMESTAMP" \
+            '{
               "embeds": [
                 {
                   "title": "❌ 프로덕션 환경에 배포 실패",
-                  "description": $desc,
+                  "description": "**Repository:** \(`$repo`)\n**Branch:** \(`$branch`)\n**Commit:** \($commit)\n\n[🔗 실행 로그 보기]($run_url)",
                   "color": 16711680,
-                  "footer": {
-                    "text": "GitHub Actions - PROD Deploy"
-                  },
-                  "timestamp": $time
+                  "footer": { "text": "GitHub Actions - PROD Deploy" },
+                  "timestamp": $timestamp
                 }
               ]
-            }')
-                    
-            curl -H "Content-Type: application/json" \
-                 -X POST \
-                 -d "$PAYLOAD" \
-                 ${{ secrets.DISCORD_WEBHOOK_URL }}
+            }' > payload.json
+      
+          curl -H "Content-Type: application/json" \
+              -X POST \
+              -d @payload.json \
+              ${{ secrets.DISCORD_WEBHOOK_URL }}
