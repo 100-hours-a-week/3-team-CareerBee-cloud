@@ -52,13 +52,13 @@ jobs:
       - name: Notify Discord on Success
         if: success()
         run: |
-          COMMIT_MSG=$(echo "${{ github.event.head_commit.message }}" | jq -Rs .)
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
           REPO="${{ github.repository }}"
           BRANCH="${{ github.ref_name }}"
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           TIMESTAMP="${{ github.event.head_commit.timestamp }}"
       
-          DESCRIPTION="**Repository:** \`${REPO}\`\n**Branch:** \`${BRANCH}\`\n**Commit:** ${COMMIT_MSG}\n\n[🔗 실행 로그 보기](${RUN_URL})"
+          DESCRIPTION="**Repository:** \`${REPO}\`\n**Branch:** \`${BRANCH}\`\n**Commit:** \`${COMMIT_MSG}\`\n\n[🔗 실행 로그 보기](${RUN_URL})"
       
           jq -n \
             --arg desc "$DESCRIPTION" \
@@ -83,13 +83,13 @@ jobs:
       - name: Notify Discord on Failure
         if: failure()
         run: |
-          COMMIT_MSG=$(echo "${{ github.event.head_commit.message }}" | jq -Rs .)
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
           REPO="${{ github.repository }}"
           BRANCH="${{ github.ref_name }}"
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           TIMESTAMP="${{ github.event.head_commit.timestamp }}"
       
-          DESCRIPTION="**Repository:** \`${REPO}\`\n**Branch:** \`${BRANCH}\`\n**Commit:** ${COMMIT_MSG}\n\n[🔗 실행 로그 보기](${RUN_URL})"
+          DESCRIPTION="**Repository:** \`${REPO}\`\n**Branch:** \`${BRANCH}\`\n**Commit:** \`${COMMIT_MSG}\`\n\n[🔗 실행 로그 보기](${RUN_URL})"
       
           jq -n \
             --arg desc "$DESCRIPTION" \
