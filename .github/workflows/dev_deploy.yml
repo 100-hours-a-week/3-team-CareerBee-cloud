@@ -58,17 +58,16 @@ jobs:
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           TIMESTAMP="${{ github.event.head_commit.timestamp }}"
       
+          DESCRIPTION="**Repository:** \`${REPO}\`\n**Branch:** \`${BRANCH}\`\n**Commit:** ${COMMIT_MSG}\n\n[🔗 실행 로그 보기](${RUN_URL})"
+      
           jq -n \
-            --arg repo "$REPO" \
-            --arg branch "$BRANCH" \
-            --arg commit "$COMMIT_MSG" \
-            --arg run_url "$RUN_URL" \
+            --arg desc "$DESCRIPTION" \
             --arg timestamp "$TIMESTAMP" \
             '{
               "embeds": [
                 {
                   "title": "✅ 개발 환경에 배포 성공",
-                  "description": "**Repository:** \(`$repo`)\n**Branch:** \(`$branch`)\n**Commit:** \($commit)\n\n[🔗 실행 로그 보기]($run_url)",
+                  "description": $desc,
                   "color": 65280,
                   "footer": { "text": "GitHub Actions - DEV Deploy" },
                   "timestamp": $timestamp
@@ -90,25 +89,24 @@ jobs:
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           TIMESTAMP="${{ github.event.head_commit.timestamp }}"
       
+          DESCRIPTION="**Repository:** \`${REPO}\`\n**Branch:** \`${BRANCH}\`\n**Commit:** ${COMMIT_MSG}\n\n[🔗 실행 로그 보기](${RUN_URL})"
+      
           jq -n \
-            --arg repo "$REPO" \
-            --arg branch "$BRANCH" \
-            --arg commit "$COMMIT_MSG" \
-            --arg run_url "$RUN_URL" \
+            --arg desc "$DESCRIPTION" \
             --arg timestamp "$TIMESTAMP" \
             '{
               "embeds": [
                 {
                   "title": "❌ 개발 환경에 배포 실패",
-                  "description": "**Repository:** \(`$repo`)\n**Branch:** \(`$branch`)\n**Commit:** \($commit)\n\n[🔗 실행 로그 보기]($run_url)",
+                  "description": $desc,
                   "color": 16711680,
-                  "footer": { "text": "GitHub Actions - PROD Deploy" },
+                  "footer": { "text": "GitHub Actions - DEV Deploy" },
                   "timestamp": $timestamp
                 }
               ]
             }' > payload.json
       
           curl -H "Content-Type: application/json" \
-              -X POST \
-              -d @payload.json \
-              ${{ secrets.DISCORD_WEBHOOK_URL }}
+                -X POST \
+                -d @payload.json \
+                ${{ secrets.DISCORD_WEBHOOK_URL }}
