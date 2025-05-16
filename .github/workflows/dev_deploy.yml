@@ -92,7 +92,10 @@ jobs:
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           TIMESTAMP="${{ github.event.head_commit.timestamp }}"
       
-          DESCRIPTION="**Repository:** \`${REPO}\`\n**Branch:** \`${BRANCH}\`\n**Commit:** \`${COMMIT_MSG}\`\n\n[🔗 실행 로그 보기](${RUN_URL})"
+          DESCRIPTION="**Repository:** \`${REPO}\`
+          **Branch:** \`${BRANCH}\`
+          **Commit:** \`${COMMIT_MSG}\`
+          [🔗 실행 로그 보기](${RUN_URL})"
       
           jq -n \
             --arg desc "$DESCRIPTION" \
