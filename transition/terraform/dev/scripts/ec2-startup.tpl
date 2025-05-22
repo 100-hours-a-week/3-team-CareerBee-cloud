@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+# ssh 키 추가
+mkdir -p /home/ubuntu/.ssh
+echo "${ADD_SSH_KEY}" >> /home/ubuntu/.ssh/authorized_keys
+chown -R ubuntu:ubuntu /home/ubuntu/.ssh
+chmod 600 /home/ubuntu/.ssh/authorized_keys
+
 # 1. 시스템 업데이트
 sudo apt update -y && sudo apt upgrade -y
 

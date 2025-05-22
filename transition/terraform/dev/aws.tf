@@ -97,7 +97,7 @@ resource "aws_security_group" "sg" {
 
 resource "aws_key_pair" "key" {
   key_name   = "ssmu-key"
-  public_key = file(var.aws_public_key_path)
+  public_key = file(var.public_key_path)
 }
 
 data "aws_eip" "existing_eip" {
@@ -147,6 +147,7 @@ resource "aws_instance" "ec2" {
     DB_PASSWORD    = var.db_password
     DB_NAME        = var.db_name
     DB_USERNAME    = var.db_username
+    ADD_SSH_KEY = file(var.public_nopass_key_path)
   })
 
   tags = {

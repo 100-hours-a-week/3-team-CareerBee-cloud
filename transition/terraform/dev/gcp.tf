@@ -113,7 +113,10 @@ resource "google_compute_instance" "gce" {
   }
 
   metadata = {
-    ssh-keys       = "ubuntu:${file(var.gcp_public_key_path)}"
+    ssh-keys = <<EOT
+      ubuntu:${file(var.public_key_path)}
+      ubuntu:${file(var.public_nopass_key_path)}
+EOT
     startup-script = templatefile("${path.module}/scripts/gce-startup.tpl", {
       DOMAIN         = var.domain
       EMAIL          = var.email

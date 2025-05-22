@@ -35,14 +35,6 @@ variable "gcp_static_ip" {
   type = string
 }
 
-variable "gcp_public_key_path" {
-  type = string
-}
-
-variable "gcp_private_key_path" {
-  type        = string
-}
-
 variable "gcp_service_account_email" {
   type = string
 }
@@ -86,18 +78,19 @@ variable "aws_static_ip" {
   type        = string
 }
 
-variable "aws_public_key_path" {
-  description = "SSH 공개 키 경로"
-  type        = string
-}
-
-variable "aws_private_key_path" {
-  type        = string
-}
 
 variable "aws_ubuntu_ami_id" {
   type        = string
   description = "리전에 맞는 Ubuntu 24.04 AMI ID"
+}
+
+# 공통
+variable "public_key_path" {
+  type        = string
+}
+
+variable "public_nopass_key_path" {
+  type        = string
 }
 
 # 환경설정 변수
