@@ -16,13 +16,15 @@ variable "gcp_credentials_file" {
 }
 
 variable "gcp_vpc_cidr" {
-  description = "GCP VPC CIDR block"
   type        = string
 }
 
 variable "gcp_subnet_cidr" {
-  description = "GCP VPC 서브넷 CIDR"
   type        = string
+}
+
+variable "gcp_ssh_access_cidr_blocks" {
+  type    = list(string)
 }
 
 variable "gcp_db_access_cidr_blocks" {
@@ -35,6 +37,10 @@ variable "gcp_static_ip" {
 
 variable "gcp_public_key_path" {
   type = string
+}
+
+variable "gcp_private_key_path" {
+  type        = string
 }
 
 variable "gcp_service_account_email" {
@@ -67,6 +73,10 @@ variable "aws_subnet_cidr" {
   type        = string
 }
 
+variable "aws_ssh_access_cidr_blocks" {
+  type    = list(string)
+}
+
 variable "aws_db_access_cidr_blocks" {
   type    = list(string)
 }
@@ -81,13 +91,35 @@ variable "aws_public_key_path" {
   type        = string
 }
 
+variable "aws_private_key_path" {
+  type        = string
+}
+
 variable "aws_ubuntu_ami_id" {
   type        = string
   description = "리전에 맞는 Ubuntu 24.04 AMI ID"
 }
 
-# VPN 변수 설정
-variable "vpn_shared_secret" {
-  description = "Pre-shared key for GCP-AWS VPN tunnel"
+# 환경설정 변수
+variable "domain" {}
+variable "email" {}
+variable "db_name" {}
+variable "db_username" {}
+variable "db_password" {}
+variable "bucket_backup" {}
+variable "device_id" {}
+variable "mount_dir" {}
+variable "hf_token" {
+  type        = string
+  sensitive   = true
+}
+variable "aws_access_key_id" {
+  type        = string
+}
+variable "aws_secret_access_key" {
+  type        = string
+  sensitive   = true
+}
+variable "aws_default_region" {
   type        = string
 }

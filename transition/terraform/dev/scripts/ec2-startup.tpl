@@ -1,0 +1,163 @@
+#!/bin/bash
+set -e
+
+# 1. 시스템 업데이트
+sudo apt update -y && sudo apt upgrade -y
+
+# 2. 필수 패키지
+sudo apt install -y curl git unzip build-essential ca-certificates gnupg lsb-release software-properties-common npm
+# aws-cli 설치
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+
+# 3. 로그, 릴리즈, 임시 디렉토리 추가 & 디스크 마운트
+sudo mkdir -p /home/ubuntu/logs /home/ubuntu/release /home/ubuntu/tmp
+sudo chown -R ubuntu:ubuntu /home/ubuntu
+
+# 4. Java 21 (OpenJDK 21)
+sudo apt update -y
+sudo apt install -y openjdk-21-jdk gradle
+
+# 5. MySQL 8.4.0
+sudo apt update -y
+sudo apt install -y mysql-server
+
+sudo systemctl enable mysql
+sudo systemctl start mysql
+
+# 🔥 bind-address 수정 (0.0.0.0으로 변경)
+sudo sed -i 's/^bind-address.*/bind-address = 0.0.0.0/' /etc/mysql/mysql.conf.d/mysqld.cnf || \
+sudo bash -c "echo 'bind-address = 0.0.0.0' >> /etc/mysql/mysql.conf.d/mysqld.cnf"
+
+sudo systemctl restart mysql
+
+# MySQL root 비밀번호 설정 및 보안 강화
+sudo mysql <<MYSQL_ROOT
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${DB_PASSWORD}';
+FLUSH PRIVILEGES;
+MYSQL_ROOT
+
+# 🔥 DB 및 사용자 생성
+sudo mysql -uroot -p${DB_PASSWORD} <<MYSQL_SCRIPT
+CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS '${DB_USERNAME}'@'%' IDENTIFIED BY '${DB_PASSWORD}';
+GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USERNAME}'@'%';
+FLUSH PRIVILEGES;
+MYSQL_SCRIPT
+
+# 6. Node.js 22.14.0
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt install -y nodejs
+sudo npm install -g pnpm@10.7.1
+
+# 8. Nginx + HTML 폴더
+sudo apt install -y nginx
+sudo mkdir -p /var/www/html
+sudo chown -R ubuntu:ubuntu /var/www/html
+
+# 8-1. Certbot 및 HTTPS 인증서 발급
+sudo snap install --classic certbot
+sudo ln -sf /snap/bin/certbot /usr/bin/certbot
+
+# 인증서 복원 - S3에서 다운로드 (AWS용 dev.${DOMAIN})
+sudo mkdir -p /etc/letsencrypt/{live,archive,renewal}
+sudo mkdir -p /etc/letsencrypt/live/dev.${DOMAIN}
+sudo mkdir -p /etc/letsencrypt/archive/dev.${DOMAIN}
+
+sudo aws s3 cp ${BUCKET_BACKUP}/aws/live/dev.${DOMAIN}/     /etc/letsencrypt/live/dev.${DOMAIN}/     --recursive
+sudo aws s3 cp ${BUCKET_BACKUP}/aws/archive/dev.${DOMAIN}/  /etc/letsencrypt/archive/dev.${DOMAIN}/  --recursive
+sudo aws s3 cp ${BUCKET_BACKUP}/aws/renewal/dev.${DOMAIN}.conf /etc/letsencrypt/renewal/
+sudo aws s3 cp ${BUCKET_BACKUP}/aws/options-ssl-nginx.conf /etc/letsencrypt/
+sudo aws s3 cp ${BUCKET_BACKUP}/aws/ssl-dhparams.pem /etc/letsencrypt/
+
+
+# sudo certbot --nginx --non-interactive --agree-tos --no-redirect \
+#   -m ${EMAIL} -d dev.${DOMAIN} -d dev-api.${DOMAIN}
+
+# 8-2. Nginx SPA fallback 설정 + HTTPS listen 추가
+sudo tee /etc/nginx/sites-available/default > /dev/null <<EOF_NGINX
+# HTTP → HTTPS 리디렉트
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    server_name *.${DOMAIN};
+
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+
+    server_name dev.${DOMAIN};
+
+    root /var/www/html;
+    index index.html;
+
+    ssl_certificate /etc/letsencrypt/live/dev.${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/dev.${DOMAIN}/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name dev-api.${DOMAIN};
+
+    ssl_certificate /etc/letsencrypt/live/dev.${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/dev.${DOMAIN}/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    location / {
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+    }
+}
+EOF_NGINX
+
+sudo nginx -t && sudo systemctl reload nginx
+
+# 9. UFW 설정
+sudo ufw allow OpenSSH
+sudo ufw allow 80
+sudo ufw allow 443
+sudo ufw allow 3306
+sudo ufw allow 8080
+sudo ufw allow 5173
+sudo ufw --force enable
+
+# 11. 버전 확인 로그
+echo "[✔] Java 버전:"
+java -version
+
+echo "[✔] MySQL 상태:"
+sudo systemctl is-active --quiet mysql && echo "MySQL 실행 중" || echo "❌ MySQL 비활성 상태"
+
+echo "[✔] MySQL 사용자 및 DB 확인:"
+sudo mysql -uroot -p${DB_PASSWORD} -e "SHOW DATABASES LIKE '${DB_NAME}';"
+sudo mysql -uroot -p${DB_PASSWORD} -e "SELECT User, Host FROM mysql.user WHERE User='${DB_USERNAME}';"
+
+echo "[✔] Node.js & pnpm 버전:"
+node -v
+pnpm -v
+
+echo "[✔] Nginx 상태:"
+sudo systemctl is-active --quiet nginx && echo "Nginx 실행 중" || echo "❌ Nginx 비활성 상태"
+
+echo "[✔] HTTPS 인증서:"
+if [ -f "/etc/letsencrypt/live/dev.${DOMAIN}/fullchain.pem" ]; then
+  echo "인증서 존재함"
+else
+  echo "❌ 인증서 없음"
+fi
+
+echo "[✔] UFW 방화벽 상태:"
+sudo ufw status verbose

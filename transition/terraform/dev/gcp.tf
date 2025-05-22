@@ -23,37 +23,37 @@ resource "google_compute_firewall" "allow_public" {
 
   allow {
     protocol = "tcp"
-    ports    = ["22", "8000"]
+    ports    = ["80", "443"]
   }
 
   source_ranges = ["0.0.0.0/0"]
   direction     = "INGRESS"
 }
 
-resource "google_compute_firewall" "allow_mysql" {
-  name    = "fw-careerbee-dev-mysql"
+resource "google_compute_firewall" "allow_ssh" {
+  name    = "fw-careerbee-dev-ssh"
   network = google_compute_network.vpc.name
 
   allow {
     protocol = "tcp"
-    ports    = ["3306"]
+    ports    = ["22"]
   }
 
-  source_ranges = var.gcp_db_access_cidr_blocks
+  source_ranges = var.gcp_ssh_access_cidr_blocks
   direction     = "INGRESS"
 }
 
-resource "google_compute_firewall" "allow_ipsec" {
-  name    = "fw-careerbee-dev-vpn"
+resource "google_compute_firewall" "allow_ai" {
+  name    = "fw-careerbee-dev-ingress-ai"
   network = google_compute_network.vpc.name
 
   allow {
-    protocol = "udp"
-    ports    = ["500", "4500"]
+    protocol = "tcp"
+    ports    = ["8000"]
   }
 
   allow {
-    protocol = "esp"
+    protocol = "icmp"
   }
 
   source_ranges = ["${var.aws_static_ip}/32"]
@@ -114,36 +114,18 @@ resource "google_compute_instance" "gce" {
 
   metadata = {
     ssh-keys       = "ubuntu:${file(var.gcp_public_key_path)}"
-    startup-script = <<-EOT
-      #!/bin/bash
-      set -e
-
-      DEVICE_ID="/dev/disk/by-id/google-careerbee-dev-data"
-      MOUNT_DIR="/mnt/data"
-
-      while [ ! -b "$DEVICE_ID" ]; do
-        echo "Waiting for $DEVICE_ID..."
-        sleep 2
-      done
-
-      if ! blkid $DEVICE_ID; then
-        mkfs.ext4 -F $DEVICE_ID
-      fi
-
-      mkdir -p $MOUNT_DIR
-      mount -o discard,defaults $DEVICE_ID $MOUNT_DIR
-
-      if ! grep -q "$DEVICE_ID" /etc/fstab; then
-        echo "$DEVICE_ID $MOUNT_DIR ext4 discard,defaults,nofail 0 2" >> /etc/fstab
-      fi
-
-      # Install Google Cloud Ops Agent (for Monitoring + Logging)
-      curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
-      sudo bash add-google-cloud-ops-agent-repo.sh --also-install
-
-      sudo systemctl enable google-cloud-ops-agent
-      sudo systemctl restart google-cloud-ops-agent
-    EOT
+    startup-script = templatefile("${path.module}/scripts/gce-startup.tpl", {
+      DOMAIN         = var.domain
+      EMAIL          = var.email
+      BUCKET_BACKUP  = var.bucket_backup
+      
+      MOUNT_DIR      = var.mount_dir
+      DEVICE_ID      = var.device_id
+      HF_TOKEN       = var.hf_token
+      AWS_ACCESS_KEY_ID     = var.aws_access_key_id
+      AWS_SECRET_ACCESS_KEY = var.aws_secret_access_key
+      AWS_DEFAULT_REGION    = var.aws_default_region
+    })
   }
 
   tags = ["careerbee-dev"]

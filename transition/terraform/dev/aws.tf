@@ -59,7 +59,7 @@ resource "aws_security_group" "sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.aws_ssh_access_cidr_blocks
   }
 
   ingress {
@@ -138,6 +138,16 @@ resource "aws_instance" "ec2" {
   key_name               = aws_key_pair.key.key_name
   associate_public_ip_address = false
   iam_instance_profile = aws_iam_instance_profile.ec2_instance_profile.name
+
+  user_data = templatefile("${path.module}/scripts/ec2-startup.tpl", {
+    DOMAIN         = var.domain
+    EMAIL          = var.email
+    BUCKET_BACKUP  = var.bucket_backup
+    
+    DB_PASSWORD    = var.db_password
+    DB_NAME        = var.db_name
+    DB_USERNAME    = var.db_username
+  })
 
   tags = {
     Name = "ec2-careerbee-dev-azone"
