@@ -5,6 +5,7 @@
 sudo apt update -y && sudo apt upgrade -y
 sudo apt install -y curl unzip nginx
 # sudo apt-get install -y nvidia-driver-570
+
 # aws-cli 설치
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
@@ -91,19 +92,25 @@ sudo nginx -t && sudo systemctl reload nginx
 
 # 6. Python 3.12.8 & vLLM
 sudo apt update -y
-sudo apt install -y python3.12 python3.12-venv python3.12-dev
+sudo apt install -y python3.12 python3.12-venv python3.12-dev build-essential cmake libmupdf-dev libopenblas-dev libglib2.0-dev
 sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
-python3.12 -m venv /home/ubuntu/venv
-chown -R ubuntu:ubuntu /home/ubuntu/venv
+
+# 가상환경 생성 경로 변경
+python3.12 -m venv "${MOUNT_DIR}/venv"
+sudo chown -R ubuntu:ubuntu "${MOUNT_DIR}/venv"
+
+# 토큰 환경변수
+export HF_TOKEN="${HF_TOKEN}"
+
 # 가상환경 활성화
-source /home/ubuntu/venv/bin/activate
+source "${MOUNT_DIR}/venv/bin/activate"
 
 # huggingface-cli 및 vLLM 설치
 pip install --upgrade pip
 pip install huggingface_hub
 huggingface-cli login --token "${HF_TOKEN}"
 huggingface-cli download mistralai/Mistral-7B-Instruct-v0.3 \
-  --local-dir /mnt/data/mistral-7b \
+  --local-dir "${MOUNT_DIR}/mistral-7b" \
   --local-dir-use-symlinks False
 
 # 가상환경 비활성화
@@ -120,10 +127,10 @@ sudo ufw --force enable
 sudo apt install -y cron
 sudo systemctl enable --now cron
 
-if [ -d "/mnt/data/mistral-7b" ]; then
+if [ -d "${MOUNT_DIR}/mistral-7b" ]; then
     CRON_CONTENT=$(cat <<EOF
-@reboot nohup /home/ubuntu/venv/bin/python3 -m vllm.entrypoints.openai.api_server --model /mnt/data/mistral-7b --dtype float16 --port 8000 --gpu-memory-utilization 0.9 > /home/ubuntu/logs/vllm.log 2>&1 &
-0 18 * * 1 /home/ubuntu/venv/bin/python3 /home/ubuntu/ai-server/summarizer_pipeline/main.py >> /home/ubuntu/logs/ai-cron.log 2>&1
+@reboot nohup ${MOUNT_DIR}/venv/bin/python3 -m vllm.entrypoints.openai.api_server --model ${MOUNT_DIR}/mistral-7b --dtype float16 --port 8000 --gpu-memory-utilization 0.9 > /home/ubuntu/logs/vllm.log 2>&1 &
+0 18 * * 1 ${MOUNT_DIR}/venv/bin/python3 /home/ubuntu/ai-server/summarizer_pipeline/main.py >> /home/ubuntu/logs/ai-cron.log 2>&1
 EOF
 )
 fi
@@ -146,7 +153,7 @@ echo "[✔] Python3 버전:"
 python3 --version
 
 echo "[✔] vLLM 디렉토리 확인:"
-[ -d "/mnt/data/mistral-7b" ] && echo "/mnt/data/mistral-7b 디렉토리 존재함" || echo "❌ /mnt/data/mistral-7b 디렉토리 없음"
+[ -d "${MOUNT_DIR}/mistral-7b" ] && echo "${MOUNT_DIR}/mistral-7b 디렉토리 존재함" || echo "❌ ${MOUNT_DIR}/mistral-7b 디렉토리 없음"
 
 echo "[✔] Nginx 상태:"
 sudo systemctl is-active --quiet nginx && echo "Nginx 실행 중" || echo "❌ Nginx 비활성 상태"
