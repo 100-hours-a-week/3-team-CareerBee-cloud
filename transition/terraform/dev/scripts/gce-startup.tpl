@@ -95,6 +95,11 @@ sudo apt update -y
 sudo apt install -y python3.12 python3.12-venv python3.12-dev build-essential cmake libmupdf-dev libopenblas-dev libglib2.0-dev
 sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 
+# Python 설치 완료 확인
+until command -v python3.12 >/dev/null 2>&1; do
+  sleep 2
+done
+
 # 가상환경 생성 경로 변경
 python3.12 -m venv "${MOUNT_DIR}/venv"
 sudo chown -R ubuntu:ubuntu "${MOUNT_DIR}/venv"
