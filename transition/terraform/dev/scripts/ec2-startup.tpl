@@ -140,6 +140,33 @@ sudo ufw allow 8080
 sudo ufw allow 5173
 sudo ufw --force enable
 
+# 10.1 S3에서 BE 산출물 다운로드 및 배포
+DEPLOY_PATH=$(aws s3 ls "${S3_BUCKET_INFRA}/be/" | sort | tail -n 1 | awk '{print $2}' | sed 's#/##')
+
+mkdir -p /home/ubuntu/release
+aws s3 cp "${S3_BUCKET_INFRA}/be/${DEPLOY_PATH}/careerbee-api.jar" /home/ubuntu/release/careerbee-api.jar
+
+pkill -f "careerbee-api.jar" || true
+
+nohup java \
+  -Dspring.profiles.active=dev \
+  -DDB_URL="${DB_URL}" \
+  -DDB_USERNAME="${DB_USERNAME}" \
+  -DDB_PASSWORD="${DB_PASSWORD}" \
+  -DJWT_SECRETS="${JWT_SECRETS}" \
+  -DKAKAO_CLIENT_ID="${KAKAO_CLIENT_ID}" \
+  -DKAKAO_REDIRECT_URI="${KAKAO_REDIRECT_URI}" \
+  -DCOOKIE_DOMAIN="${COOKIE_DOMAIN}" \
+  -DSENTRY_DSN="${SENTRY_DSN}" \
+  -DSENTRY_AUTH_TOKEN="${SENTRY_AUTH_TOKEN}" \
+  -jar /home/ubuntu/release/careerbee-api.jar > /home/ubuntu/logs/backend.log 2>&1 &
+
+# 10.2 S3에서 BE/FE 산출물 다운로드 및 배포
+DEPLOY_PATH=$(aws s3 ls "${S3_BUCKET_INFRA}/fe/" | sort | tail -n 1 | awk '{print $2}' | sed 's#/##')
+
+sudo rm -rf /var/www/html/*
+aws s3 cp "${S3_BUCKET_INFRA}/fe/${DEPLOY_PATH}/" /var/www/html/ --recursive
+
 # 11. 버전 확인 로그
 echo "[✔] Java 버전:"
 java -version
@@ -167,3 +194,18 @@ fi
 
 echo "[✔] UFW 방화벽 상태:"
 sudo ufw status verbose
+
+# 12. 배포 확인 로그
+echo "[✔] 백엔드 서버 상태 확인:"
+if pgrep -f "careerbee-api.jar" > /dev/null; then
+  echo "✅ 백엔드(Spring Boot) 서버 실행 중"
+else
+  echo "❌ 백엔드(Spring Boot) 서버 실행 실패"
+fi
+
+echo "[✔] 프론트엔드 정적 파일 확인:"
+if [ -f "/var/www/html/index.html" ]; then
+  echo "✅ 프론트엔드 index.html 배포 완료"
+else
+  echo "❌ 프론트엔드 index.html 없음"
+fi

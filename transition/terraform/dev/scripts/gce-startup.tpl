@@ -144,7 +144,26 @@ if [ -n "$CRON_CONTENT" ]; then
     ( crontab -l 2>/dev/null | grep -v "vllm" | grep -v "main.py" ; echo "$CRON_CONTENT" ) | crontab -
 fi
 
-# 9. 버전 확인 로그
+# 9. S3에서 배포 산출물 받아와 AI 서버 배포
+LATEST_PATH=$(aws s3 ls "${S3_BUCKET_INFRA}/ai/" | awk '{print $2}' | sort | tail -n 1 | tr -d '/')
+DEPLOY_PATH="${LATEST_PATH}"
+DEPLOY_DIR="/home/ubuntu/release"
+
+aws s3 cp "${S3_BUCKET_INFRA}/ai/${DEPLOY_PATH}/" "${DEPLOY_DIR}/" --recursive
+
+source "${MOUNT_DIR}/venv/bin/activate"
+
+pip install --upgrade pip
+pip install --no-cache-dir --prefer-binary -r "${DEPLOY_DIR}/requirements.txt"
+
+pkill -f "uvicorn" || true
+
+cd "${DEPLOY_DIR}"
+nohup "${MOUNT_DIR}/venv/bin/uvicorn" app.main:app --host 0.0.0.0 --port 8000 > /home/ubuntu/logs/ai.log 2>&1 &
+
+deactivate
+
+# 10. 버전 확인 로그
 echo "[✔] 디스크 마운트 상태:"
 if mountpoint -q ${MOUNT_DIR}; then
   echo "✅ 디스크가 ${MOUNT_DIR}에 마운트되어 있습니다."
@@ -175,3 +194,12 @@ sudo ufw status verbose
 
 echo "[✔] 크론탭 등록 상태:"
 crontab -l
+
+# 배포 확인 로그
+echo "[✔] AI 서버 실행 상태 확인:"
+sleep 5
+if pgrep -f "uvicorn" > /dev/null; then
+  echo "✅ uvicorn 프로세스가 실행 중입니다."
+else
+  echo "❌ uvicorn 프로세스가 실행되고 있지 않습니다."
+fi
