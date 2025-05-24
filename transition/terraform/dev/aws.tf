@@ -140,14 +140,23 @@ resource "aws_instance" "ec2" {
   iam_instance_profile = aws_iam_instance_profile.ec2_instance_profile.name
 
   user_data = templatefile("${path.module}/scripts/ec2-startup.tpl", {
-    DOMAIN         = var.domain
-    EMAIL          = var.email
-    BUCKET_BACKUP  = var.bucket_backup
+    DOMAIN                    = var.domain
+    EMAIL                     = var.email
+    BUCKET_BACKUP             = var.bucket_backup
     
-    DB_PASSWORD    = var.db_password
-    DB_NAME        = var.db_name
-    DB_USERNAME    = var.db_username
-    ADD_SSH_KEY = file(var.public_nopass_key_path)
+    DB_PASSWORD               = var.db_password
+    DB_NAME                   = var.db_name
+    DB_USERNAME               = var.db_username
+    DB_URL                    = var.db_url
+    JWT_SECRETS               = var.jwt_secrets
+    KAKAO_CLIENT_ID           = var.kakao_client_id
+    KAKAO_PROD_REDIRECT_URI   = var.kakao_prod_redirect_uri
+    KAKAO_DEV_REDIRECT_URI    = var.kakao_dev_redirect_uri
+    KAKAO_LOCAL_REDIRECT_URI  = var.kakao_local_redirect_uri
+    COOKIE_DOMAIN             = var.cookie_domain
+    SENTRY_DSN                = var.sentry_dsn
+    SENTRY_AUTH_TOKEN         = var.sentry_auth_token
+    ADD_SSH_KEY               = file(var.public_nopass_key_path)
   })
 
   tags = {

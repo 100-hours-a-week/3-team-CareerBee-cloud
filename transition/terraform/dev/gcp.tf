@@ -49,7 +49,7 @@ resource "google_compute_firewall" "allow_ai" {
 
   allow {
     protocol = "tcp"
-    ports    = ["8000"]
+    ports    = ["8000", "8001"]
   }
 
   allow {
@@ -118,16 +118,17 @@ resource "google_compute_instance" "gce" {
       ubuntu:${file(var.public_nopass_key_path)}
 EOT
     startup-script = templatefile("${path.module}/scripts/gce-startup.tpl", {
-      DOMAIN         = var.domain
-      EMAIL          = var.email
-      BUCKET_BACKUP  = var.bucket_backup
+      DOMAIN                = var.domain
+      EMAIL                 = var.email
+      BUCKET_BACKUP         = var.bucket_backup
       
-      MOUNT_DIR      = var.mount_dir
-      DEVICE_ID      = var.device_id
-      HF_TOKEN       = var.hf_token
+      MOUNT_DIR             = var.mount_dir
+      DEVICE_ID             = var.device_id
+      HF_TOKEN              = var.hf_token
       AWS_ACCESS_KEY_ID     = var.aws_access_key_id
       AWS_SECRET_ACCESS_KEY = var.aws_secret_access_key
       AWS_DEFAULT_REGION    = var.aws_default_region
+      DEPLOY_DIR            = var.deploy_dir
     })
   }
 

@@ -141,31 +141,29 @@ sudo ufw allow 5173
 sudo ufw --force enable
 
 # 10.1 S3에서 BE 산출물 다운로드 및 배포
-DEPLOY_PATH=$(aws s3 ls "${S3_BUCKET_INFRA}/be/" | sort | tail -n 1 | awk '{print $2}' | sed 's#/##')
-
 mkdir -p /home/ubuntu/release
-aws s3 cp "${S3_BUCKET_INFRA}/be/${DEPLOY_PATH}/careerbee-api.jar" /home/ubuntu/release/careerbee-api.jar
+aws s3 cp "$(aws s3 ls "${BUCKET_BACKUP}/be/" | sort | tail -n 1 | awk '{print "'"${BUCKET_BACKUP}/be/"'" $2}' | sed 's#/$##')/careerbee-api.jar" /home/ubuntu/release/careerbee-api.jar
 
 pkill -f "careerbee-api.jar" || true
 
 nohup java \
-  -Dspring.profiles.active=dev \
-  -DDB_URL="${DB_URL}" \
-  -DDB_USERNAME="${DB_USERNAME}" \
-  -DDB_PASSWORD="${DB_PASSWORD}" \
-  -DJWT_SECRETS="${JWT_SECRETS}" \
-  -DKAKAO_CLIENT_ID="${KAKAO_CLIENT_ID}" \
-  -DKAKAO_REDIRECT_URI="${KAKAO_REDIRECT_URI}" \
-  -DCOOKIE_DOMAIN="${COOKIE_DOMAIN}" \
-  -DSENTRY_DSN="${SENTRY_DSN}" \
-  -DSENTRY_AUTH_TOKEN="${SENTRY_AUTH_TOKEN}" \
-  -jar /home/ubuntu/release/careerbee-api.jar > /home/ubuntu/logs/backend.log 2>&1 &
+    -Dspring.profiles.active=dev \
+    -DDB_URL="${DB_URL}" \
+    -DDB_USERNAME="${DB_USERNAME}" \
+    -DDB_PASSWORD="${DB_PASSWORD}" \
+    -DJWT_SECRETS="${JWT_SECRETS}" \
+    -DKAKAO_CLIENT_ID="${KAKAO_CLIENT_ID}" \
+    -DKAKAO_PROD_REDIRECT_URI="${KAKAO_PROD_REDIRECT_URI}" \
+    -DKAKAO_DEV_REDIRECT_URI="${KAKAO_DEV_REDIRECT_URI}" \
+    -DKAKAO_LOCAL_REDIRECT_URI="${KAKAO_LOCAL_REDIRECT_URI}" \
+    -DCOOKIE_DOMAIN="${COOKIE_DOMAIN}" \
+    -DSENTRY_DSN="${SENTRY_DSN}" \
+    -DSENTRY_AUTH_TOKEN="${SENTRY_AUTH_TOKEN}" \
+    -jar /home/ubuntu/release/careerbee-api.jar > /home/ubuntu/logs/backend.log 2>&1 &
 
 # 10.2 S3에서 BE/FE 산출물 다운로드 및 배포
-DEPLOY_PATH=$(aws s3 ls "${S3_BUCKET_INFRA}/fe/" | sort | tail -n 1 | awk '{print $2}' | sed 's#/##')
-
 sudo rm -rf /var/www/html/*
-aws s3 cp "${S3_BUCKET_INFRA}/fe/${DEPLOY_PATH}/" /var/www/html/ --recursive
+aws s3 cp "$(aws s3 ls "${BUCKET_BACKUP}/fe/" | sort | tail -n 1 | awk '{print "'"${BUCKET_BACKUP}/fe/"'" $2}' | sed 's#/$##')" /var/www/html/ --recursive
 
 # 11. 버전 확인 로그
 echo "[✔] Java 버전:"
