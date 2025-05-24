@@ -126,6 +126,7 @@ sudo ufw allow OpenSSH
 sudo ufw allow 80
 sudo ufw allow 443
 sudo ufw allow 8000
+sudo ufw allow 8001
 sudo ufw --force enable
 
 # 8. cron 설치 및 설정
@@ -145,12 +146,7 @@ if [ -n "$CRON_CONTENT" ]; then
 fi
 
 # 9. S3에서 배포 산출물 받아와 AI 서버 배포
-LATEST_PATH=$(aws s3 ls "${S3_BUCKET_INFRA}/ai/" | awk '{print $2}' | sort | tail -n 1 | tr -d '/')
-DEPLOY_PATH="${LATEST_PATH}"
-DEPLOY_DIR="/home/ubuntu/release"
-
-aws s3 cp "${S3_BUCKET_INFRA}/ai/${DEPLOY_PATH}/" "${DEPLOY_DIR}/" --recursive
-
+aws s3 cp "$(aws s3 ls "${BUCKET_BACKUP}/ai/" | awk '{print $2}' | sort | tail -n 1 | sed 's#^#'"${BUCKET_BACKUP}/ai/"'#;s#/$##')" "${DEPLOY_DIR}/" --recursive
 source "${MOUNT_DIR}/venv/bin/activate"
 
 pip install --upgrade pip
