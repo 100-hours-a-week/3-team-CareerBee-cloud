@@ -109,6 +109,7 @@ variable "cookie_domain" {}
 variable "sentry_dsn" {}
 variable "sentry_auth_token" {}
 variable "bucket_backup" {}
+variable "bucket_tfstate" {}
 variable "device_id" {}
 variable "mount_dir" {}
 variable "deploy_dir" {}
