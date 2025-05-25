@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    bucket         = var.bucket_backup
+    bucket         = "s3-careerbee-dev-infra"
     key            = "terraform.tfstate"
     region         = "ap-northeast-2"
     encrypt        = true
