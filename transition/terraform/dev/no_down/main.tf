@@ -31,11 +31,6 @@ provider "aws" {
 resource "aws_eip" "static_ip" {
 }
 
-resource "aws_s3_bucket" "ssmu_bucket_tfstate" {
-  bucket = var.s3_tfstate_bucket_name
-  tags = var.s3_tfstate_bucket_tags
-}
-
 resource "aws_s3_bucket" "ssmu_bucket_image" {
   bucket = var.s3_image_bucket_name
   tags = var.s3_image_bucket_tags

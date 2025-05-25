@@ -50,16 +50,6 @@ variable "aws_credentials_file" {
   type        = string
 }
 
-variable "s3_tfstate_bucket_name" {
-  description = "Name of the S3 bucket for Terraform state"
-  type        = string
-}
-
-variable "s3_tfstate_bucket_tags" {
-  description = "Tags for the Terraform state S3 bucket"
-  type        = map(string)
-}
-
 variable "s3_image_bucket_name" {
   description = "Name of the S3 bucket for storing images"
   type        = string

@@ -7,7 +7,11 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-  
+
+    env:
+      TERRAFORM_DIR: transition/terraform
+      SCRIPT_DIR: transition/deploy/scripts
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -18,31 +22,67 @@ jobs:
           terraform_version: 1.6.6
 
       - name: Decrypt terraform.tfvars.enc
+        working-directory: ${{ env.TERRAFORM_DIR }}
         run: |
           openssl aes-256-cbc -d -salt -pbkdf2 -in terraform.tfvars.enc -out terraform.tfvars -k "${{ secrets.DEV_TFVARS_ENC_PW }}"
 
-      - name: Export AWS credentials from tfvars
-        id: export-creds
+      - name: Decrypt env file
+        working-directory: ${{ env.SCRIPT_DIR }}
         run: |
-          export AWS_ACCESS_KEY_ID=$(grep aws_access_key_id terraform.tfvars | cut -d '"' -f2)
-          export AWS_SECRET_ACCESS_KEY=$(grep aws_secret_access_key terraform.tfvars | cut -d '"' -f2)
-          export AWS_DEFAULT_REGION=$(grep aws_default_region terraform.tfvars | cut -d '"' -f2)
+          openssl enc -aes-256-cbc -d -pbkdf2 -in cicd-variables.sh.enc -out cicd-variables.sh -k "${{ secrets.DEV_CICD_VARIABLES_ENC_PW }}"
+          chmod +x cicd-variables.sh
+          source ./cicd-variables.sh
 
           echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> $GITHUB_ENV
           echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> $GITHUB_ENV
           echo "AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION" >> $GITHUB_ENV
-          
+          echo "SSH_KEY=$SSH_KEY" >> $GITHUB_ENV
+          echo "SSH_KEY_BASE64=$SSH_KEY_BASE64" >> $GITHUB_ENV
+          echo "AWS_SERVER_IP=$AWS_SERVER_IP" >> $GITHUB_ENV
+          echo "GCP_SERVER_IP=$GCP_SERVER_IP" >> $GITHUB_ENV
+          echo "DB_PASSWORD=$DB_PASSWORD" >> $GITHUB_ENV
+          echo "S3_BUCKET_INFRA=$S3_BUCKET_INFRA" >> $GITHUB_ENV
+
+      - name: Restore SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${SSH_KEY_BASE64}" | base64 --decode > "${SSH_KEY}"
+          chmod 600 "${SSH_KEY}"
+
       - name: Terraform Init
+        working-directory: ${{ env.TERRAFORM_DIR }}
         run: terraform init
 
       - name: Terraform Plan
+        working-directory: ${{ env.TERRAFORM_DIR }}
         run: terraform plan
 
       - name: Terraform Apply
+        working-directory: ${{ env.TERRAFORM_DIR }}
         run: terraform apply -auto-approve
 
+      - name: Wait for EC2 and GCE startup
+        run: |
+          while true; do
+            EC2_DONE=$(ssh -o StrictHostKeyChecking=no -i $SSH_KEY ubuntu@$AWS_SERVER_IP 'test -f /home/ubuntu/tmp/ec2-startup.done && echo ok || echo no')
+            GCE_DONE=$(ssh -o StrictHostKeyChecking=no -i $SSH_KEY ubuntu@$GCP_SERVER_IP 'test -f /home/ubuntu/tmp/gce-startup.done && echo ok || echo no')
+
+            if [ "$EC2_DONE" = "ok" ] && [ "$GCE_DONE" = "ok" ]; then
+              break
+            else
+              echo "⏳ 초기 환경 설정 중... (30초 후 재시도)"
+              sleep 30
+            fi
+          done
+
+      - name: 🗃 Run DB Restore Script
+        working-directory: ${{ env.SCRIPT_DIR }}
+        run: bash db-restore.sh
+
       - name: Clean up
-        run: rm -f terraform.tfvars
+        run: |
+          rm -f ${{ env.TERRAFORM_DIR }}/terraform.tfvars
+          rm -f ${{ env.SCRIPT_DIR }}/cicd-variables.sh
 
       - name: Notify Discord on Success
         if: success()
@@ -64,7 +104,7 @@ jobs:
             '{
               "embeds": [
                 {
-                  "title": "✅ 개발 환경에 배포 성공",
+                  "title": "✅ 개발 환경 배포 성공",
                   "description": $desc,
                   "color": 65280,
                   "footer": { "text": "GitHub Actions - DEV Deploy" },
@@ -98,7 +138,7 @@ jobs:
             '{
               "embeds": [
                 {
-                  "title": "❌ 개발 환경에 배포 실패",
+                  "title": "❌ 개발 환경 배포 실패",
                   "description": $desc,
                   "color": 16711680,
                   "footer": { "text": "GitHub Actions - DEV Deploy" },
