@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      TERRAFORM_DIR: transition/terraform
+      TERRAFORM_DIR: transition/terraform/dev
       SCRIPT_DIR: transition/deploy/scripts
 
     steps:
