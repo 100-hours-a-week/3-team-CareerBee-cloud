@@ -1,4 +1,4 @@
-name: DEV Deploy to GCE with GCS Artifacts
+name: DEV Deploy to Terraform Deploy
 
 on:
   push:
@@ -8,46 +8,27 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
   
-    env:
-      COMMIT_HASH: ${{ github.sha }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: google auth
-        id: "auth"
-        uses: "google-github-actions/auth@v1"
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
-          credentials_json: "${{ secrets.GCP_SA_KEY }}"
+          terraform_version: 1.6.6
 
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          version: 'latest'
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-      
-      - name: Set timestamp-based path
+      - name: Decrypt terraform.tfvars.enc
         run: |
-            TIMESTAMP=$(TZ='Asia/Seoul' date +%Y-%m-%d_%H_%M_%S)
-            echo "DEPLOY_PATH=${TIMESTAMP}_${COMMIT_HASH}" >> $GITHUB_ENV
+          openssl aes-256-cbc -d -salt -pbkdf2 -in terraform.tfvars.enc -out terraform.tfvars -k "${{ secrets.DEV_TFVARS_ENC_PW }}"
 
-      - name: Upload to GCS
-        run: |
-            echo "Uploading to: ${{ secrets.GCS_DEV_BUCKET_PATH }}/test/$DEPLOY_PATH"
-            gcloud storage cp -r ./test/*  "${{ secrets.GCS_DEV_BUCKET_PATH }}/test/$DEPLOY_PATH/"
+      - name: Terraform Init
+        run: terraform init
 
-      - name: Setup SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.GCE_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.GCE_HOST }} >> ~/.ssh/known_hosts
+      - name: Terraform Plan
+        run: terraform plan
 
-      - name: Trigger remote deploy script on GCE
-        run: |
-          ssh ${{ secrets.GCE_USER }}@${{ secrets.GCE_HOST }} "bash ~/release/deploy-test.sh"
-
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
 
       - name: Notify Discord on Success
         if: success()
