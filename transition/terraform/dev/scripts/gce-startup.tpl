@@ -199,3 +199,5 @@ if pgrep -f "uvicorn" > /dev/null; then
 else
   echo "❌ uvicorn 프로세스가 실행되고 있지 않습니다."
 fi
+
+touch /home/ubuntu/tmp/gce-startup.done

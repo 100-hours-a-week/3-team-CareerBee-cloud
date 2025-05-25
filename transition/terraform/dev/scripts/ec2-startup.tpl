@@ -207,3 +207,5 @@ if [ -f "/var/www/html/index.html" ]; then
 else
   echo "❌ 프론트엔드 index.html 없음"
 fi
+
+touch /home/ubuntu/tmp/ec2-startup.done
