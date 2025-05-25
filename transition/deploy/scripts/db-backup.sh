@@ -1,8 +1,6 @@
 #!/bin/bash
 source ./app-variables.sh # cd deploy/scripts
 
-exec > >(gawk '{ print strftime("[%Y-%m-%d %H:%M:%S]"), $0; fflush(); }' >> ../logs/dp-backup.log) 2>&1
-
 VERSION_TAG=$(date +v%Y%m%d%H%M%S)
 FILE="backup-${VERSION_TAG}.sql"
 
