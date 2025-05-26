@@ -65,6 +65,16 @@ jobs:
 
       - name: Wait for EC2 and GCE startup
         run: |
+          until ssh -o StrictHostKeyChecking=no -i $SSH_KEY ubuntu@$AWS_SERVER_IP 'exit' 2>/dev/null; do
+            echo "⏳ EC2 SSH 연결 대기 중..."
+            sleep 10
+          done
+
+          until ssh -o StrictHostKeyChecking=no -i $SSH_KEY ubuntu@$GCP_SERVER_IP 'exit' 2>/dev/null; do
+            echo "⏳ GCE SSH 연결 대기 중..."
+            sleep 10
+          done
+
           while true; do
             EC2_DONE=$(ssh -o StrictHostKeyChecking=no -i $SSH_KEY ubuntu@$AWS_SERVER_IP 'test -f /home/ubuntu/tmp/ec2-startup.done && echo ok || echo no')
             GCE_DONE=$(ssh -o StrictHostKeyChecking=no -i $SSH_KEY ubuntu@$GCP_SERVER_IP 'test -f /home/ubuntu/tmp/gce-startup.done && echo ok || echo no')
