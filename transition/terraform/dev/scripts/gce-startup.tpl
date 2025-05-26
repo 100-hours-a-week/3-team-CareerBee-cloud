@@ -1,5 +1,5 @@
 #!/bin/bash
-# set -e
+export DEBIAN_FRONTEND=noninteractive # 비대화 모드
 
 # 1. 시스템 업데이트 및 필수 패키지
 sudo apt update -y && sudo apt upgrade -y

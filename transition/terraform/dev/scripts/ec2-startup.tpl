@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+export DEBIAN_FRONTEND=noninteractive # 비대화 모드
 
 # ssh 키 추가
 mkdir -p /home/ubuntu/.ssh
