@@ -1,10 +1,10 @@
 #!/bin/bash
-# set -e
+export DEBIAN_FRONTEND=noninteractive # 비대화 모드
 
 # 1. 시스템 업데이트 및 필수 패키지
 sudo apt update -y && sudo apt upgrade -y
 sudo apt install -y curl unzip nginx
-# sudo apt-get install -y nvidia-driver-570
+sudo apt-get install -y nvidia-driver-570
 
 # aws-cli 설치
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -129,22 +129,6 @@ sudo ufw allow 8000
 sudo ufw allow 8001
 sudo ufw --force enable
 
-# 8. cron 설치 및 설정
-sudo apt install -y cron
-sudo systemctl enable --now cron
-
-if [ -d "${MOUNT_DIR}/mistral-7b" ]; then
-    CRON_CONTENT=$(cat <<EOF
-@reboot nohup ${MOUNT_DIR}/venv/bin/python3 -m vllm.entrypoints.openai.api_server --model ${MOUNT_DIR}/mistral-7b --dtype float16 --port 8000 --gpu-memory-utilization 0.9 > /home/ubuntu/logs/vllm.log 2>&1 &
-0 18 * * 1 ${MOUNT_DIR}/venv/bin/python3 /home/ubuntu/ai-server/summarizer_pipeline/main.py >> /home/ubuntu/logs/ai-cron.log 2>&1
-EOF
-)
-fi
-
-if [ -n "$CRON_CONTENT" ]; then
-    ( crontab -l 2>/dev/null | grep -v "vllm" | grep -v "main.py" ; echo "$CRON_CONTENT" ) | crontab -
-fi
-
 # 9. S3에서 배포 산출물 받아와 AI 서버 배포
 aws s3 cp "$(aws s3 ls "${BUCKET_BACKUP}/ai/" | awk '{print $2}' | sort | tail -n 1 | sed 's#^#'"${BUCKET_BACKUP}/ai/"'#;s#/$##')" "${DEPLOY_DIR}/" --recursive
 source "${MOUNT_DIR}/venv/bin/activate"
@@ -154,8 +138,14 @@ pip install --no-cache-dir --prefer-binary -r "${DEPLOY_DIR}/requirements.txt"
 
 pkill -f "uvicorn" || true
 
+nohup python3 -m vllm.entrypoints.openai.api_server \
+    --model /mnt/ssd/mistral-7b \
+    --dtype float16 \
+    --port 8001 \
+    --gpu-memory-utilization 0.9 > /home/ubuntu/logs/vLLM.log 2>&1 &
+
 cd "${DEPLOY_DIR}"
-nohup "${MOUNT_DIR}/venv/bin/uvicorn" app.main:app --host 0.0.0.0 --port 8000 > /home/ubuntu/logs/ai.log 2>&1 &
+nohup "${MOUNT_DIR}/venv/bin/uvicorn" app.main:app --host 0.0.0.0 --port 8000 > /home/ubuntu/logs/uvicorn.log 2>&1 &
 
 deactivate
 
@@ -167,6 +157,13 @@ if mountpoint -q ${MOUNT_DIR}; then
 else
   echo "❌ 디스크가 ${MOUNT_DIR}에 마운트되지 않았습니다. 수동 확인 필요."
   lsblk -f
+fi
+
+echo "[✔] NVIDIA 드라이버 상태 (nvidia-smi):"
+if command -v nvidia-smi >/dev/null 2>&1; then
+  nvidia-smi
+else
+  echo "❌ nvidia-smi 명령을 찾을 수 없습니다. 드라이버 설치 확인 필요."
 fi
 
 echo "[✔] Python3 버전:"
@@ -188,12 +185,15 @@ fi
 echo "[✔] UFW 방화벽 상태:"
 sudo ufw status verbose
 
-echo "[✔] 크론탭 등록 상태:"
-crontab -l
-
 # 배포 확인 로그
 echo "[✔] AI 서버 실행 상태 확인:"
 sleep 5
+if pgrep -f "vllm.entrypoints.openai.api_server" > /dev/null; then
+  echo "✅ vLLM API 서버가 실행 중입니다."
+else
+  echo "❌ vLLM API 서버가 실행되고 있지 않습니다."
+fi
+
 if pgrep -f "uvicorn" > /dev/null; then
   echo "✅ uvicorn 프로세스가 실행 중입니다."
 else

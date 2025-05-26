@@ -79,6 +79,27 @@ resource "aws_security_group" "sg" {
     cidr_blocks = var.aws_db_access_cidr_blocks
   }
 
+  ingress {
+    from_port   = 5173
+    to_port     = 5173
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+    ingress {
+    from_port   = 6100
+    to_port     = 6100
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+    ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -140,6 +161,7 @@ resource "aws_instance" "ec2" {
     EMAIL                     = var.email
     BUCKET_BACKUP             = var.bucket_backup
     
+    AWS_STATIC_IP             = var.aws_static_ip
     DB_PASSWORD               = var.db_password
     DB_NAME                   = var.db_name
     DB_USERNAME               = var.db_username

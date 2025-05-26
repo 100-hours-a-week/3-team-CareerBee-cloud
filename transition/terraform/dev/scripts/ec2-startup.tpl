@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+export DEBIAN_FRONTEND=noninteractive # 비대화 모드
 
 # ssh 키 추가
 mkdir -p /home/ubuntu/.ssh
@@ -131,16 +131,40 @@ EOF_NGINX
 
 sudo nginx -t && sudo systemctl reload nginx
 
-# 9. UFW 설정
+# 9. Scouter Java Agent 설치 및 설정
+sudo apt install -y openjdk-11-jdk
+cd /home/ubuntu
+wget https://github.com/scouter-project/scouter/releases/download/v2.20.0/scouter-all-2.20.0.tar.gz
+tar -xvf scouter-all-2.20.0.tar.gz
+rm scouter-all-2.20.0.tar.gz
+sudo chown -R ubuntu:ubuntu /home/ubuntu/scouter
+
+cd /home/ubuntu/scouter/server/lib
+wget https://repo1.maven.org/maven2/javax/xml/bind/jaxb-api/2.3.1/jaxb-api-2.3.1.jar
+wget https://repo1.maven.org/maven2/org/glassfish/jaxb/jaxb-runtime/2.3.1/jaxb-runtime-2.3.1.jar
+
+cd /home/ubuntu/scouter/server
+/usr/lib/jvm/java-11-openjdk-amd64/bin/java \
+  -cp "./lib/*:./lib/jaxb-api-2.3.1.jar:./lib/jaxb-runtime-2.3.1.jar:./scouter-server-boot.jar" \
+  scouter.boot.Boot ./lib > /home/ubuntu/logs/scouter-server.log 2>&1 &
+
+cat <<EOF > /home/ubuntu/scouter/agent.java/conf/scouter.conf
+net_collector_ip=127.0.0.1
+EOF
+
+cd ~
+
+# 10. UFW 설정
 sudo ufw allow OpenSSH
 sudo ufw allow 80
 sudo ufw allow 443
 sudo ufw allow 3306
 sudo ufw allow 8080
 sudo ufw allow 5173
+sudo ufw allow 6100
 sudo ufw --force enable
 
-# 10.1 S3에서 BE 산출물 다운로드 및 배포
+# 11.1 S3에서 BE 산출물 다운로드 및 배포
 mkdir -p /home/ubuntu/release
 aws s3 cp "$(aws s3 ls "${BUCKET_BACKUP}/be/" | sort | tail -n 1 | awk '{print "'"${BUCKET_BACKUP}/be/"'" $2}' | sed 's#/$##')/careerbee-api.jar" /home/ubuntu/release/careerbee-api.jar
 
@@ -159,13 +183,19 @@ nohup java \
     -DCOOKIE_DOMAIN="${COOKIE_DOMAIN}" \
     -DSENTRY_DSN="${SENTRY_DSN}" \
     -DSENTRY_AUTH_TOKEN="${SENTRY_AUTH_TOKEN}" \
+    --add-opens java.base/java.lang=ALL-UNNAMED \
+    --add-exports java.base/sun.net=ALL-UNNAMED \
+    -Djdk.attach.allowAttachSelf=true \
+    -javaagent:/home/ubuntu/scouter/agent.java/scouter.agent.jar \
+    -Dscouter.config=/home/ubuntu/scouter/agent.java/conf/scouter.conf \
+    -Dobj_name=careerbee-api \
     -jar /home/ubuntu/release/careerbee-api.jar > /home/ubuntu/logs/backend.log 2>&1 &
 
-# 10.2 S3에서 BE/FE 산출물 다운로드 및 배포
+# 11.2 S3에서 BE/FE 산출물 다운로드 및 배포
 sudo rm -rf /var/www/html/*
 aws s3 cp "$(aws s3 ls "${BUCKET_BACKUP}/fe/" | sort | tail -n 1 | awk '{print "'"${BUCKET_BACKUP}/fe/"'" $2}' | sed 's#/$##')" /var/www/html/ --recursive
 
-# 11. 버전 확인 로그
+# 12. 버전 확인 로그
 echo "[✔] Java 버전:"
 java -version
 
@@ -190,10 +220,24 @@ else
   echo "❌ 인증서 없음"
 fi
 
+echo "[✔] Scouter 서버 포트 상태:"
+if sudo lsof -i :6100 | grep LISTEN > /dev/null; then
+  echo "✅ Scouter 서버가 포트 6100에서 리스닝 중"
+else
+  echo "❌ Scouter 서버가 포트 6100에서 리스닝하지 않음"
+fi
+
+echo "[✔] Scouter 에이전트 상태:"
+if pgrep -f "scouter.agent.jar" > /dev/null; then
+  echo "✅ Scouter Java Agent 실행 중"
+else
+  echo "❌ Scouter Java Agent 비활성 상태"
+fi
+
 echo "[✔] UFW 방화벽 상태:"
 sudo ufw status verbose
 
-# 12. 배포 확인 로그
+# 13. 배포 확인 로그
 echo "[✔] 백엔드 서버 상태 확인:"
 if pgrep -f "careerbee-api.jar" > /dev/null; then
   echo "✅ 백엔드(Spring Boot) 서버 실행 중"
