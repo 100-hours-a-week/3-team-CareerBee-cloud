@@ -129,22 +129,6 @@ sudo ufw allow 8000
 sudo ufw allow 8001
 sudo ufw --force enable
 
-# 8. cron 설치 및 설정
-sudo apt install -y cron
-sudo systemctl enable --now cron
-
-if [ -d "${MOUNT_DIR}/mistral-7b" ]; then
-    CRON_CONTENT=$(cat <<EOF
-@reboot nohup ${MOUNT_DIR}/venv/bin/python3 -m vllm.entrypoints.openai.api_server --model ${MOUNT_DIR}/mistral-7b --dtype float16 --port 8000 --gpu-memory-utilization 0.9 > /home/ubuntu/logs/vllm.log 2>&1 &
-0 18 * * 1 ${MOUNT_DIR}/venv/bin/python3 /home/ubuntu/ai-server/summarizer_pipeline/main.py >> /home/ubuntu/logs/ai-cron.log 2>&1
-EOF
-)
-fi
-
-if [ -n "$CRON_CONTENT" ]; then
-    ( crontab -l 2>/dev/null | grep -v "vllm" | grep -v "main.py" ; echo "$CRON_CONTENT" ) | crontab -
-fi
-
 # 9. S3에서 배포 산출물 받아와 AI 서버 배포
 aws s3 cp "$(aws s3 ls "${BUCKET_BACKUP}/ai/" | awk '{print $2}' | sort | tail -n 1 | sed 's#^#'"${BUCKET_BACKUP}/ai/"'#;s#/$##')" "${DEPLOY_DIR}/" --recursive
 source "${MOUNT_DIR}/venv/bin/activate"
@@ -153,6 +137,12 @@ pip install --upgrade pip
 pip install --no-cache-dir --prefer-binary -r "${DEPLOY_DIR}/requirements.txt"
 
 pkill -f "uvicorn" || true
+
+nohup python3 -m vllm.entrypoints.openai.api_server \
+    --model /mnt/ssd/mistral-7b \
+    --dtype float16 \
+    --port 8001 \
+    --gpu-memory-utilization 0.9
 
 cd "${DEPLOY_DIR}"
 nohup "${MOUNT_DIR}/venv/bin/uvicorn" app.main:app --host 0.0.0.0 --port 8000 > /home/ubuntu/logs/ai.log 2>&1 &
@@ -194,6 +184,12 @@ crontab -l
 # 배포 확인 로그
 echo "[✔] AI 서버 실행 상태 확인:"
 sleep 5
+if pgrep -f "vllm.entrypoints.openai.api_server" > /dev/null; then
+  echo "✅ vLLM API 서버가 실행 중입니다."
+else
+  echo "❌ vLLM API 서버가 실행되고 있지 않습니다."
+fi
+
 if pgrep -f "uvicorn" > /dev/null; then
   echo "✅ uvicorn 프로세스가 실행 중입니다."
 else
