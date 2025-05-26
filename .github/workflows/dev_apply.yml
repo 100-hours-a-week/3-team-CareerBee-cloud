@@ -2,7 +2,9 @@ name: DEV Deploy to Terraform Deploy
 
 on:
   push:
-    branches: [ develop ]
+    branches: [ cicd/dev ]
+
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -21,6 +23,10 @@ jobs:
         with:
           terraform_version: 1.6.6
 
+      - name: Decrypt GCP credentials
+        run: |
+          openssl enc -aes-256-cbc -d -pbkdf2 -in careerbee-458305-650f1fdb7630.json.enc -out careerbee-credentials.json -k "${{ secrets.DEV_GCP_CREDENTIALS_ENC_PW }}"
+            
       - name: Decrypt terraform.tfvars.enc
         working-directory: ${{ env.TERRAFORM_DIR }}
         run: |
@@ -80,74 +86,76 @@ jobs:
         run: bash db-restore.sh
 
       - name: Clean up
+        if: always()
         run: |
           rm -f ${{ env.TERRAFORM_DIR }}/terraform.tfvars
           rm -f ${{ env.SCRIPT_DIR }}/cicd-variables.sh
+          rm -f careerbee-credentials.json
 
-      - name: Notify Discord on Success
-        if: success()
-        run: |
-          COMMIT_MSG="${{ github.event.head_commit.message }}"
-          REPO="${{ github.repository }}"
-          BRANCH="${{ github.ref_name }}"
-          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          TIMESTAMP="${{ github.event.head_commit.timestamp }}"
+      # - name: Notify Discord on Success
+      #   if: success()
+      #   run: |
+      #     COMMIT_MSG="${{ github.event.head_commit.message }}"
+      #     REPO="${{ github.repository }}"
+      #     BRANCH="${{ github.ref_name }}"
+      #     RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+      #     TIMESTAMP="${{ github.event.head_commit.timestamp }}"
       
-          DESCRIPTION="**Repository:** \`${REPO}\`
-          **Branch:** \`${BRANCH}\`
-          **Commit:** \`${COMMIT_MSG}\`
-          [🔗 실행 로그 보기](${RUN_URL})"
+      #     DESCRIPTION="**Repository:** \`${REPO}\`
+      #     **Branch:** \`${BRANCH}\`
+      #     **Commit:** \`${COMMIT_MSG}\`
+      #     [🔗 실행 로그 보기](${RUN_URL})"
       
-          jq -n \
-            --arg desc "$DESCRIPTION" \
-            --arg timestamp "$TIMESTAMP" \
-            '{
-              "embeds": [
-                {
-                  "title": "✅ 개발 환경 배포 성공",
-                  "description": $desc,
-                  "color": 65280,
-                  "footer": { "text": "GitHub Actions - DEV Deploy" },
-                  "timestamp": $timestamp
-                }
-              ]
-            }' > payload.json
+      #     jq -n \
+      #       --arg desc "$DESCRIPTION" \
+      #       --arg timestamp "$TIMESTAMP" \
+      #       '{
+      #         "embeds": [
+      #           {
+      #             "title": "✅ 개발 환경 배포 성공",
+      #             "description": $desc,
+      #             "color": 65280,
+      #             "footer": { "text": "GitHub Actions - DEV Deploy" },
+      #             "timestamp": $timestamp
+      #           }
+      #         ]
+      #       }' > payload.json
       
-          curl -H "Content-Type: application/json" \
-                -X POST \
-                -d @payload.json \
-                ${{ secrets.DISCORD_WEBHOOK_URL }}
+      #     curl -H "Content-Type: application/json" \
+      #           -X POST \
+      #           -d @payload.json \
+      #           ${{ secrets.DISCORD_WEBHOOK_URL }}
   
-      - name: Notify Discord on Failure
-        if: failure()
-        run: |
-          COMMIT_MSG="${{ github.event.head_commit.message }}"
-          REPO="${{ github.repository }}"
-          BRANCH="${{ github.ref_name }}"
-          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          TIMESTAMP="${{ github.event.head_commit.timestamp }}"
+      # - name: Notify Discord on Failure
+      #   if: failure()
+      #   run: |
+      #     COMMIT_MSG="${{ github.event.head_commit.message }}"
+      #     REPO="${{ github.repository }}"
+      #     BRANCH="${{ github.ref_name }}"
+      #     RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+      #     TIMESTAMP="${{ github.event.head_commit.timestamp }}"
       
-          DESCRIPTION="**Repository:** \`${REPO}\`
-          **Branch:** \`${BRANCH}\`
-          **Commit:** \`${COMMIT_MSG}\`
-          [🔗 실행 로그 보기](${RUN_URL})"
+      #     DESCRIPTION="**Repository:** \`${REPO}\`
+      #     **Branch:** \`${BRANCH}\`
+      #     **Commit:** \`${COMMIT_MSG}\`
+      #     [🔗 실행 로그 보기](${RUN_URL})"
       
-          jq -n \
-            --arg desc "$DESCRIPTION" \
-            --arg timestamp "$TIMESTAMP" \
-            '{
-              "embeds": [
-                {
-                  "title": "❌ 개발 환경 배포 실패",
-                  "description": $desc,
-                  "color": 16711680,
-                  "footer": { "text": "GitHub Actions - DEV Deploy" },
-                  "timestamp": $timestamp
-                }
-              ]
-            }' > payload.json
+      #     jq -n \
+      #       --arg desc "$DESCRIPTION" \
+      #       --arg timestamp "$TIMESTAMP" \
+      #       '{
+      #         "embeds": [
+      #           {
+      #             "title": "❌ 개발 환경 배포 실패",
+      #             "description": $desc,
+      #             "color": 16711680,
+      #             "footer": { "text": "GitHub Actions - DEV Deploy" },
+      #             "timestamp": $timestamp
+      #           }
+      #         ]
+      #       }' > payload.json
       
-          curl -H "Content-Type: application/json" \
-                -X POST \
-                -d @payload.json \
-                ${{ secrets.DISCORD_WEBHOOK_URL }}
+      #     curl -H "Content-Type: application/json" \
+      #           -X POST \
+      #           -d @payload.json \
+      #           ${{ secrets.DISCORD_WEBHOOK_URL }}

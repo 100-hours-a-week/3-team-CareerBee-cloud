@@ -60,9 +60,11 @@ jobs:
         run: terraform destroy -auto-approve -var-file=terraform.tfvars
 
       - name: Clean up
+        if: always()
         run: |
-          rm -f transition/terraform/terraform.tfvars
+          rm -f ${{ env.TERRAFORM_DIR }}/terraform.tfvars
           rm -f ${{ env.SCRIPT_DIR }}/cicd-variables.sh
+          rm -f careerbee-credentials.json
 
       - name: Notify Discord on Success
         if: success()

@@ -45,11 +45,6 @@ variable "aws_region" {
   type        = string
 }
 
-variable "aws_credentials_file" {
-  description = "Path to AWS credentials JSON file"
-  type        = string
-}
-
 variable "aws_az" {
   description = "AWS 가용 영역"
   type        = string
