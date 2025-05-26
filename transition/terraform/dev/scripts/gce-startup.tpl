@@ -4,7 +4,7 @@
 # 1. 시스템 업데이트 및 필수 패키지
 sudo apt update -y && sudo apt upgrade -y
 sudo apt install -y curl unzip nginx
-# sudo apt-get install -y nvidia-driver-570
+sudo apt-get install -y nvidia-driver-570
 
 # aws-cli 설치
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -142,10 +142,10 @@ nohup python3 -m vllm.entrypoints.openai.api_server \
     --model /mnt/ssd/mistral-7b \
     --dtype float16 \
     --port 8001 \
-    --gpu-memory-utilization 0.9
+    --gpu-memory-utilization 0.9 > /home/ubuntu/logs/vLLM.log 2>&1 &
 
 cd "${DEPLOY_DIR}"
-nohup "${MOUNT_DIR}/venv/bin/uvicorn" app.main:app --host 0.0.0.0 --port 8000 > /home/ubuntu/logs/ai.log 2>&1 &
+nohup "${MOUNT_DIR}/venv/bin/uvicorn" app.main:app --host 0.0.0.0 --port 8000 > /home/ubuntu/logs/uvicorn.log 2>&1 &
 
 deactivate
 
@@ -157,6 +157,13 @@ if mountpoint -q ${MOUNT_DIR}; then
 else
   echo "❌ 디스크가 ${MOUNT_DIR}에 마운트되지 않았습니다. 수동 확인 필요."
   lsblk -f
+fi
+
+echo "[✔] NVIDIA 드라이버 상태 (nvidia-smi):"
+if command -v nvidia-smi >/dev/null 2>&1; then
+  nvidia-smi
+else
+  echo "❌ nvidia-smi 명령을 찾을 수 없습니다. 드라이버 설치 확인 필요."
 fi
 
 echo "[✔] Python3 버전:"
