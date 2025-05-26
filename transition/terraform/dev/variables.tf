@@ -11,7 +11,7 @@ variable "gcp_zone" {
   type = string
 }
 
-variable "gcp_credentials_file" {
+variable "gcp_credentials_base64" {
   type = string
 }
 
