@@ -136,8 +136,16 @@ wget https://github.com/scouter-project/scouter/releases/download/v2.20.0/scoute
 tar -xvf scouter-all-2.20.0.tar.gz
 rm scouter-all-2.20.0.tar.gz
 
+cat <<EOF > ~/scouter/server/conf/scouter.conf
+server.port=6180
+server.login=false
+EOF
+
+cd ~/scouter/server
+nohup ./scouter.startup.sh > ~/logs/scouter-server.log 2>&1 &
+
 cat <<EOF > /home/ubuntu/scouter/agent.java/conf/scouter.conf
-net_collector_ip="${AWS_STATIC_IP}"
+net_collector_ip=127.0.0.1
 obj_name=careerbee-api
 EOF
 
@@ -148,7 +156,7 @@ sudo ufw allow 443
 sudo ufw allow 3306
 sudo ufw allow 8080
 sudo ufw allow 5173
-sudo ufw allow 6100
+sudo ufw allow 6180
 sudo ufw --force enable
 
 # 10.1 S3에서 BE 산출물 다운로드 및 배포
