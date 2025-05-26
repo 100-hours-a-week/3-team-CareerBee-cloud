@@ -13,6 +13,7 @@ variable "gcp_zone" {
 
 variable "gcp_credentials_base64" {
   type = string
+  sensitive = true
 }
 
 variable "gcp_vpc_cidr" {
@@ -93,18 +94,40 @@ variable "domain" {}
 variable "email" {}
 variable "db_name" {}
 variable "db_username" {}
-variable "db_password" {}
-variable "db_url" {}
-variable "jwt_secrets" {}
-variable "kakao_client_id" {}
-variable "kakao_prod_redirect_uri" {}
-variable "kakao_dev_redirect_uri" {}
-variable "kakao_local_redirect_uri" {}
+variable "db_password" {
+  sensitive = true
+}
+variable "db_url" {
+  sensitive = true
+}
+variable "jwt_secrets" {
+  sensitive = true
+}
+variable "kakao_client_id" {
+  sensitive = true
+}
+variable "kakao_prod_redirect_uri" {
+  sensitive = true
+}
+variable "kakao_dev_redirect_uri" {
+  sensitive = true
+}
+variable "kakao_local_redirect_uri" {
+  sensitive = true
+}
 variable "cookie_domain" {}
-variable "sentry_dsn" {}
-variable "sentry_auth_token" {}
-variable "bucket_backup" {}
-variable "device_id" {}
+variable "sentry_dsn" {
+  sensitive = true
+}
+variable "sentry_auth_token" {
+  sensitive = true
+}
+variable "bucket_backup" {
+  sensitive = true
+}
+variable "device_id" {
+  sensitive = true
+}
 variable "mount_dir" {}
 variable "deploy_dir" {}
 variable "hf_token" {
@@ -113,6 +136,7 @@ variable "hf_token" {
 }
 variable "aws_access_key_id" {
   type        = string
+  sensitive = true
 }
 variable "aws_secret_access_key" {
   type        = string

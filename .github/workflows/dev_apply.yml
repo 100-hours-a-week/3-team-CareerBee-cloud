@@ -38,6 +38,16 @@ jobs:
           chmod +x cicd-variables.sh
           source ./cicd-variables.sh
 
+          echo "::add-mask::$AWS_ACCESS_KEY_ID"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          echo "::add-mask::$AWS_DEFAULT_REGION"
+          echo "::add-mask::$SSH_KEY"
+          echo "::add-mask::$SSH_KEY_BASE64"
+          echo "::add-mask::$AWS_SERVER_IP"
+          echo "::add-mask::$GCP_SERVER_IP"
+          echo "::add-mask::$DB_PASSWORD"
+          echo "::add-mask::$S3_BUCKET_INFRA"
+
           echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> $GITHUB_ENV
           echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> $GITHUB_ENV
           echo "AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION" >> $GITHUB_ENV
