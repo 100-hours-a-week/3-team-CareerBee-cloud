@@ -131,6 +131,16 @@ EOF_NGINX
 
 sudo nginx -t && sudo systemctl reload nginx
 
+# 9. Scouter Java Agent 설치 및 설정
+wget https://github.com/scouter-project/scouter/releases/download/v2.20.0/scouter-all-2.20.0.tar.gz
+tar -xvf scouter-all-2.20.0.tar.gz
+rm scouter-all-2.20.0.tar.gz
+
+cat <<EOF > /home/ubuntu/scouter/agent.java/conf/scouter.conf
+net_collector_ip="${AWS_STATIC_IP}"
+obj_name=careerbee-api
+EOF
+
 # 9. UFW 설정
 sudo ufw allow OpenSSH
 sudo ufw allow 80
@@ -138,6 +148,7 @@ sudo ufw allow 443
 sudo ufw allow 3306
 sudo ufw allow 8080
 sudo ufw allow 5173
+sudo ufw allow 6100
 sudo ufw --force enable
 
 # 10.1 S3에서 BE 산출물 다운로드 및 배포
@@ -159,6 +170,9 @@ nohup java \
     -DCOOKIE_DOMAIN="${COOKIE_DOMAIN}" \
     -DSENTRY_DSN="${SENTRY_DSN}" \
     -DSENTRY_AUTH_TOKEN="${SENTRY_AUTH_TOKEN}" \
+    -javaagent:/home/ubuntu/scouter/agent.java/scouter.agent.jar \
+    -Dscouter.config=/home/ubuntu/scouter/agent.java/conf/scouter.conf \
+    -Dobj_name=careerbee-api \
     -jar /home/ubuntu/release/careerbee-api.jar > /home/ubuntu/logs/backend.log 2>&1 &
 
 # 10.2 S3에서 BE/FE 산출물 다운로드 및 배포
