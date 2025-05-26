@@ -7,6 +7,7 @@ on:
     - cron: '0 12 * * 1-5'
 jobs:
   destroy:
+    if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
 
     env:
