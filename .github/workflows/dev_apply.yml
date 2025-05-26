@@ -2,9 +2,12 @@ name: DEV Deploy to Terraform Deploy
 
 on:
   push:
-    branches: [ cicd/dev ]
+    branches: [ develop ]
 
   workflow_dispatch:
+
+  schedule:
+    - cron: '0 4 * * 1-5'
 
 jobs:
   deploy:
@@ -102,70 +105,44 @@ jobs:
           rm -f ${{ env.TERRAFORM_DIR }}/terraform.tfvars
           rm -f ${{ env.SCRIPT_DIR }}/cicd-variables.sh
 
-      # - name: Notify Discord on Success
-      #   if: success()
-      #   run: |
-      #     COMMIT_MSG="${{ github.event.head_commit.message }}"
-      #     REPO="${{ github.repository }}"
-      #     BRANCH="${{ github.ref_name }}"
-      #     RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-      #     TIMESTAMP="${{ github.event.head_commit.timestamp }}"
-      
-      #     DESCRIPTION="**Repository:** \`${REPO}\`
-      #     **Branch:** \`${BRANCH}\`
-      #     **Commit:** \`${COMMIT_MSG}\`
-      #     [🔗 실행 로그 보기](${RUN_URL})"
-      
-      #     jq -n \
-      #       --arg desc "$DESCRIPTION" \
-      #       --arg timestamp "$TIMESTAMP" \
-      #       '{
-      #         "embeds": [
-      #           {
-      #             "title": "✅ 개발 환경 배포 성공",
-      #             "description": $desc,
-      #             "color": 65280,
-      #             "footer": { "text": "GitHub Actions - DEV Deploy" },
-      #             "timestamp": $timestamp
-      #           }
-      #         ]
-      #       }' > payload.json
-      
-      #     curl -H "Content-Type: application/json" \
-      #           -X POST \
-      #           -d @payload.json \
-      #           ${{ secrets.DISCORD_WEBHOOK_URL }}
-  
-      # - name: Notify Discord on Failure
-      #   if: failure()
-      #   run: |
-      #     COMMIT_MSG="${{ github.event.head_commit.message }}"
-      #     REPO="${{ github.repository }}"
-      #     BRANCH="${{ github.ref_name }}"
-      #     RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-      #     TIMESTAMP="${{ github.event.head_commit.timestamp }}"
-      
-      #     DESCRIPTION="**Repository:** \`${REPO}\`
-      #     **Branch:** \`${BRANCH}\`
-      #     **Commit:** \`${COMMIT_MSG}\`
-      #     [🔗 실행 로그 보기](${RUN_URL})"
-      
-      #     jq -n \
-      #       --arg desc "$DESCRIPTION" \
-      #       --arg timestamp "$TIMESTAMP" \
-      #       '{
-      #         "embeds": [
-      #           {
-      #             "title": "❌ 개발 환경 배포 실패",
-      #             "description": $desc,
-      #             "color": 16711680,
-      #             "footer": { "text": "GitHub Actions - DEV Deploy" },
-      #             "timestamp": $timestamp
-      #           }
-      #         ]
-      #       }' > payload.json
-      
-      #     curl -H "Content-Type: application/json" \
-      #           -X POST \
-      #           -d @payload.json \
-      #           ${{ secrets.DISCORD_WEBHOOK_URL }}
+      - name: Notify Discord on Success
+        if: success()
+        run: |
+          jq -n \
+            '{
+              "embeds": [
+                {
+                  "title": "🚀 DEV 서버 시작",
+                  "description": "커리어비 DEV 서버가 시작되었습니다.\n\n오늘도 열심히 일해요! 💪🏻💪🏻",
+                  "color": 5763719,
+                  "footer": { "text": "Cloud Functions - DEV Server" },
+                  "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+                }
+              ]
+            }' > payload.json
+
+          curl -H "Content-Type: application/json" \
+              -X POST \
+              -d @payload.json \
+              ${{ secrets.SERVER_DISCORD_WEBHOOK_URL }}
+
+      - name: Notify Discord on Failure
+        if: failure()
+        run: |
+          jq -n \
+            '{
+              "embeds": [
+                {
+                  "title": "❌ DEV 서버 배포 실패",
+                  "description": "워크플로 실행 중 오류가 발생했습니다.\n\n로그를 확인해 주세요. 🔍",
+                  "color": 15548997,
+                  "footer": { "text": "Cloud Functions - DEV Server" },
+                  "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+                }
+              ]
+            }' > payload.json
+
+          curl -H "Content-Type: application/json" \
+              -X POST \
+              -d @payload.json \
+              ${{ secrets.DISCORD_WEBHOOK_URL }}
