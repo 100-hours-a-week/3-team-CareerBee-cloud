@@ -19,7 +19,7 @@ sudo ./aws/install
 
 # 3. 로그, 릴리즈, 임시 디렉토리 추가 & 디스크 마운트
 sudo mkdir -p /home/ubuntu/logs /home/ubuntu/release /home/ubuntu/tmp
-sudo chown -R ubuntu:ubuntu /home/ubuntu
+sudo chown -R ubuntu:ubuntu /home/ubuntu/.ssh /home/ubuntu/logs /home/ubuntu/release /home/ubuntu/tmp
 
 # 4. Java 21 (OpenJDK 21)
 sudo apt update -y
