@@ -114,8 +114,8 @@ resource "google_compute_instance" "gce" {
 
   metadata = {
     ssh-keys = <<EOT
-      ubuntu:${file(var.public_key_path)}
-      ubuntu:${file(var.public_nopass_key_path)}
+      ubuntu:${base64decode(var.public_key_base64)}
+      ubuntu:${base64decode(var.public_nopass_key_base64)}
 EOT
     startup-script = templatefile("${path.module}/scripts/gce-startup.tpl", {
       DOMAIN                = var.domain

@@ -93,7 +93,7 @@ resource "aws_security_group" "sg" {
 
 resource "aws_key_pair" "key" {
   key_name   = "ssmu-key"
-  public_key = file(var.public_key_path)
+  public_key = base64decode(var.public_key_base64)
 }
 
 data "aws_eip" "existing_eip" {
@@ -152,7 +152,7 @@ resource "aws_instance" "ec2" {
     COOKIE_DOMAIN             = var.cookie_domain
     SENTRY_DSN                = var.sentry_dsn
     SENTRY_AUTH_TOKEN         = var.sentry_auth_token
-    ADD_SSH_KEY               = file(var.public_nopass_key_path)
+    ADD_SSH_KEY               = base64decode(var.public_nopass_key_base64)
   })
 
   tags = {

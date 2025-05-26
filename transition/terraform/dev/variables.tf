@@ -80,12 +80,12 @@ variable "aws_ubuntu_ami_id" {
 }
 
 # 공통
-variable "public_key_path" {
-  type        = string
+variable "public_key_base64" {
+  type = string
 }
 
-variable "public_nopass_key_path" {
-  type        = string
+variable "public_nopass_key_base64" {
+  type = string
 }
 
 # 환경설정 변수
