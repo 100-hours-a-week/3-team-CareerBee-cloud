@@ -181,6 +181,9 @@ nohup java \
     -DCOOKIE_DOMAIN="${COOKIE_DOMAIN}" \
     -DSENTRY_DSN="${SENTRY_DSN}" \
     -DSENTRY_AUTH_TOKEN="${SENTRY_AUTH_TOKEN}" \
+    --add-opens java.base/java.lang=ALL-UNNAMED \
+    --add-exports java.base/sun.net=ALL-UNNAMED \
+    -Djdk.attach.allowAttachSelf=true \
     -javaagent:/home/ubuntu/scouter/agent.java/scouter.agent.jar \
     -Dscouter.config=/home/ubuntu/scouter/agent.java/conf/scouter.conf \
     -Dobj_name=careerbee-api \
