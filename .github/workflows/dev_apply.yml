@@ -77,7 +77,7 @@ jobs:
             fi
           done
 
-      - name: 🗃 Run DB Restore Script
+      - name: Run DB Restore Script
         working-directory: ${{ env.SCRIPT_DIR }}
         run: bash db-restore.sh
 
@@ -86,7 +86,6 @@ jobs:
         run: |
           rm -f ${{ env.TERRAFORM_DIR }}/terraform.tfvars
           rm -f ${{ env.SCRIPT_DIR }}/cicd-variables.sh
-          rm -f careerbee-credentials.json
 
       # - name: Notify Discord on Success
       #   if: success()
