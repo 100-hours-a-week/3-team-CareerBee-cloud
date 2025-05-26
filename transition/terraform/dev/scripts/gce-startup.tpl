@@ -185,9 +185,6 @@ fi
 echo "[✔] UFW 방화벽 상태:"
 sudo ufw status verbose
 
-echo "[✔] 크론탭 등록 상태:"
-crontab -l
-
 # 배포 확인 로그
 echo "[✔] AI 서버 실행 상태 확인:"
 sleep 5

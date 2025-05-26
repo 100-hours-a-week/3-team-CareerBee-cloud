@@ -220,6 +220,20 @@ else
   echo "❌ 인증서 없음"
 fi
 
+echo "[✔] Scouter 서버 포트 상태:"
+if sudo lsof -i :6100 | grep LISTEN > /dev/null; then
+  echo "✅ Scouter 서버가 포트 6100에서 리스닝 중"
+else
+  echo "❌ Scouter 서버가 포트 6100에서 리스닝하지 않음"
+fi
+
+echo "[✔] Scouter 에이전트 상태:"
+if pgrep -f "scouter.agent.jar" > /dev/null; then
+  echo "✅ Scouter Java Agent 실행 중"
+else
+  echo "❌ Scouter Java Agent 비활성 상태"
+fi
+
 echo "[✔] UFW 방화벽 상태:"
 sudo ufw status verbose
 
