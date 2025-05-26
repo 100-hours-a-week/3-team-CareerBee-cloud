@@ -65,27 +65,32 @@ jobs:
 
       - name: Wait for EC2 and GCE startup
         run: |
-          until ssh -o StrictHostKeyChecking=no -i $SSH_KEY ubuntu@$AWS_SERVER_IP 'exit' 2>/dev/null; do
-            echo "⏳ EC2 SSH 연결 대기 중..."
-            sleep 10
-          done
+          set +e 
 
-          until ssh -o StrictHostKeyChecking=no -i $SSH_KEY ubuntu@$GCP_SERVER_IP 'exit' 2>/dev/null; do
-            echo "⏳ GCE SSH 연결 대기 중..."
-            sleep 10
-          done
+          MAX_RETRIES=20
+          RETRY_DELAY=30
+          COUNT=0
 
-          while true; do
-            EC2_DONE=$(ssh -o StrictHostKeyChecking=no -i $SSH_KEY ubuntu@$AWS_SERVER_IP 'test -f /home/ubuntu/tmp/ec2-startup.done && echo ok || echo no')
-            GCE_DONE=$(ssh -o StrictHostKeyChecking=no -i $SSH_KEY ubuntu@$GCP_SERVER_IP 'test -f /home/ubuntu/tmp/gce-startup.done && echo ok || echo no')
+          while [ $COUNT -lt $MAX_RETRIES ]; do
+            echo "시도 $((COUNT + 1)) / $MAX_RETRIES"
+
+            EC2_DONE=$(ssh -o StrictHostKeyChecking=no -i $SSH_KEY ubuntu@$AWS_SERVER_IP 'test -f /home/ubuntu/tmp/ec2-startup.done && echo ok || echo no' 2>/dev/null || echo no)
+            GCE_DONE=$(ssh -o StrictHostKeyChecking=no -i $SSH_KEY ubuntu@$GCP_SERVER_IP 'test -f /home/ubuntu/tmp/gce-startup.done && echo ok || echo no' 2>/dev/null || echo no)
 
             if [ "$EC2_DONE" = "ok" ] && [ "$GCE_DONE" = "ok" ]; then
               break
-            else
-              echo "⏳ 초기 환경 설정 중... (30초 후 재시도)"
-              sleep 30
             fi
+
+            echo "⏳ 초기 환경 설정 중... ($RETRY_DELAY초 후 재시도)"
+            sleep $RETRY_DELAY
+            COUNT=$((COUNT + 1))
           done
+
+          if [ $COUNT -eq $MAX_RETRIES ]; then
+            exit 1
+          fi
+
+          set -e
 
       - name: Run DB Restore Script
         working-directory: ${{ env.SCRIPT_DIR }}

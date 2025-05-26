@@ -47,7 +47,7 @@ jobs:
           echo "${SSH_KEY_BASE64}" | base64 --decode > "${SSH_KEY}"
           chmod 600 "${SSH_KEY}"
 
-      - name: 🗃 Run DB Backup Script
+      - name: Run DB Backup Script
         working-directory: ${{ env.SCRIPT_DIR }}
         run: bash db-backup.sh
 
