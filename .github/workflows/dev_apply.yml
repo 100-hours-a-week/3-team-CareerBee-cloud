@@ -23,10 +23,6 @@ jobs:
         with:
           terraform_version: 1.6.6
 
-      - name: Decrypt GCP credentials
-        run: |
-          openssl enc -aes-256-cbc -d -pbkdf2 -in careerbee-458305-650f1fdb7630.json.enc -out careerbee-credentials.json -k "${{ secrets.DEV_GCP_CREDENTIALS_ENC_PW }}"
-            
       - name: Decrypt terraform.tfvars.enc
         working-directory: ${{ env.TERRAFORM_DIR }}
         run: |

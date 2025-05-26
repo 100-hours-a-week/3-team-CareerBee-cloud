@@ -2,7 +2,7 @@ provider "google" {
   project     = var.gcp_project_id
   region      = var.gcp_region
   zone        = var.gcp_zone
-  credentials = file(var.gcp_credentials_file)
+  credentials = base64decode(var.gcp_credentials_base64)
 }
 
 resource "google_compute_network" "vpc" {
