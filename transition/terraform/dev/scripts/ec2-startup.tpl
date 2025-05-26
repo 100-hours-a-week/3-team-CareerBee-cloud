@@ -132,22 +132,24 @@ EOF_NGINX
 sudo nginx -t && sudo systemctl reload nginx
 
 # 9. Scouter Java Agent 설치 및 설정
+sudo apt install -y openjdk-11-jdk
 cd /home/ubuntu
 wget https://github.com/scouter-project/scouter/releases/download/v2.20.0/scouter-all-2.20.0.tar.gz
 tar -xvf scouter-all-2.20.0.tar.gz
 rm scouter-all-2.20.0.tar.gz
+sudo chown -R ubuntu:ubuntu /home/ubuntu/scouter
 
-cat <<EOF > /home/ubuntu/scouter/server/conf/scouter.conf
-server.port=6180
-server.login=false
-EOF
+cd /home/ubuntu/scouter/server/lib
+wget https://repo1.maven.org/maven2/javax/xml/bind/jaxb-api/2.3.1/jaxb-api-2.3.1.jar
+wget https://repo1.maven.org/maven2/org/glassfish/jaxb/jaxb-runtime/2.3.1/jaxb-runtime-2.3.1.jar
 
 cd /home/ubuntu/scouter/server
-nohup ./scouter.startup.sh > ~/logs/scouter-server.log 2>&1 &
+/usr/lib/jvm/java-11-openjdk-amd64/bin/java \
+  -cp "./lib/*:./lib/jaxb-api-2.3.1.jar:./lib/jaxb-runtime-2.3.1.jar:./scouter-server-boot.jar" \
+  scouter.boot.Boot ./lib > /home/ubuntu/logs/scouter-server.log 2>&1 &
 
 cat <<EOF > /home/ubuntu/scouter/agent.java/conf/scouter.conf
 net_collector_ip=127.0.0.1
-obj_name=careerbee-api
 EOF
 
 cd ~
@@ -159,7 +161,7 @@ sudo ufw allow 443
 sudo ufw allow 3306
 sudo ufw allow 8080
 sudo ufw allow 5173
-sudo ufw allow 6180
+sudo ufw allow 6100
 sudo ufw --force enable
 
 # 11.1 S3에서 BE 산출물 다운로드 및 배포
