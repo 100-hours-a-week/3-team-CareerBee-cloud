@@ -7,7 +7,6 @@ on:
     - cron: '40 11 * * 1-5'
 jobs:
   destroy:
-    if: github.ref == 'refs/heads/develop' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
 
     env:
@@ -15,8 +14,10 @@ jobs:
       SCRIPT_DIR: transition/deploy/scripts
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout develop branch
         uses: actions/checkout@v3
+        with:
+          ref: develop
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
