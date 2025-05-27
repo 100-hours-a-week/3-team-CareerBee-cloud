@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
   schedule:
-    - cron: '0 12 * * 1-5'
+    - cron: '40 11 * * 1-5'
 jobs:
   destroy:
     if: github.ref == 'refs/heads/develop' || github.event_name == 'schedule'
