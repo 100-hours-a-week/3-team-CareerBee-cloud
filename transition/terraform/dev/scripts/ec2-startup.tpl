@@ -152,6 +152,13 @@ cat <<EOF > /home/ubuntu/scouter/agent.java/conf/scouter.conf
 net_collector_ip=127.0.0.1
 EOF
 
+cat <<EOF > /home/ubuntu/scouter/agent.host/conf/scouter.conf
+net_collector_ip=127.0.0.1
+EOF
+
+cd /home/ubuntu/scouter/agent.host
+sh host.sh start
+
 cd ~
 
 # 10. UFW 설정
