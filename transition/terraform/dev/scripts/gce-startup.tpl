@@ -1,15 +1,14 @@
 #!/bin/bash
-sudo -u ubuntu bash <<UBUNTU_EOF
 export DEBIAN_FRONTEND=noninteractive # 비대화 모드
 
 echo "[0] 디렉토리 생성"
-mkdir -p /home/ubuntu/.aws /home/ubuntu/logs /home/ubuntu/release /home/ubuntu/tmp/s3cache ${MOUNT_DIR}
+sudo mkdir -p ~/.aws /home/ubuntu/.aws /home/ubuntu/logs /home/ubuntu/release /home/ubuntu/tmp/s3cache ${MOUNT_DIR}
 
 echo "[1] APT 업데이트 및 기본 패키지 설치"
 sudo apt update -y && sudo apt upgrade -y
 sudo apt install -y curl unzip nginx
 (
-  sudo apt-get install -y nvidia-driver-570
+  # sudo apt-get install -y nvidia-driver-570
 ) &
 (
   echo "[2] AWS CLI 설치"
@@ -18,21 +17,32 @@ sudo apt install -y curl unzip nginx
   sudo ./aws/install
 ) &
 (
-  echo "[3] Google Cloud Ops Agent 설치"
-  curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
-  sudo bash add-google-cloud-ops-agent-repo.sh --also-install
-  sudo systemctl enable google-cloud-ops-agent
-  sudo systemctl restart google-cloud-ops-agent
+  # echo "[3] Google Cloud Ops Agent 설치"
+  # curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
+  # sudo bash add-google-cloud-ops-agent-repo.sh --also-install
+  # sudo systemctl enable google-cloud-ops-agent
+  # sudo systemctl restart google-cloud-ops-agent
 ) &
 (
-  echo "[4] Certbot 설치"
-  sudo snap install --classic certbot
-  sudo ln -sf /snap/bin/certbot /usr/bin/certbot
+  # echo "[4] Certbot 설치"
+  # sudo snap install --classic certbot
+  # sudo ln -sf /snap/bin/certbot /usr/bin/certbot
 ) &
 
 wait  # 병렬 설치 모두 완료될 때까지 대기
 
 echo "[5] AWS 자격증명 설정"
+cat > ~/.aws/credentials <<EOF
+[default]
+aws_access_key_id = ${AWS_ACCESS_KEY_ID}
+aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}
+EOF
+cat > ~/.aws/config <<EOF
+[default]
+region = ${AWS_DEFAULT_REGION}
+output = json
+EOF
+
 cat > /home/ubuntu/.aws/credentials <<EOF
 [default]
 aws_access_key_id = ${AWS_ACCESS_KEY_ID}
@@ -45,44 +55,45 @@ output = json
 EOF
 
 
-
+sudo -u ubuntu bash <<EOF
 echo "[6] mount-s3 설치 및 마운트 시작"
 wget https://s3.amazonaws.com/mountpoint-s3-release/latest/x86_64/mount-s3.deb
 sudo apt install -y ./mount-s3.deb
 rm -f ./mount-s3.deb
 echo "user_allow_other" | sudo tee -a /etc/fuse.conf
+sudo chown -R ubuntu:ubuntu ${MOUNT_DIR} /home/ubuntu
 mount-s3 ${BUCKET_BACKUP_NAME} ${MOUNT_DIR} --prefix ssd/ --region ap-northeast-2 --cache /home/ubuntu/tmp/s3cache --metadata-ttl 60   --allow-other   --allow-overwrite   --allow-delete   --incremental-upload
+EOF
 
+# echo "[7] Python3.12 및 가상환경 구성"
+# sudo apt update -y
+# sudo apt install -y python3.12 python3.12-venv python3.12-dev build-essential cmake libmupdf-dev libopenblas-dev libglib2.0-dev
+# sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 
-echo "[7] Python3.12 및 가상환경 구성"
-sudo apt update -y
-sudo apt install -y python3.12 python3.12-venv python3.12-dev build-essential cmake libmupdf-dev libopenblas-dev libglib2.0-dev
-sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
+# # Python 설치 완료 대기
+# until command -v python3.12 >/dev/null 2>&1; do
+#   sleep 2
+# done
 
-# Python 설치 완료 대기
-until command -v python3.12 >/dev/null 2>&1; do
-  sleep 2
-done
+# # 가상환경 생성
+# if [ ! -d "${MOUNT_DIR}/venv" ]; then
+#   python3.12 -m venv "${MOUNT_DIR}/venv"
+#   sudo chown -R ubuntu:ubuntu "${MOUNT_DIR}/venv"
+# fi
 
-# 가상환경 생성
-if [ ! -d "${MOUNT_DIR}/venv" ]; then
-  python3.12 -m venv "${MOUNT_DIR}/venv"
-  sudo chown -R ubuntu:ubuntu "${MOUNT_DIR}/venv"
-fi
+# source "${MOUNT_DIR}/venv/bin/activate"
+# pip install --upgrade pip
+# pip install huggingface_hub
 
-source "${MOUNT_DIR}/venv/bin/activate"
-pip install --upgrade pip
-pip install huggingface_hub
+# # 모델 다운로드 (S3 마운트 확인 시에만)
+# if mountpoint -q "${MOUNT_DIR}" && [ ! -d "${MOUNT_DIR}/mistral-7b" ]; then
+#   huggingface-cli login --token "${HF_TOKEN}"
+#   huggingface-cli download mistralai/Mistral-7B-Instruct-v0.3 \
+#     --local-dir "${MOUNT_DIR}/mistral-7b" \
+#     --local-dir-use-symlinks False
+# fi
 
-# 모델 다운로드 (S3 마운트 확인 시에만)
-if mountpoint -q "${MOUNT_DIR}" && [ ! -d "${MOUNT_DIR}/mistral-7b" ]; then
-  huggingface-cli login --token "${HF_TOKEN}"
-  huggingface-cli download mistralai/Mistral-7B-Instruct-v0.3 \
-    --local-dir "${MOUNT_DIR}/mistral-7b" \
-    --local-dir-use-symlinks False
-fi
-
-deactivate
+# deactivate
 
 echo "[8] UFW 방화벽 열기"
 sudo ufw allow OpenSSH
@@ -93,126 +104,125 @@ sudo ufw allow 8001
 sudo ufw --force enable
 
 
-echo "[9] Certbot 인증서 복원 시작"
-sudo mkdir -p /etc/letsencrypt/{live,archive,renewal}
-sudo mkdir -p /etc/letsencrypt/live/dev-ai.${DOMAIN}
-sudo mkdir -p /etc/letsencrypt/archive/dev-ai.${DOMAIN}
+# echo "[9] Certbot 인증서 복원 시작"
+# sudo mkdir -p /etc/letsencrypt/{live,archive,renewal}
+# sudo mkdir -p /etc/letsencrypt/live/dev-ai.${DOMAIN}
+# sudo mkdir -p /etc/letsencrypt/archive/dev-ai.${DOMAIN}
 
-sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/live/dev-ai.${DOMAIN}/     /etc/letsencrypt/live/dev-ai.${DOMAIN}/     --recursive
-sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/archive/dev-ai.${DOMAIN}/  /etc/letsencrypt/archive/dev-ai.${DOMAIN}/  --recursive
-sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/renewal/dev-ai.${DOMAIN}.conf /etc/letsencrypt/renewal/
-sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/options-ssl-nginx.conf /etc/letsencrypt/
-sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/ssl-dhparams.pem /etc/letsencrypt/
+# sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/live/dev-ai.${DOMAIN}/     /etc/letsencrypt/live/dev-ai.${DOMAIN}/     --recursive
+# sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/archive/dev-ai.${DOMAIN}/  /etc/letsencrypt/archive/dev-ai.${DOMAIN}/  --recursive
+# sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/renewal/dev-ai.${DOMAIN}.conf /etc/letsencrypt/renewal/
+# sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/options-ssl-nginx.conf /etc/letsencrypt/
+# sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/ssl-dhparams.pem /etc/letsencrypt/
 
-# sudo certbot --nginx --non-interactive --agree-tos --no-redirect \
-#   -m ${EMAIL} -d dev-ai.${DOMAIN}
-
-
-echo "[10] NGINX 설정 구성"
-sudo tee /etc/nginx/sites-available/default > /dev/null <<EOF_NGINX
-  server {
-      listen 80 default_server;
-      listen [::]:80 default_server;
-      server_name dev-ai.${DOMAIN};
-
-      return 301 https://\$host\$request_uri;
-  }
-
-  server {
-      listen 443 ssl;
-      listen [::]:443 ssl;
-      server_name dev-ai.${DOMAIN};
-
-      ssl_certificate /etc/letsencrypt/live/dev-ai.${DOMAIN}/fullchain.pem;
-      ssl_certificate_key /etc/letsencrypt/live/dev-ai.${DOMAIN}/privkey.pem;
-      include /etc/letsencrypt/options-ssl-nginx.conf;
-      ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
-
-      location / {
-          proxy_pass http://localhost:8000;
-          proxy_set_header Host \$host;
-          proxy_set_header X-Real-IP \$remote_addr;
-      }
-  }
-EOF_NGINX
-
-sudo nginx -t && sudo systemctl reload nginx
+# # sudo certbot --nginx --non-interactive --agree-tos --no-redirect \
+# #   -m ${EMAIL} -d dev-ai.${DOMAIN}
 
 
-echo "[11] 애플리케이션 배포 및 실행"
-aws s3 cp "$(aws s3 ls "${BUCKET_BACKUP}/ai/" | awk '{print $2}' | sort | tail -n 1 | sed 's#^#'"${BUCKET_BACKUP}/ai/"'#;s#/$##')" "${DEPLOY_DIR}/" --recursive
-source "${MOUNT_DIR}/venv/bin/activate"
+# echo "[10] NGINX 설정 구성"
+# sudo tee /etc/nginx/sites-available/default > /dev/null <<EOF_NGINX
+#   server {
+#       listen 80 default_server;
+#       listen [::]:80 default_server;
+#       server_name dev-ai.${DOMAIN};
 
-pip install --upgrade pip
-pip install --no-cache-dir --prefer-binary -r "${DEPLOY_DIR}/requirements.txt"
+#       return 301 https://\$host\$request_uri;
+#   }
 
-pkill -f "uvicorn" || true
+#   server {
+#       listen 443 ssl;
+#       listen [::]:443 ssl;
+#       server_name dev-ai.${DOMAIN};
 
-nohup python3 -m vllm.entrypoints.openai.api_server \
-    --model /mnt/ssd/mistral-7b \
-    --dtype float16 \
-    --port 8001 \
-    --gpu-memory-utilization 0.9 > /home/ubuntu/logs/vLLM.log 2>&1 &
+#       ssl_certificate /etc/letsencrypt/live/dev-ai.${DOMAIN}/fullchain.pem;
+#       ssl_certificate_key /etc/letsencrypt/live/dev-ai.${DOMAIN}/privkey.pem;
+#       include /etc/letsencrypt/options-ssl-nginx.conf;
+#       ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
-cd "${DEPLOY_DIR}"
-nohup "${MOUNT_DIR}/venv/bin/uvicorn" app.main:app --host 0.0.0.0 --port 8000 > /home/ubuntu/logs/uvicorn.log 2>&1 &
+#       location / {
+#           proxy_pass http://localhost:8000;
+#           proxy_set_header Host \$host;
+#           proxy_set_header X-Real-IP \$remote_addr;
+#       }
+#   }
+# EOF_NGINX
 
-deactivate
+# sudo nginx -t && sudo systemctl reload nginx
 
-# 버전 확인 로그
-echo "[12] 설치 확인 로그"
-echo "[✔] S3 마운트 상태:"
-if mountpoint -q ${MOUNT_DIR}; then
-  echo "✅ S3가 ${MOUNT_DIR}에 마운트되어 있습니다."
-  df -h ${MOUNT_DIR}
-else
-  echo "❌ S3가 ${MOUNT_DIR}에 마운트되지 않았습니다. 수동 확인 필요."
-  lsblk -f
-fi
 
-echo "[✔] NVIDIA 드라이버 상태 (nvidia-smi):"
-if command -v nvidia-smi >/dev/null 2>&1; then
-  nvidia-smi
-else
-  echo "❌ nvidia-smi 명령을 찾을 수 없습니다. 드라이버 설치 확인 필요."
-fi
+# echo "[11] 애플리케이션 배포 및 실행"
+# aws s3 cp "$(aws s3 ls "${BUCKET_BACKUP}/ai/" | awk '{print $2}' | sort | tail -n 1 | sed 's#^#'"${BUCKET_BACKUP}/ai/"'#;s#/$##')" "${DEPLOY_DIR}/" --recursive
+# source "${MOUNT_DIR}/venv/bin/activate"
 
-echo "[✔] Python3 버전:"
-python3 --version
+# pip install --upgrade pip
+# pip install --no-cache-dir --prefer-binary -r "${DEPLOY_DIR}/requirements.txt"
 
-echo "[✔] vLLM 디렉토리 확인:"
-[ -d "${MOUNT_DIR}/mistral-7b" ] && echo "${MOUNT_DIR}/mistral-7b 디렉토리 존재함" || echo "❌ ${MOUNT_DIR}/mistral-7b 디렉토리 없음"
+# pkill -f "uvicorn" || true
 
-echo "[✔] Nginx 상태:"
-sudo systemctl is-active --quiet nginx && echo "Nginx 실행 중" || echo "❌ Nginx 비활성 상태"
+# nohup python3 -m vllm.entrypoints.openai.api_server \
+#     --model /mnt/ssd/mistral-7b \
+#     --dtype float16 \
+#     --port 8001 \
+#     --gpu-memory-utilization 0.9 > /home/ubuntu/logs/vLLM.log 2>&1 &
 
-echo "[✔] HTTPS 인증서:"
-if [ -f "/etc/letsencrypt/live/dev-ai.${DOMAIN}/fullchain.pem" ]; then
-  echo "인증서 존재함"
-else
-  echo "❌ 인증서 없음"
-fi
+# cd "${DEPLOY_DIR}"
+# nohup "${MOUNT_DIR}/venv/bin/uvicorn" app.main:app --host 0.0.0.0 --port 8000 > /home/ubuntu/logs/uvicorn.log 2>&1 &
 
-echo "[✔] UFW 방화벽 상태:"
-sudo ufw status verbose
+# deactivate
 
-# 배포 확인 로그
-echo "[✔] AI 서버 실행 상태 확인:"
-sleep 5
-if pgrep -f "vllm.entrypoints.openai.api_server" > /dev/null; then
-  echo "✅ vLLM API 서버가 실행 중입니다."
-else
-  echo "❌ vLLM API 서버가 실행되고 있지 않습니다."
-fi
+# # 버전 확인 로그
+# echo "[12] 설치 확인 로그"
+# echo "[✔] S3 마운트 상태:"
+# if mountpoint -q ${MOUNT_DIR}; then
+#   echo "✅ S3가 ${MOUNT_DIR}에 마운트되어 있습니다."
+#   df -h ${MOUNT_DIR}
+# else
+#   echo "❌ S3가 ${MOUNT_DIR}에 마운트되지 않았습니다. 수동 확인 필요."
+#   lsblk -f
+# fi
 
-if pgrep -f "uvicorn" > /dev/null; then
-  echo "✅ uvicorn 프로세스가 실행 중입니다."
-else
-  echo "❌ uvicorn 프로세스가 실행되고 있지 않습니다."
-fi
+# echo "[✔] NVIDIA 드라이버 상태 (nvidia-smi):"
+# if command -v nvidia-smi >/dev/null 2>&1; then
+#   nvidia-smi
+# else
+#   echo "❌ nvidia-smi 명령을 찾을 수 없습니다. 드라이버 설치 확인 필요."
+# fi
 
-touch /home/ubuntu/tmp/gce-startup.done
+# echo "[✔] Python3 버전:"
+# python3 --version
 
-echo "[13] 권한 설정"
-sudo chown -R ubuntu:ubuntu /home/ubuntu ${MOUNT_DIR}
-UBUNTU_EOF
+# echo "[✔] vLLM 디렉토리 확인:"
+# [ -d "${MOUNT_DIR}/mistral-7b" ] && echo "${MOUNT_DIR}/mistral-7b 디렉토리 존재함" || echo "❌ ${MOUNT_DIR}/mistral-7b 디렉토리 없음"
+
+# echo "[✔] Nginx 상태:"
+# sudo systemctl is-active --quiet nginx && echo "Nginx 실행 중" || echo "❌ Nginx 비활성 상태"
+
+# echo "[✔] HTTPS 인증서:"
+# if [ -f "/etc/letsencrypt/live/dev-ai.${DOMAIN}/fullchain.pem" ]; then
+#   echo "인증서 존재함"
+# else
+#   echo "❌ 인증서 없음"
+# fi
+
+# echo "[✔] UFW 방화벽 상태:"
+# sudo ufw status verbose
+
+# # 배포 확인 로그
+# echo "[✔] AI 서버 실행 상태 확인:"
+# sleep 5
+# if pgrep -f "vllm.entrypoints.openai.api_server" > /dev/null; then
+#   echo "✅ vLLM API 서버가 실행 중입니다."
+# else
+#   echo "❌ vLLM API 서버가 실행되고 있지 않습니다."
+# fi
+
+# if pgrep -f "uvicorn" > /dev/null; then
+#   echo "✅ uvicorn 프로세스가 실행 중입니다."
+# else
+#   echo "❌ uvicorn 프로세스가 실행되고 있지 않습니다."
+# fi
+
+# touch /home/ubuntu/tmp/gce-startup.done
+
+# echo "[13] 권한 설정"
+# sudo chown -R ubuntu:ubuntu /home/ubuntu ${MOUNT_DIR}
