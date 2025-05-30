@@ -12,14 +12,14 @@ output "gcp_ssh_command" {
 }
 
 # AWS EC2 인스턴스 정보 출력
-# output "aws_instance_name" {
-#   value = aws_instance.ec2.tags["Name"]
-# }
+output "aws_instance_name" {
+  value = aws_instance.ec2.tags["Name"]
+}
 
-# output "aws_instance_public_ip" {
-#   value = data.aws_eip.existing_eip.public_ip
-# }
+output "aws_instance_public_ip" {
+  value = data.aws_eip.existing_eip.public_ip
+}
 
-# output "aws_ssh_command" {
-#   value = "ssh -i ~/.ssh/ssmu-key ubuntu@${data.aws_eip.existing_eip.public_ip}"
-# }
+output "aws_ssh_command" {
+  value = "ssh -i ~/.ssh/ssmu-key ubuntu@${data.aws_eip.existing_eip.public_ip}"
+}
