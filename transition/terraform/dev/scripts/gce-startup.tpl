@@ -29,7 +29,8 @@ sudo chown -R ubuntu:ubuntu /home/ubuntu/logs /home/ubuntu/release /home/ubuntu/
 
 # mount-s3
 wget https://s3.amazonaws.com/mountpoint-s3-release/latest/x86_64/mount-s3.deb
-sudo apt install ./mount-s3.deb
+sudo apt install -y ./mount-s3.deb
+rm -f ./mount-s3.deb
 mount-s3 ${BUCKET_BACKUP} ${MOUNT_DIR} --prefix ssd/ --region ap-northeast-2 --cache /tmp/s3cache --metadata-ttl 60   --allow-other   --allow-overwrite   --allow-delete   --incremental-upload
 
 # Google Cloud Ops Agent 설치
