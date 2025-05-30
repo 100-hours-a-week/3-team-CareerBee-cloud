@@ -114,7 +114,7 @@ source "${MOUNT_DIR}/venv/bin/activate"
 pip install --upgrade pip
 pip install huggingface_hub
 
-if [ ! -d "${MOUNT_DIR}/mistral-7b" ]; then
+if mountpoint -q /mnt/ssd && [ ! -d "${MOUNT_DIR}/mistral-7b" ]; then
   huggingface-cli login --token "${HF_TOKEN}"
   huggingface-cli download mistralai/Mistral-7B-Instruct-v0.3 \
     --local-dir "${MOUNT_DIR}/mistral-7b" \
