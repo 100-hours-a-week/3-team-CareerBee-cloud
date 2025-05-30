@@ -45,47 +45,44 @@ output = json
 EOF
 
 
-(
-  echo "[6] mount-s3 설치 및 마운트 시작"
-  wget https://s3.amazonaws.com/mountpoint-s3-release/latest/x86_64/mount-s3.deb
-  sudo apt install -y ./mount-s3.deb
-  rm -f ./mount-s3.deb
-  echo "user_allow_other" | sudo tee -a /etc/fuse.conf
-  mount-s3 ${BUCKET_BACKUP} ${MOUNT_DIR} --prefix ssd/ --region ap-northeast-2 --cache /tmp/s3cache --metadata-ttl 60   --allow-other   --allow-overwrite   --allow-delete   --incremental-upload
-) &
-(
-  echo "[7] Python3.12 및 가상환경 구성"
-  sudo apt update -y
-  sudo apt install -y python3.12 python3.12-venv python3.12-dev build-essential cmake libmupdf-dev libopenblas-dev libglib2.0-dev
-  sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 
-  # Python 설치 완료 대기
-  until command -v python3.12 >/dev/null 2>&1; do
-    sleep 2
-  done
+echo "[6] mount-s3 설치 및 마운트 시작"
+wget https://s3.amazonaws.com/mountpoint-s3-release/latest/x86_64/mount-s3.deb
+sudo apt install -y ./mount-s3.deb
+rm -f ./mount-s3.deb
+echo "user_allow_other" | sudo tee -a /etc/fuse.conf
+mount-s3 ${BUCKET_BACKUP} ${MOUNT_DIR} --prefix ssd/ --region ap-northeast-2 --cache /tmp/s3cache --metadata-ttl 60   --allow-other   --allow-overwrite   --allow-delete   --incremental-upload
 
-  # 가상환경 생성
-  if [ ! -d "${MOUNT_DIR}/venv" ]; then
-    python3.12 -m venv "${MOUNT_DIR}/venv"
-    sudo chown -R ubuntu:ubuntu "${MOUNT_DIR}/venv"
-  fi
 
-  source "${MOUNT_DIR}/venv/bin/activate"
-  pip install --upgrade pip
-  pip install huggingface_hub
+echo "[7] Python3.12 및 가상환경 구성"
+sudo apt update -y
+sudo apt install -y python3.12 python3.12-venv python3.12-dev build-essential cmake libmupdf-dev libopenblas-dev libglib2.0-dev
+sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 
-  # 모델 다운로드 (S3 마운트 확인 시에만)
-  if mountpoint -q "${MOUNT_DIR}" && [ ! -d "${MOUNT_DIR}/mistral-7b" ]; then
-    huggingface-cli login --token "${HF_TOKEN}"
-    huggingface-cli download mistralai/Mistral-7B-Instruct-v0.3 \
-      --local-dir "${MOUNT_DIR}/mistral-7b" \
-      --local-dir-use-symlinks False
-  fi
+# Python 설치 완료 대기
+until command -v python3.12 >/dev/null 2>&1; do
+  sleep 2
+done
 
-  deactivate
-) &
+# 가상환경 생성
+if [ ! -d "${MOUNT_DIR}/venv" ]; then
+  python3.12 -m venv "${MOUNT_DIR}/venv"
+  sudo chown -R ubuntu:ubuntu "${MOUNT_DIR}/venv"
+fi
 
-wait
+source "${MOUNT_DIR}/venv/bin/activate"
+pip install --upgrade pip
+pip install huggingface_hub
+
+# 모델 다운로드 (S3 마운트 확인 시에만)
+if mountpoint -q "${MOUNT_DIR}" && [ ! -d "${MOUNT_DIR}/mistral-7b" ]; then
+  huggingface-cli login --token "${HF_TOKEN}"
+  huggingface-cli download mistralai/Mistral-7B-Instruct-v0.3 \
+    --local-dir "${MOUNT_DIR}/mistral-7b" \
+    --local-dir-use-symlinks False
+fi
+
+deactivate
 
 echo "[8] UFW 방화벽 열기"
 sudo ufw allow OpenSSH
