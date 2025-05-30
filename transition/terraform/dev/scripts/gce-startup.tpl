@@ -11,9 +11,17 @@ curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip
 unzip awscliv2.zip
 sudo ./aws/install
 # AWS 인증 설정
-export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
-export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
-export AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION}"
+mkdir -p ~/.aws
+cat > ~/.aws/credentials <<EOF
+[default]
+aws_access_key_id = ${AWS_ACCESS_KEY_ID}
+aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}
+EOF
+cat > ~/.aws/config <<EOF
+[default]
+region = ${AWS_DEFAULT_REGION}
+output = json
+EOF
 
 # 2. 로그, 릴리즈, 임시 디렉토리 추가 & 디스크 마운트
 sudo mkdir -p /home/ubuntu/logs /home/ubuntu/release /home/ubuntu/tmp
