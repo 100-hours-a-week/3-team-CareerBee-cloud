@@ -3,7 +3,7 @@ export DEBIAN_FRONTEND=noninteractive # 비대화 모드
 
 echo "[0] 디렉토리 생성 및 권한 설정"
 sudo mkdir -p ~/.aws /home/ubuntu/.aws /home/ubuntu/logs /home/ubuntu/release /home/ubuntu/tmp/s3cache ${MOUNT_DIR}
-sudo chown -R ubuntu:ubuntu /home/ubuntu
+sudo chown -R ubuntu:ubuntu /home/ubuntu ${MOUNT_DIR}
 
 echo "[1] APT 업데이트 및 기본 패키지 설치"
 sudo apt update -y && sudo apt upgrade -y
