@@ -1,9 +1,8 @@
 #!/bin/bash
 export DEBIAN_FRONTEND=noninteractive # 비대화 모드
 
-echo "[0] 디렉토리 생성 및 권한 설정"
+echo "[0] 디렉토리 생성"
 sudo mkdir -p ~/.aws /home/ubuntu/.aws /home/ubuntu/logs /home/ubuntu/release /home/ubuntu/tmp/s3cache ${MOUNT_DIR}
-sudo chown -R ubuntu:ubuntu /home/ubuntu ${MOUNT_DIR}
 
 echo "[1] APT 업데이트 및 기본 패키지 설치"
 sudo apt update -y && sudo apt upgrade -y
@@ -62,7 +61,7 @@ wget https://s3.amazonaws.com/mountpoint-s3-release/latest/x86_64/mount-s3.deb
 sudo apt install -y ./mount-s3.deb
 rm -f ./mount-s3.deb
 echo "user_allow_other" | sudo tee -a /etc/fuse.conf
-mount-s3 ${BUCKET_BACKUP_NAME} ${MOUNT_DIR} --prefix ssd/ --region ap-northeast-2 --cache /tmp/s3cache --metadata-ttl 60   --allow-other   --allow-overwrite   --allow-delete   --incremental-upload
+mount-s3 ${BUCKET_BACKUP_NAME} ${MOUNT_DIR} --prefix ssd/ --region ap-northeast-2 --cache /home/ubuntu/tmp/s3cache --metadata-ttl 60   --allow-other   --allow-overwrite   --allow-delete   --incremental-upload
 
 
 echo "[7] Python3.12 및 가상환경 구성"
@@ -171,6 +170,7 @@ nohup "${MOUNT_DIR}/venv/bin/uvicorn" app.main:app --host 0.0.0.0 --port 8000 > 
 deactivate
 
 # 버전 확인 로그
+echo "[12] 설치 확인 로그"
 echo "[✔] S3 마운트 상태:"
 if mountpoint -q ${MOUNT_DIR}; then
   echo "✅ S3가 ${MOUNT_DIR}에 마운트되어 있습니다."
@@ -222,3 +222,6 @@ else
 fi
 
 touch /home/ubuntu/tmp/gce-startup.done
+
+echo "[13] 권한 설정"
+sudo chown -R ubuntu:ubuntu /home/ubuntu ${MOUNT_DIR}

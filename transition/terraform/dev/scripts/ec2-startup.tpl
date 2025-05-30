@@ -8,9 +8,8 @@ chown -R ubuntu:ubuntu /home/ubuntu/.ssh
 chmod 600 /home/ubuntu/.ssh/authorized_keys
 
 
-echo "[2] 기본 디렉토리 생성 및 권한 설정"
+echo "[2] 기본 디렉토리 생성"
 mkdir -p /home/ubuntu/{logs,release,tmp}
-chown -R ubuntu:ubuntu /home/ubuntu
 
 echo "[3] 병렬로 필수 패키지 설치 시작"
 sudo apt update -y && sudo apt upgrade -y
@@ -68,7 +67,6 @@ sudo ufw --force enable
 echo "[6] Nginx 및 HTTPS 인증 설정"
 sudo apt install -y nginx
 sudo mkdir -p /var/www/html
-chown -R ubuntu:ubuntu /var/www/html
 
 sudo snap install --classic certbot
 sudo ln -sf /snap/bin/certbot /usr/bin/certbot
@@ -141,7 +139,6 @@ sudo apt install -y openjdk-11-jdk
 cd /home/ubuntu
 wget https://github.com/scouter-project/scouter/releases/download/v2.20.0/scouter-all-2.20.0.tar.gz
 tar -xvf scouter-all-2.20.0.tar.gz && rm scouter-all-2.20.0.tar.gz
-chown -R ubuntu:ubuntu scouter
 
 cd scouter/server/lib
 wget https://repo1.maven.org/maven2/javax/xml/bind/jaxb-api/2.3.1/jaxb-api-2.3.1.jar
@@ -251,3 +248,6 @@ else
 fi
 
 touch /home/ubuntu/tmp/ec2-startup.done
+
+echo "[11] 권한 설정"
+chown -R ubuntu:ubuntu /home/ubuntu /var/www/html
