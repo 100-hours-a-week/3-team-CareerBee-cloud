@@ -23,24 +23,14 @@ region = ${AWS_DEFAULT_REGION}
 output = json
 EOF
 
-# 2. 로그, 릴리즈, 임시 디렉토리 추가 & 디스크 마운트
-sudo mkdir -p /home/ubuntu/logs /home/ubuntu/release /home/ubuntu/tmp
-sudo chown -R ubuntu:ubuntu /home/ubuntu/logs /home/ubuntu/release /home/ubuntu/tmp
+# 2. 로그, 릴리즈, 임시 디렉토리 추가 & S3 마운트
+sudo mkdir -p /home/ubuntu/logs /home/ubuntu/release /home/ubuntu/tmp/s3cache ${MOUNT_DIR}
+sudo chown -R ubuntu:ubuntu /home/ubuntu/logs /home/ubuntu/release /home/ubuntu/tmp ${MOUNT_DIR}
 
-# 3. 디스크 마운트
-if sudo ls "${DEVICE_ID}" > /dev/null 2>&1; then
-  if ! blkid "${DEVICE_ID}"; then
-      sudo mkfs.ext4 -F "${DEVICE_ID}"
-  fi
-
-  sudo mkdir -p "${MOUNT_DIR}"
-  sudo mount -o discard,defaults "${DEVICE_ID}" "${MOUNT_DIR}"
-  sudo chown -R ubuntu:ubuntu "${MOUNT_DIR}"
-
-  if ! grep -q "${DEVICE_ID}" /etc/fstab; then
-      echo "${DEVICE_ID} ${MOUNT_DIR} ext4 discard,defaults,nofail 0 2" | sudo tee -a /etc/fstab
-  fi
-fi
+# mount-s3
+wget https://s3.amazonaws.com/mountpoint-s3-release/latest/x86_64/mount-s3.deb
+sudo apt install ./mount-s3.deb
+mount-s3 ${BUCKET_BACKUP} ${MOUNT_DIR} --prefix ssd/ --region ap-northeast-2 --cache /tmp/s3cache --metadata-ttl 60   --allow-other   --allow-overwrite   --allow-delete   --incremental-upload
 
 # Google Cloud Ops Agent 설치
 curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
@@ -109,9 +99,10 @@ until command -v python3.12 >/dev/null 2>&1; do
 done
 
 # 가상환경 생성 경로 변경
-python3.12 -m venv "${MOUNT_DIR}/venv"
-sudo chown -R ubuntu:ubuntu "${MOUNT_DIR}/venv"
-
+if [ ! -d "${MOUNT_DIR}/venv" ]; then
+  python3.12 -m venv "${MOUNT_DIR}/venv"
+  sudo chown -R ubuntu:ubuntu "${MOUNT_DIR}/venv"
+fi
 # 토큰 환경변수
 export HF_TOKEN="${HF_TOKEN}"
 
@@ -121,10 +112,13 @@ source "${MOUNT_DIR}/venv/bin/activate"
 # huggingface-cli 및 vLLM 설치
 pip install --upgrade pip
 pip install huggingface_hub
-huggingface-cli login --token "${HF_TOKEN}"
-huggingface-cli download mistralai/Mistral-7B-Instruct-v0.3 \
-  --local-dir "${MOUNT_DIR}/mistral-7b" \
-  --local-dir-use-symlinks False
+
+if [ ! -d "${MOUNT_DIR}/mistral-7b" ]; then
+  huggingface-cli login --token "${HF_TOKEN}"
+  huggingface-cli download mistralai/Mistral-7B-Instruct-v0.3 \
+    --local-dir "${MOUNT_DIR}/mistral-7b" \
+    --local-dir-use-symlinks False
+fi
 
 # 가상환경 비활성화
 deactivate
@@ -158,12 +152,12 @@ nohup "${MOUNT_DIR}/venv/bin/uvicorn" app.main:app --host 0.0.0.0 --port 8000 > 
 deactivate
 
 # 10. 버전 확인 로그
-echo "[✔] 디스크 마운트 상태:"
+echo "[✔] S3 마운트 상태:"
 if mountpoint -q ${MOUNT_DIR}; then
-  echo "✅ 디스크가 ${MOUNT_DIR}에 마운트되어 있습니다."
+  echo "✅ S3가 ${MOUNT_DIR}에 마운트되어 있습니다."
   df -h ${MOUNT_DIR}
 else
-  echo "❌ 디스크가 ${MOUNT_DIR}에 마운트되지 않았습니다. 수동 확인 필요."
+  echo "❌ S3가 ${MOUNT_DIR}에 마운트되지 않았습니다. 수동 확인 필요."
   lsblk -f
 fi
 
