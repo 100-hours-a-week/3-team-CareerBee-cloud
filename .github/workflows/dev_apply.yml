@@ -82,6 +82,9 @@ jobs:
         run: |
           set +e 
 
+          echo "🕑 초기 10분 대기 중..."
+          sleep 600  # 10분 대기
+
           MAX_RETRIES=30
           RETRY_DELAY=30
           COUNT=0
