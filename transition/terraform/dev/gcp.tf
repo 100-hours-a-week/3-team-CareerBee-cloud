@@ -72,11 +72,6 @@ resource "google_compute_firewall" "allow_egress" {
   destination_ranges  = ["0.0.0.0/0"]
 }
 
-data "google_compute_disk" "boot_disk" {
-  name = "disk-careerbee-dev"
-  zone = var.gcp_zone
-}
-
 resource "google_compute_instance" "gce" {
   name         = "gce-careerbee-dev-azone"
   machine_type = "g2-standard-4"
@@ -90,12 +85,6 @@ resource "google_compute_instance" "gce" {
     initialize_params {
       image = "ubuntu-os-cloud/ubuntu-2404-lts-amd64"
     }
-  }
-
-  attached_disk {
-    source      = data.google_compute_disk.boot_disk.id
-    device_name = "careerbee-dev-data"
-    mode        = "READ_WRITE"
   }
 
   network_interface {
