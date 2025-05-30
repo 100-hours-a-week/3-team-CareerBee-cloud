@@ -51,7 +51,7 @@ wget https://s3.amazonaws.com/mountpoint-s3-release/latest/x86_64/mount-s3.deb
 sudo apt install -y ./mount-s3.deb
 rm -f ./mount-s3.deb
 echo "user_allow_other" | sudo tee -a /etc/fuse.conf
-mount-s3 ${BUCKET_BACKUP:5} ${MOUNT_DIR} --prefix ssd/ --region ap-northeast-2 --cache /tmp/s3cache --metadata-ttl 60   --allow-other   --allow-overwrite   --allow-delete   --incremental-upload
+mount-s3 ${BUCKET_BACKUP_NAME} ${MOUNT_DIR} --prefix ssd/ --region ap-northeast-2 --cache /tmp/s3cache --metadata-ttl 60   --allow-other   --allow-overwrite   --allow-delete   --incremental-upload
 
 
 echo "[7] Python3.12 및 가상환경 구성"

@@ -86,7 +86,7 @@ jobs:
               "embeds": [
                 {
                   "title": "🛑 DEV 서버 중지됨",
-                  "description": "커리어비 DEV 서버가 중지되었습니다.\n\n내일 오전 9시에 다시 만나요! 👋🏻👋🏻",
+                  "description": "커리어비 DEV 서버가 중지되었습니다.\n\n내일 오후 1시에 다시 만나요! 👋🏻👋🏻",
                   "color": 9807270,
                   "footer": { "text": "Cloud Functions - DEV Server" },
                   "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"

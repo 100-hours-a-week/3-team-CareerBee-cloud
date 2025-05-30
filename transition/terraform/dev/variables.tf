@@ -125,6 +125,9 @@ variable "sentry_auth_token" {
 variable "bucket_backup" {
   sensitive = true
 }
+variable "bucket_backup_name" {
+  sensitive = true
+}
 variable "device_id" {
   sensitive = true
 }
