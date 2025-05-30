@@ -1,66 +1,128 @@
 #!/bin/bash
 export DEBIAN_FRONTEND=noninteractive # 비대화 모드
 
-# 1. 시스템 업데이트 및 필수 패키지
-sudo apt update -y && sudo apt upgrade -y
-sudo apt install -y curl unzip nginx
-sudo apt-get install -y nvidia-driver-570
+# [0] 사전 디렉토리 생성 및 권한 설정
+echo "[0] 디렉토리 생성 및 권한 설정"
+sudo mkdir -p /home/ubuntu/.aws /home/ubuntu/logs /home/ubuntu/release /home/ubuntu/tmp/s3cache ${MOUNT_DIR}
+sudo chown -R ubuntu:ubuntu /home/ubuntu
 
-# aws-cli 설치
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
-# AWS 인증 설정
-mkdir -p ~/.aws
-cat > ~/.aws/credentials <<EOF
+# [1] 시스템 업데이트 및 필수 패키지 설치
+(
+  echo "[1] APT 업데이트 및 기본 패키지 설치"
+  sudo apt update -y && sudo apt upgrade -y
+  sudo apt install -y curl unzip nginx
+  sudo apt-get install -y nvidia-driver-570
+) &
+# [2] AWS CLI 설치
+(
+  echo "[2] AWS CLI 설치"
+  curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  unzip -q awscliv2.zip
+  sudo ./aws/install
+) &
+# [3] Google Cloud Ops Agent 설치
+(
+  echo "[3] Google Cloud Ops Agent 설치"
+  curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
+  sudo bash add-google-cloud-ops-agent-repo.sh --also-install
+  sudo systemctl enable google-cloud-ops-agent
+  sudo systemctl restart google-cloud-ops-agent
+) &
+# [4] Certbot 설치
+(
+  echo "[4] Certbot 설치"
+  sudo snap install --classic certbot
+  sudo ln -sf /snap/bin/certbot /usr/bin/certbot
+) &
+
+wait  # 병렬 설치 모두 완료될 때까지 대기
+
+# [5] AWS 자격증명 저장
+echo "[5] AWS 자격증명 설정"
+cat > /home/ubuntu/.aws/credentials <<EOF
 [default]
 aws_access_key_id = ${AWS_ACCESS_KEY_ID}
 aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}
 EOF
-cat > ~/.aws/config <<EOF
+cat > /home/ubuntu/.aws/config <<EOF
 [default]
 region = ${AWS_DEFAULT_REGION}
 output = json
 EOF
 
-# 2. 로그, 릴리즈, 임시 디렉토리 추가 & S3 마운트
-sudo mkdir -p /home/ubuntu/logs /home/ubuntu/release /home/ubuntu/tmp/s3cache ${MOUNT_DIR}
-sudo chown -R ubuntu:ubuntu /home/ubuntu/logs /home/ubuntu/release /home/ubuntu/tmp ${MOUNT_DIR}
-
-# mount-s3
+# [6] mount-s3 설치 및 마운트
+echo "[6] mount-s3 설치 및 마운트 시작"
+(
 wget https://s3.amazonaws.com/mountpoint-s3-release/latest/x86_64/mount-s3.deb
 sudo apt install -y ./mount-s3.deb
 rm -f ./mount-s3.deb
+echo "user_allow_other" | sudo tee -a /etc/fuse.conf
 mount-s3 ${BUCKET_BACKUP} ${MOUNT_DIR} --prefix ssd/ --region ap-northeast-2 --cache /tmp/s3cache --metadata-ttl 60   --allow-other   --allow-overwrite   --allow-delete   --incremental-upload
+) &
+# [7] Python 환경 설치 및 가상환경 생성
+(
+  echo "[7] Python3.12 및 가상환경 구성"
+  sudo apt update -y
+  sudo apt install -y python3.12 python3.12-venv python3.12-dev build-essential cmake libmupdf-dev libopenblas-dev libglib2.0-dev
+  sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 
-# Google Cloud Ops Agent 설치
-curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
-sudo bash add-google-cloud-ops-agent-repo.sh --also-install
+  # Python 설치 완료 대기
+  until command -v python3.12 >/dev/null 2>&1; do
+    sleep 2
+  done
 
-sudo systemctl enable google-cloud-ops-agent
-sudo systemctl restart google-cloud-ops-agent
+  # 가상환경 생성
+  if [ ! -d "${MOUNT_DIR}/venv" ]; then
+    python3.12 -m venv "${MOUNT_DIR}/venv"
+    sudo chown -R ubuntu:ubuntu "${MOUNT_DIR}/venv"
+  fi
 
-# 4. Certbot 설치
-sudo snap install --classic certbot
-sudo ln -sf /snap/bin/certbot /usr/bin/certbot
+  source "${MOUNT_DIR}/venv/bin/activate"
+  pip install --upgrade pip
+  pip install huggingface_hub
 
-# 인증서 복원 - S3에서 다운로드 (GCP용 dev-ai.${DOMAIN})
-sudo mkdir -p /etc/letsencrypt/{live,archive,renewal}
-sudo mkdir -p /etc/letsencrypt/live/dev-ai.${DOMAIN}
-sudo mkdir -p /etc/letsencrypt/archive/dev-ai.${DOMAIN}
+  # 모델 다운로드 (S3 마운트 확인 시에만)
+  if mountpoint -q "${MOUNT_DIR}" && [ ! -d "${MOUNT_DIR}/mistral-7b" ]; then
+    huggingface-cli login --token "${HF_TOKEN}"
+    huggingface-cli download mistralai/Mistral-7B-Instruct-v0.3 \
+      --local-dir "${MOUNT_DIR}/mistral-7b" \
+      --local-dir-use-symlinks False
+  fi
 
-sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/live/dev-ai.${DOMAIN}/     /etc/letsencrypt/live/dev-ai.${DOMAIN}/     --recursive
-sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/archive/dev-ai.${DOMAIN}/  /etc/letsencrypt/archive/dev-ai.${DOMAIN}/  --recursive
-sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/renewal/dev-ai.${DOMAIN}.conf /etc/letsencrypt/renewal/
-sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/options-ssl-nginx.conf /etc/letsencrypt/
-sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/ssl-dhparams.pem /etc/letsencrypt/
+  deactivate
+) &
 
+wait
 
-# sudo certbot --nginx --non-interactive --agree-tos --no-redirect \
-#   -m ${EMAIL} -d dev-ai.${DOMAIN}
+# [8] UFW 방화벽 열기 (NGINX, AI 서버 접근 허용)
+echo "[8] UFW 방화벽 열기"
+sudo ufw allow OpenSSH
+sudo ufw allow 80
+sudo ufw allow 443
+sudo ufw allow 8000
+sudo ufw allow 8001
+sudo ufw --force enable
 
-# 5. NGINX 설정
-sudo tee /etc/nginx/sites-available/default > /dev/null <<EOF_NGINX
+# [9] Certbot 인증서 복원 (S3에서 다운로드)
+(
+  echo "[9] Certbot 인증서 복원 시작"
+  sudo mkdir -p /etc/letsencrypt/{live,archive,renewal}
+  sudo mkdir -p /etc/letsencrypt/live/dev-ai.${DOMAIN}
+  sudo mkdir -p /etc/letsencrypt/archive/dev-ai.${DOMAIN}
+
+  sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/live/dev-ai.${DOMAIN}/     /etc/letsencrypt/live/dev-ai.${DOMAIN}/     --recursive
+  sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/archive/dev-ai.${DOMAIN}/  /etc/letsencrypt/archive/dev-ai.${DOMAIN}/  --recursive
+  sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/renewal/dev-ai.${DOMAIN}.conf /etc/letsencrypt/renewal/
+  sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/options-ssl-nginx.conf /etc/letsencrypt/
+  sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/ssl-dhparams.pem /etc/letsencrypt/
+
+  # sudo certbot --nginx --non-interactive --agree-tos --no-redirect \
+  #   -m ${EMAIL} -d dev-ai.${DOMAIN}
+) &
+# [10] NGINX 설정 및 적용
+(
+  echo "[10] NGINX 설정 구성"
+  sudo tee /etc/nginx/sites-available/default > /dev/null <<EOF_NGINX
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
@@ -87,72 +149,34 @@ server {
 }
 EOF_NGINX
 
-sudo nginx -t && sudo systemctl reload nginx
+  sudo nginx -t && sudo systemctl reload nginx
+) &
+# [11] 앱 배포 및 백그라운드 실행
+(
+  echo "[11] 애플리케이션 배포 및 실행"
+  aws s3 cp "$(aws s3 ls "${BUCKET_BACKUP}/ai/" | awk '{print $2}' | sort | tail -n 1 | sed 's#^#'"${BUCKET_BACKUP}/ai/"'#;s#/$##')" "${DEPLOY_DIR}/" --recursive
+  source "${MOUNT_DIR}/venv/bin/activate"
 
-# 6. Python 3.12.8 & vLLM
-sudo apt update -y
-sudo apt install -y python3.12 python3.12-venv python3.12-dev build-essential cmake libmupdf-dev libopenblas-dev libglib2.0-dev
-sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
+  pip install --upgrade pip
+  pip install --no-cache-dir --prefer-binary -r "${DEPLOY_DIR}/requirements.txt"
 
-# Python 설치 완료 확인
-until command -v python3.12 >/dev/null 2>&1; do
-  sleep 2
-done
+  pkill -f "uvicorn" || true
 
-# 가상환경 생성 경로 변경
-if [ ! -d "${MOUNT_DIR}/venv" ]; then
-  python3.12 -m venv "${MOUNT_DIR}/venv"
-  sudo chown -R ubuntu:ubuntu "${MOUNT_DIR}/venv"
-fi
-# 토큰 환경변수
-export HF_TOKEN="${HF_TOKEN}"
+  nohup python3 -m vllm.entrypoints.openai.api_server \
+      --model /mnt/ssd/mistral-7b \
+      --dtype float16 \
+      --port 8001 \
+      --gpu-memory-utilization 0.9 > /home/ubuntu/logs/vLLM.log 2>&1 &
 
-# 가상환경 활성화
-source "${MOUNT_DIR}/venv/bin/activate"
+  cd "${DEPLOY_DIR}"
+  nohup "${MOUNT_DIR}/venv/bin/uvicorn" app.main:app --host 0.0.0.0 --port 8000 > /home/ubuntu/logs/uvicorn.log 2>&1 &
 
-# huggingface-cli 및 vLLM 설치
-pip install --upgrade pip
-pip install huggingface_hub
+  deactivate
+) &
 
-if mountpoint -q /mnt/ssd && [ ! -d "${MOUNT_DIR}/mistral-7b" ]; then
-  huggingface-cli login --token "${HF_TOKEN}"
-  huggingface-cli download mistralai/Mistral-7B-Instruct-v0.3 \
-    --local-dir "${MOUNT_DIR}/mistral-7b" \
-    --local-dir-use-symlinks False
-fi
+wait
 
-# 가상환경 비활성화
-deactivate
-
-# 7. 방화벽 열기 (GCP 콘솔 방화벽 설정과 중복될 수 있음)
-sudo ufw allow OpenSSH
-sudo ufw allow 80
-sudo ufw allow 443
-sudo ufw allow 8000
-sudo ufw allow 8001
-sudo ufw --force enable
-
-# 9. S3에서 배포 산출물 받아와 AI 서버 배포
-aws s3 cp "$(aws s3 ls "${BUCKET_BACKUP}/ai/" | awk '{print $2}' | sort | tail -n 1 | sed 's#^#'"${BUCKET_BACKUP}/ai/"'#;s#/$##')" "${DEPLOY_DIR}/" --recursive
-source "${MOUNT_DIR}/venv/bin/activate"
-
-pip install --upgrade pip
-pip install --no-cache-dir --prefer-binary -r "${DEPLOY_DIR}/requirements.txt"
-
-pkill -f "uvicorn" || true
-
-nohup python3 -m vllm.entrypoints.openai.api_server \
-    --model /mnt/ssd/mistral-7b \
-    --dtype float16 \
-    --port 8001 \
-    --gpu-memory-utilization 0.9 > /home/ubuntu/logs/vLLM.log 2>&1 &
-
-cd "${DEPLOY_DIR}"
-nohup "${MOUNT_DIR}/venv/bin/uvicorn" app.main:app --host 0.0.0.0 --port 8000 > /home/ubuntu/logs/uvicorn.log 2>&1 &
-
-deactivate
-
-# 10. 버전 확인 로그
+# [12] 버전 확인 로그
 echo "[✔] S3 마운트 상태:"
 if mountpoint -q ${MOUNT_DIR}; then
   echo "✅ S3가 ${MOUNT_DIR}에 마운트되어 있습니다."
