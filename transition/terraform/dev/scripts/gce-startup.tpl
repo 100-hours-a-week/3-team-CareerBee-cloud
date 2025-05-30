@@ -7,27 +7,27 @@ sudo mkdir -p ~/.aws /home/ubuntu/.aws /home/ubuntu/logs /home/ubuntu/release /h
 echo "[1] APT 업데이트 및 기본 패키지 설치"
 sudo apt update -y && sudo apt upgrade -y
 sudo apt install -y curl unzip nginx
-(
+# (
   # sudo apt-get install -y nvidia-driver-570
-) &
+# ) &
 (
   echo "[2] AWS CLI 설치"
   curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
   unzip -q awscliv2.zip
   sudo ./aws/install
 ) &
-(
+# (
   # echo "[3] Google Cloud Ops Agent 설치"
   # curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
   # sudo bash add-google-cloud-ops-agent-repo.sh --also-install
   # sudo systemctl enable google-cloud-ops-agent
   # sudo systemctl restart google-cloud-ops-agent
-) &
-(
+# ) &
+# (
   # echo "[4] Certbot 설치"
   # sudo snap install --classic certbot
   # sudo ln -sf /snap/bin/certbot /usr/bin/certbot
-) &
+# ) &
 
 wait  # 병렬 설치 모두 완료될 때까지 대기
 
