@@ -55,13 +55,15 @@ output = json
 EOF
 
 
-sudo -u ubuntu bash <<EOF
+
 echo "[6] mount-s3 설치 및 마운트 시작"
 wget https://s3.amazonaws.com/mountpoint-s3-release/latest/x86_64/mount-s3.deb
 sudo apt install -y ./mount-s3.deb
 rm -f ./mount-s3.deb
 echo "user_allow_other" | sudo tee -a /etc/fuse.conf
 sudo chown -R ubuntu:ubuntu ${MOUNT_DIR} /home/ubuntu
+
+sudo -u ubuntu bash <<EOF
 mount-s3 ${BUCKET_BACKUP_NAME} ${MOUNT_DIR} --prefix ssd/ --region ap-northeast-2 --cache /home/ubuntu/tmp/s3cache --metadata-ttl 60   --allow-other   --allow-overwrite   --allow-delete   --incremental-upload
 EOF
 
