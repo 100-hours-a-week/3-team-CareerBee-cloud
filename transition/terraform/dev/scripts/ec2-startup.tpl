@@ -13,10 +13,8 @@ mkdir -p /home/ubuntu/{logs,release,tmp}
 chown -R ubuntu:ubuntu /home/ubuntu
 
 echo "[3] 병렬로 필수 패키지 설치 시작"
-(
-  sudo apt update -y && sudo apt upgrade -y
-  sudo apt install -y curl git unzip build-essential ca-certificates gnupg lsb-release software-properties-common npm
-) &
+sudo apt update -y && sudo apt upgrade -y
+sudo apt install -y curl git unzip build-essential ca-certificates gnupg lsb-release software-properties-common npm
 (
   echo "[3-1] AWS CLI 설치"
   curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
