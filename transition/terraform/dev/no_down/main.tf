@@ -10,13 +10,6 @@ resource "google_compute_address" "static_ip" {
   region = var.gcp_region
 }
 
-resource "google_compute_disk" "ssmu_disk" {
-  name  = var.gcp_disk_name
-  type  = var.gcp_disk_type
-  zone  = var.gcp_zone
-  size  = var.gcp_disk_size
-}
-
 # AWS
 locals {
   aws_creds = jsondecode(file(var.aws_credentials_file))
