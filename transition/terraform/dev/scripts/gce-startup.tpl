@@ -2,7 +2,7 @@
 export DEBIAN_FRONTEND=noninteractive # 비대화 모드
 
 echo "[0] 디렉토리 생성 및 권한 설정"
-sudo mkdir -p /home/ubuntu/.aws /home/ubuntu/logs /home/ubuntu/release /home/ubuntu/tmp/s3cache ${MOUNT_DIR}
+sudo mkdir -p ~/.aws /home/ubuntu/.aws /home/ubuntu/logs /home/ubuntu/release /home/ubuntu/tmp/s3cache ${MOUNT_DIR}
 sudo chown -R ubuntu:ubuntu /home/ubuntu
 
 echo "[1] APT 업데이트 및 기본 패키지 설치"
@@ -33,6 +33,17 @@ sudo apt install -y curl unzip nginx
 wait  # 병렬 설치 모두 완료될 때까지 대기
 
 echo "[5] AWS 자격증명 설정"
+cat > ~/.aws/credentials <<EOF
+[default]
+aws_access_key_id = ${AWS_ACCESS_KEY_ID}
+aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}
+EOF
+cat > ~/.aws/config <<EOF
+[default]
+region = ${AWS_DEFAULT_REGION}
+output = json
+EOF
+
 cat > /home/ubuntu/.aws/credentials <<EOF
 [default]
 aws_access_key_id = ${AWS_ACCESS_KEY_ID}
