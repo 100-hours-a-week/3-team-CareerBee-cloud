@@ -1,26 +1,22 @@
 #!/bin/bash
 export DEBIAN_FRONTEND=noninteractive # 비대화 모드
 
-# [0] 사전 디렉토리 생성 및 권한 설정
 echo "[0] 디렉토리 생성 및 권한 설정"
 sudo mkdir -p /home/ubuntu/.aws /home/ubuntu/logs /home/ubuntu/release /home/ubuntu/tmp/s3cache ${MOUNT_DIR}
 sudo chown -R ubuntu:ubuntu /home/ubuntu
 
-# [1] 시스템 업데이트 및 필수 패키지 설치
+echo "[1] APT 업데이트 및 기본 패키지 설치"
+sudo apt update -y && sudo apt upgrade -y
+sudo apt install -y curl unzip nginx
 (
-  echo "[1] APT 업데이트 및 기본 패키지 설치"
-  sudo apt update -y && sudo apt upgrade -y
-  sudo apt install -y curl unzip nginx
   sudo apt-get install -y nvidia-driver-570
 ) &
-# [2] AWS CLI 설치
 (
   echo "[2] AWS CLI 설치"
   curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
   unzip -q awscliv2.zip
   sudo ./aws/install
 ) &
-# [3] Google Cloud Ops Agent 설치
 (
   echo "[3] Google Cloud Ops Agent 설치"
   curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
@@ -28,7 +24,6 @@ sudo chown -R ubuntu:ubuntu /home/ubuntu
   sudo systemctl enable google-cloud-ops-agent
   sudo systemctl restart google-cloud-ops-agent
 ) &
-# [4] Certbot 설치
 (
   echo "[4] Certbot 설치"
   sudo snap install --classic certbot
@@ -37,7 +32,6 @@ sudo chown -R ubuntu:ubuntu /home/ubuntu
 
 wait  # 병렬 설치 모두 완료될 때까지 대기
 
-# [5] AWS 자격증명 저장
 echo "[5] AWS 자격증명 설정"
 cat > /home/ubuntu/.aws/credentials <<EOF
 [default]
@@ -50,16 +44,15 @@ region = ${AWS_DEFAULT_REGION}
 output = json
 EOF
 
-# [6] mount-s3 설치 및 마운트
-echo "[6] mount-s3 설치 및 마운트 시작"
+
 (
-wget https://s3.amazonaws.com/mountpoint-s3-release/latest/x86_64/mount-s3.deb
-sudo apt install -y ./mount-s3.deb
-rm -f ./mount-s3.deb
-echo "user_allow_other" | sudo tee -a /etc/fuse.conf
-mount-s3 ${BUCKET_BACKUP} ${MOUNT_DIR} --prefix ssd/ --region ap-northeast-2 --cache /tmp/s3cache --metadata-ttl 60   --allow-other   --allow-overwrite   --allow-delete   --incremental-upload
+  echo "[6] mount-s3 설치 및 마운트 시작"
+  wget https://s3.amazonaws.com/mountpoint-s3-release/latest/x86_64/mount-s3.deb
+  sudo apt install -y ./mount-s3.deb
+  rm -f ./mount-s3.deb
+  echo "user_allow_other" | sudo tee -a /etc/fuse.conf
+  mount-s3 ${BUCKET_BACKUP} ${MOUNT_DIR} --prefix ssd/ --region ap-northeast-2 --cache /tmp/s3cache --metadata-ttl 60   --allow-other   --allow-overwrite   --allow-delete   --incremental-upload
 ) &
-# [7] Python 환경 설치 및 가상환경 생성
 (
   echo "[7] Python3.12 및 가상환경 구성"
   sudo apt update -y
@@ -94,7 +87,6 @@ mount-s3 ${BUCKET_BACKUP} ${MOUNT_DIR} --prefix ssd/ --region ap-northeast-2 --c
 
 wait
 
-# [8] UFW 방화벽 열기 (NGINX, AI 서버 접근 허용)
 echo "[8] UFW 방화벽 열기"
 sudo ufw allow OpenSSH
 sudo ufw allow 80
@@ -103,7 +95,6 @@ sudo ufw allow 8000
 sudo ufw allow 8001
 sudo ufw --force enable
 
-# [9] Certbot 인증서 복원 (S3에서 다운로드)
 (
   echo "[9] Certbot 인증서 복원 시작"
   sudo mkdir -p /etc/letsencrypt/{live,archive,renewal}
@@ -119,39 +110,37 @@ sudo ufw --force enable
   # sudo certbot --nginx --non-interactive --agree-tos --no-redirect \
   #   -m ${EMAIL} -d dev-ai.${DOMAIN}
 ) &
-# [10] NGINX 설정 및 적용
 (
   echo "[10] NGINX 설정 구성"
   sudo tee /etc/nginx/sites-available/default > /dev/null <<EOF_NGINX
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-    server_name dev-ai.${DOMAIN};
+    server {
+        listen 80 default_server;
+        listen [::]:80 default_server;
+        server_name dev-ai.${DOMAIN};
 
-    return 301 https://\$host\$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    listen [::]:443 ssl;
-    server_name dev-ai.${DOMAIN};
-
-    ssl_certificate /etc/letsencrypt/live/dev-ai.${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/dev-ai.${DOMAIN}/privkey.pem;
-    include /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
-
-    location / {
-        proxy_pass http://localhost:8000;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
+        return 301 https://\$host\$request_uri;
     }
-}
+
+    server {
+        listen 443 ssl;
+        listen [::]:443 ssl;
+        server_name dev-ai.${DOMAIN};
+
+        ssl_certificate /etc/letsencrypt/live/dev-ai.${DOMAIN}/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/dev-ai.${DOMAIN}/privkey.pem;
+        include /etc/letsencrypt/options-ssl-nginx.conf;
+        ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+        location / {
+            proxy_pass http://localhost:8000;
+            proxy_set_header Host \$host;
+            proxy_set_header X-Real-IP \$remote_addr;
+        }
+    }
 EOF_NGINX
 
   sudo nginx -t && sudo systemctl reload nginx
 ) &
-# [11] 앱 배포 및 백그라운드 실행
 (
   echo "[11] 애플리케이션 배포 및 실행"
   aws s3 cp "$(aws s3 ls "${BUCKET_BACKUP}/ai/" | awk '{print $2}' | sort | tail -n 1 | sed 's#^#'"${BUCKET_BACKUP}/ai/"'#;s#/$##')" "${DEPLOY_DIR}/" --recursive
@@ -176,7 +165,7 @@ EOF_NGINX
 
 wait
 
-# [12] 버전 확인 로그
+# 버전 확인 로그
 echo "[✔] S3 마운트 상태:"
 if mountpoint -q ${MOUNT_DIR}; then
   echo "✅ S3가 ${MOUNT_DIR}에 마운트되어 있습니다."
