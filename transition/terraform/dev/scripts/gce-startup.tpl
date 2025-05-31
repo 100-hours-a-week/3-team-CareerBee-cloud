@@ -59,8 +59,8 @@ EOF
 echo "[6] s3fs 설치 및 마운트 시작"
 sudo apt update && sudo apt install -y s3fs
 echo "user_allow_other" | sudo tee -a /etc/fuse.conf
-sudo chown $(whoami) /mnt /tmp/s3cache
-s3fs ${BUCKET_BACKUP_NAME} /mnt -o allow_other -o use_cache=/tmp/s3cache
+sudo chown $(whoami) /mnt /home/ubuntu/tmp/s3cache
+s3fs ${BUCKET_BACKUP_NAME} /mnt -o allow_other -o use_cache=/home/ubuntu/tmp/s3cache
 
 sudo mkdir -p ${MOUNT_DIR}
 sudo chown -R ubuntu:ubuntu /home/ubuntu ${MOUNT_DIR}
