@@ -78,12 +78,10 @@ until command -v python3.12 >/dev/null 2>&1; do
 done
 
 # 가상환경 생성
-if [ ! -d "${MOUNT_DIR}/venv" ]; then
-  python3.12 -m venv "${MOUNT_DIR}/venv"
-  sudo chown -R ubuntu:ubuntu "${MOUNT_DIR}"
-fi
+python3.12 -m venv /home/ubuntu/venv
+sudo chown -R ubuntu:ubuntu /home/ubuntu
 
-source "${MOUNT_DIR}/venv/bin/activate"
+source /home/ubuntu/venv/bin/activate
 pip install --upgrade pip
 pip install huggingface_hub
 
@@ -154,7 +152,7 @@ sudo nginx -t && sudo systemctl reload nginx
 
 echo "[11] 애플리케이션 배포 및 실행"
 aws s3 cp "$(aws s3 ls "${BUCKET_BACKUP}/ai/" | awk '{print $2}' | sort | tail -n 1 | sed 's#^#'"${BUCKET_BACKUP}/ai/"'#;s#/$##')" "${DEPLOY_DIR}/" --recursive
-source "${MOUNT_DIR}/venv/bin/activate"
+source /home/ubuntu/venv/bin/activate
 
 pip install --upgrade pip
 pip install --no-cache-dir --prefer-binary -r "${DEPLOY_DIR}/requirements.txt"
@@ -168,7 +166,7 @@ nohup python3 -m vllm.entrypoints.openai.api_server \
     --gpu-memory-utilization 0.9 > /home/ubuntu/logs/vLLM.log 2>&1 &
 
 cd "${DEPLOY_DIR}"
-nohup "${MOUNT_DIR}/venv/bin/uvicorn" app.main:app --host 0.0.0.0 --port 8000 > /home/ubuntu/logs/uvicorn.log 2>&1 &
+nohup /home/ubuntu/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 > /home/ubuntu/logs/uvicorn.log 2>&1 &
 
 deactivate
 
