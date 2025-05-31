@@ -2,7 +2,7 @@
 export DEBIAN_FRONTEND=noninteractive # 비대화 모드
 
 echo "[0] 디렉토리 생성"
-sudo mkdir -p ~/.aws /home/ubuntu/.aws /home/ubuntu/logs /home/ubuntu/release /home/ubuntu/tmp/s3cache ${MOUNT_DIR}
+sudo mkdir -p ~/.aws /home/ubuntu/.aws /home/ubuntu/logs /home/ubuntu/release /home/ubuntu/tmp/s3cache
 
 echo "[1] APT 업데이트 및 기본 패키지 설치"
 sudo apt update -y && sudo apt upgrade -y
@@ -56,16 +56,14 @@ EOF
 
 
 
-echo "[6] mount-s3 설치 및 마운트 시작"
-wget https://s3.amazonaws.com/mountpoint-s3-release/latest/x86_64/mount-s3.deb
-sudo apt install -y ./mount-s3.deb
-rm -f ./mount-s3.deb
+echo "[6] s3fs 설치 및 마운트 시작"
+sudo apt update && sudo apt install -y s3fs
 echo "user_allow_other" | sudo tee -a /etc/fuse.conf
-sudo chown -R ubuntu:ubuntu ${MOUNT_DIR} /home/ubuntu
+sudo chown $(whoami) /mnt /tmp/s3cache
+s3fs ${BUCKET_BACKUP_NAME} /mnt -o allow_other -o use_cache=/tmp/s3cache
 
-sudo -u ubuntu bash <<EOF
-mount-s3 ${BUCKET_BACKUP_NAME} ${MOUNT_DIR} --prefix ssd/ --region ap-northeast-2 --cache /home/ubuntu/tmp/s3cache --metadata-ttl 60   --allow-other   --allow-overwrite   --allow-delete   --incremental-upload
-EOF
+sudo mkdir -p ${MOUNT_DIR}
+sudo chown -R ubuntu:ubuntu /home/ubuntu ${MOUNT_DIR}
 
 echo "[7] Python3.12 및 가상환경 구성"
 sudo apt update -y
@@ -78,10 +76,12 @@ until command -v python3.12 >/dev/null 2>&1; do
 done
 
 # 가상환경 생성
-python3.12 -m venv /home/ubuntu/venv
-sudo chown -R ubuntu:ubuntu /home/ubuntu
+if [ ! -d "${MOUNT_DIR}/venv" ]; then
+  python3.12 -m venv "${MOUNT_DIR}/venv"
+  sudo chown -R ubuntu:ubuntu "${MOUNT_DIR}"
+fi
 
-source /home/ubuntu/venv/bin/activate
+source "${MOUNT_DIR}/venv/bin/activate"
 pip install --upgrade pip
 pip install huggingface_hub
 
@@ -152,7 +152,7 @@ sudo nginx -t && sudo systemctl reload nginx
 
 echo "[11] 애플리케이션 배포 및 실행"
 aws s3 cp "$(aws s3 ls "${BUCKET_BACKUP}/ai/" | awk '{print $2}' | sort | tail -n 1 | sed 's#^#'"${BUCKET_BACKUP}/ai/"'#;s#/$##')" "${DEPLOY_DIR}/" --recursive
-source /home/ubuntu/venv/bin/activate
+source "${MOUNT_DIR}/venv/bin/activate"
 
 pip install --upgrade pip
 pip install --no-cache-dir --prefer-binary -r "${DEPLOY_DIR}/requirements.txt"
@@ -166,7 +166,7 @@ nohup python3 -m vllm.entrypoints.openai.api_server \
     --gpu-memory-utilization 0.9 > /home/ubuntu/logs/vLLM.log 2>&1 &
 
 cd "${DEPLOY_DIR}"
-nohup /home/ubuntu/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 > /home/ubuntu/logs/uvicorn.log 2>&1 &
+nohup "${MOUNT_DIR}/venv/bin/uvicorn" app.main:app --host 0.0.0.0 --port 8000 > /home/ubuntu/logs/uvicorn.log 2>&1 &
 
 deactivate
 
