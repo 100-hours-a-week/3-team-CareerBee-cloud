@@ -86,7 +86,7 @@ pip install --upgrade pip
 pip install huggingface_hub
 
 # 모델 다운로드 (S3 마운트 확인 시에만)
-if mountpoint -q "${MOUNT_DIR}" && [ ! -d "${MOUNT_DIR}/mistral-7b" ]; then
+if mountpoint -q /mnt && [ ! -d "${MOUNT_DIR}/mistral-7b" ]; then
   huggingface-cli login --token "${HF_TOKEN}"
   huggingface-cli download mistralai/Mistral-7B-Instruct-v0.3 \
     --local-dir "${MOUNT_DIR}/mistral-7b" \
@@ -173,11 +173,11 @@ deactivate
 # 버전 확인 로그
 echo "[12] 설치 확인 로그"
 echo "[✔] S3 마운트 상태:"
-if mountpoint -q ${MOUNT_DIR}; then
-  echo "✅ S3가 ${MOUNT_DIR}에 마운트되어 있습니다."
-  df -h ${MOUNT_DIR}
+if mountpoint -q /mnt; then
+  echo "✅ S3가 /mnt에 마운트되어 있습니다."
+  df -h /mnt
 else
-  echo "❌ S3가 ${MOUNT_DIR}에 마운트되지 않았습니다. 수동 확인 필요."
+  echo "❌ S3가 /mnt에 마운트되지 않았습니다. 수동 확인 필요."
   lsblk -f
 fi
 

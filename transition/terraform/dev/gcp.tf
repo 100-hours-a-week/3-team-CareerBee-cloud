@@ -113,7 +113,6 @@ EOT
       BUCKET_BACKUP_NAME    = var.bucket_backup_name
       
       MOUNT_DIR             = var.mount_dir
-      DEVICE_ID             = var.device_id
       HF_TOKEN              = var.hf_token
       AWS_ACCESS_KEY_ID     = var.aws_access_key_id
       AWS_SECRET_ACCESS_KEY = var.aws_secret_access_key
