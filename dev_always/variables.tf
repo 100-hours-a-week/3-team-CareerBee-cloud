@@ -24,6 +24,21 @@ variable "gcp_static_ip_name" {
   type        = string
 }
 
+variable "gcp_disk_name" {
+  description = "Name of the compute disk"
+  type        = string
+}
+
+variable "gcp_disk_type" {
+  description = "Type of compute disk"
+  type        = string
+}
+
+variable "gcp_disk_size" {
+  description = "Size of the compute disk in GB"
+  type        = number
+}
+
 # AWS 관련 변수
 variable "aws_region" {
   description = "The AWS region"

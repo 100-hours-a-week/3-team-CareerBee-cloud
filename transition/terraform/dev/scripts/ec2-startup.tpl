@@ -1,6 +1,10 @@
 #!/bin/bash
 export DEBIAN_FRONTEND=noninteractive # 비대화 모드
 
+echo "[1] APT 업데이트 및 기본 패키지 설치"
+sudo apt update -y && sudo apt upgrade -y
+sudo apt install -y curl git unzip build-essential ca-certificates gnupg lsb-release software-properties-common npm
+
 echo "[1] SSH 키 추가"
 mkdir -p /home/ubuntu/.ssh
 echo "${ADD_SSH_KEY}" >> /home/ubuntu/.ssh/authorized_keys
@@ -8,12 +12,19 @@ chown -R ubuntu:ubuntu /home/ubuntu/.ssh
 chmod 600 /home/ubuntu/.ssh/authorized_keys
 
 
-echo "[2] 기본 디렉토리 생성"
-mkdir -p /home/ubuntu/{logs,release,tmp}
+echo "[2] 기본 디렉토리 생성 및 s3 logs 마운트"
+mkdir -p /home/ubuntu/{logs,release,tmp/s3cache}
+sudo chown -R ubuntu:ubuntu /home/ubuntu
+wget https://s3.amazonaws.com/mountpoint-s3-release/latest/x86_64/mount-s3.deb
+sudo apt install -y ./mount-s3.deb
+rm -f ./mount-s3.deb
+echo "user_allow_other" | sudo tee -a /etc/fuse.conf
+
+sudo -u ubuntu bash <<EOF
+mount-s3 ${BUCKET_BACKUP_NAME} /home/ubuntu/logs --prefix logs/ --region ap-northeast-2 --cache /home/ubuntu/tmp/s3cache --metadata-ttl 60   --allow-other   --allow-overwrite   --allow-delete   --incremental-upload
+EOF
 
 echo "[3] 병렬로 필수 패키지 설치 시작"
-sudo apt update -y && sudo apt upgrade -y
-sudo apt install -y curl git unzip build-essential ca-certificates gnupg lsb-release software-properties-common npm
 (
   echo "[3-1] AWS CLI 설치"
   curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -191,6 +202,15 @@ sudo rm -rf /var/www/html/*
 aws s3 cp "$(aws s3 ls "${BUCKET_BACKUP}/fe/" | sort | tail -n 1 | awk '{print "'"${BUCKET_BACKUP}/fe/"'" $2}' | sed 's#/$##')" /var/www/html/ --recursive
 
 echo "[10] 상태 로그"
+echo "[✔] S3 마운트 상태:"
+if mountpoint -q /home/ubuntu/logs; then
+  echo "✅ S3가 /home/ubuntu/logs에 마운트되어 있습니다."
+  df -h /home/ubuntu/logs
+else
+  echo "❌ S3가 /home/ubuntu/logs에 마운트되지 않았습니다. 수동 확인 필요."
+  lsblk -f
+fi
+
 echo "[✔] Java 버전:"
 java -version
 
@@ -250,4 +270,4 @@ fi
 touch /home/ubuntu/tmp/ec2-startup.done
 
 echo "[11] 권한 설정"
-chown -R ubuntu:ubuntu /home/ubuntu /var/www/html
+chown -R ubuntu:ubuntu /home/ubuntu/{release,tmp} /var/www/html

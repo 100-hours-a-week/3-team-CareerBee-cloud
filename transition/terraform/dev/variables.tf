@@ -128,6 +128,9 @@ variable "bucket_backup" {
 variable "bucket_backup_name" {
   sensitive = true
 }
+variable "device_id" {
+  sensitive = true
+}
 variable "mount_dir" {}
 variable "deploy_dir" {}
 variable "hf_token" {
