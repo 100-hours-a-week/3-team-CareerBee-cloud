@@ -1,117 +1,90 @@
-name: PROD Deploy to GCE with GCS Artifacts
+# name: PROD Deploy to GCE with GCS Artifacts
 
-on:
-  push:
-    branches: [ main ]
+# on:
+#   push:
+#     branches: [main]
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-  
-    env:
-      COMMIT_HASH: ${{ github.sha }}
+# env:
+#   TF_VAR_db_root_password: ${{ secrets.DB_ROOT_PASSWORD }}
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+#     permissions:
+#       id-token: write
+#       contents: read
 
-      - name: google auth
-        id: "auth"
-        uses: "google-github-actions/auth@v1"
-        with:
-          credentials_json: "${{ secrets.GCP_SA_KEY }}"
+#     steps:
+#       - name: Configure AWS Credentials via OIDC
+#         uses: aws-actions/configure-aws-credentials@v2
+#         with:
+#           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsOIDCRole
+#           aws-region: ap-northeast-2
 
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          version: 'latest'
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-      
-      - name: Set timestamp-based path
-        run: |
-            TIMESTAMP=$(TZ='Asia/Seoul' date +%Y-%m-%d_%H_%M_%S)
-            echo "DEPLOY_PATH=${TIMESTAMP}_${COMMIT_HASH}" >> $GITHUB_ENV
+#       - name: Notify Discord on Success
+#         if: success()
+#         run: |
+#           COMMIT_MSG="${{ github.event.head_commit.message }}"
+#           REPO="${{ github.repository }}"
+#           BRANCH="${{ github.ref_name }}"
+#           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+#           TIMESTAMP="${{ github.event.head_commit.timestamp }}"
 
-      - name: Upload to GCS
-        run: |
-            echo "Uploading to: ${{ secrets.GCS_PROD_BUCKET_PATH }}/test/$DEPLOY_PATH"
-            gcloud storage cp -r ./test/*  "${{ secrets.GCS_PROD_BUCKET_PATH }}/test/$DEPLOY_PATH/"
+#           DESCRIPTION="**Repository:** \`${REPO}\`
+#           **Branch:** \`${BRANCH}\`
+#           **Commit:** \`${COMMIT_MSG}\`
+#           [🔗 실행 로그 보기](${RUN_URL})"
 
-      - name: Setup SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.GCE_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.GCE_HOST }} >> ~/.ssh/known_hosts
+#           jq -n \
+#             --arg desc "$DESCRIPTION" \
+#             --arg timestamp "$TIMESTAMP" \
+#             '{
+#               "embeds": [
+#                 {
+#                   "title": "✅ 프로덕션 환경에 배포 성공",
+#                   "description": $desc,
+#                   "color": 65280,
+#                   "footer": { "text": "GitHub Actions - PROD Deploy" },
+#                   "timestamp": $timestamp
+#                 }
+#               ]
+#             }' > payload.json
 
-      - name: Trigger remote deploy script on GCE
-        run: |
-          ssh ${{ secrets.GCE_USER }}@${{ secrets.GCE_HOST }} "bash ~/release/deploy-test.sh"
+#           curl -H "Content-Type: application/json" \
+#                 -X POST \
+#                 -d @payload.json \
+#                 ${{ secrets.DISCORD_WEBHOOK_URL }}
 
-      - name: Notify Discord on Success
-        if: success()
-        run: |
-          COMMIT_MSG="${{ github.event.head_commit.message }}"
-          REPO="${{ github.repository }}"
-          BRANCH="${{ github.ref_name }}"
-          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          TIMESTAMP="${{ github.event.head_commit.timestamp }}"
-      
-          DESCRIPTION="**Repository:** \`${REPO}\`
-          **Branch:** \`${BRANCH}\`
-          **Commit:** \`${COMMIT_MSG}\`
-          [🔗 실행 로그 보기](${RUN_URL})"
-      
-          jq -n \
-            --arg desc "$DESCRIPTION" \
-            --arg timestamp "$TIMESTAMP" \
-            '{
-              "embeds": [
-                {
-                  "title": "✅ 프로덕션 환경에 배포 성공",
-                  "description": $desc,
-                  "color": 65280,
-                  "footer": { "text": "GitHub Actions - PROD Deploy" },
-                  "timestamp": $timestamp
-                }
-              ]
-            }' > payload.json
-      
-          curl -H "Content-Type: application/json" \
-                -X POST \
-                -d @payload.json \
-                ${{ secrets.DISCORD_WEBHOOK_URL }}
-    
-      - name: Notify Discord on Failure
-        if: failure()
-        run: |
-          COMMIT_MSG="${{ github.event.head_commit.message }}"
-          REPO="${{ github.repository }}"
-          BRANCH="${{ github.ref_name }}"
-          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          TIMESTAMP="${{ github.event.head_commit.timestamp }}"
-      
-          DESCRIPTION="**Repository:** \`${REPO}\`
-          **Branch:** \`${BRANCH}\`
-          **Commit:** \`${COMMIT_MSG}\`
-          [🔗 실행 로그 보기](${RUN_URL})"
-      
-          jq -n \
-            --arg desc "$DESCRIPTION" \
-            --arg timestamp "$TIMESTAMP" \
-            '{
-              "embeds": [
-                {
-                  "title": "❌ 프로덕션 환경에 배포 실패",
-                  "description": $desc,
-                  "color": 16711680,
-                  "footer": { "text": "GitHub Actions - PROD Deploy" },
-                  "timestamp": $timestamp
-                }
-              ]
-            }' > payload.json
-      
-          curl -H "Content-Type: application/json" \
-                -X POST \
-                -d @payload.json \
-                ${{ secrets.DISCORD_WEBHOOK_URL }}
+#       - name: Notify Discord on Failure
+#         if: failure()
+#         run: |
+#           COMMIT_MSG="${{ github.event.head_commit.message }}"
+#           REPO="${{ github.repository }}"
+#           BRANCH="${{ github.ref_name }}"
+#           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+#           TIMESTAMP="${{ github.event.head_commit.timestamp }}"
+
+#           DESCRIPTION="**Repository:** \`${REPO}\`
+#           **Branch:** \`${BRANCH}\`
+#           **Commit:** \`${COMMIT_MSG}\`
+#           [🔗 실행 로그 보기](${RUN_URL})"
+
+#           jq -n \
+#             --arg desc "$DESCRIPTION" \
+#             --arg timestamp "$TIMESTAMP" \
+#             '{
+#               "embeds": [
+#                 {
+#                   "title": "❌ 프로덕션 환경에 배포 실패",
+#                   "description": $desc,
+#                   "color": 16711680,
+#                   "footer": { "text": "GitHub Actions - PROD Deploy" },
+#                   "timestamp": $timestamp
+#                 }
+#               ]
+#             }' > payload.json
+
+#           curl -H "Content-Type: application/json" \
+#                 -X POST \
+#                 -d @payload.json \
+#                 ${{ secrets.DISCORD_WEBHOOK_URL }}
