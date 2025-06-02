@@ -46,7 +46,7 @@ resource "aws_iam_role_policy_attachment" "github_dynamodb_policy" {
 }
 
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = "s3-careerbee-prod-tfstate"
+  bucket        = "s3-careerbee-prod-tfstate"
   force_destroy = false
 
   tags = {
@@ -65,13 +65,13 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "default" {
   bucket = aws_s3_bucket.terraform_state.id
   rule {
     apply_server_side_encryption_by_default {
-            sse_algorithm = "AES256"
+      sse_algorithm = "AES256"
     }
-  }  
+  }
 }
 
 resource "aws_s3_bucket_public_access_block" "public_access" {
-  bucket = aws_s3_bucket.terraform_state.id
+  bucket                  = aws_s3_bucket.terraform_state.id
   block_public_acls       = true
   block_public_policy     = false
   ignore_public_acls      = true
@@ -84,7 +84,7 @@ resource "aws_s3_bucket_policy" "terraform_state_policy" {
     Version = "2012-10-17",
     Statement = [
       {
-        Sid = "AllowGitHubActionsOIDCAccess",
+        Sid    = "AllowGitHubActionsOIDCAccess",
         Effect = "Allow",
         Principal = {
           AWS = aws_iam_role.github_actions.arn
@@ -106,15 +106,15 @@ resource "aws_s3_bucket_policy" "terraform_state_policy" {
 }
 
 resource "aws_dynamodb_table" "terraform_state_lock" {
-  name           = "DDB-CAREERBEE-PROD-TFLOCKS"
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "LockID"
+  name         = "ddb-careerbee-prod-tflocks"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
   attribute {
     name = "LockID"
     type = "S"
   }
   tags = {
-    Name = "DDB-CAREERBEE-PROD-TFLOCKS"
+    Name = "ddb-careerbee-prod-tflocks"
   }
-  
+
 }
