@@ -3,8 +3,7 @@ variable "ami" {
 }
 
 variable "instance_type" {
-  type    = string
-  default = "t3.large" # 2c8m
+  type = string
 }
 
 variable "sg_ec2_ids" {
@@ -34,4 +33,10 @@ variable "key_name" {
 variable "db_root_password" {
   type      = string
   sensitive = true
+}
+
+variable "eip_allocation_id" {
+  description = "기존 EIP의 allocation ID"
+  type        = string
+  default     = "eipalloc-0e5c2a6433925c012"
 }

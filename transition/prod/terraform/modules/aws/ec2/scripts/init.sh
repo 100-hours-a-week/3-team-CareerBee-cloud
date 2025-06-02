@@ -35,18 +35,25 @@ ufw allow 'Nginx Full'
 cat > /etc/nginx/sites-available/default <<EON
 server {
     listen 80;
-    server_name _;
+    server_name www.careerbee.co.kr;
+
+    root /var/www/html;
+    index index.html;
 
     location / {
-        proxy_pass http://localhost:5173;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
+        try_files $uri $uri/ =404;
     }
+}
 
-    location /api/ {
-        proxy_pass http://localhost:8080/;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
+server {
+    listen 80;
+    server_name api.careerbee.co.kr;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 }
 EON

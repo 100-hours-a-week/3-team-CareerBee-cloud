@@ -4,7 +4,7 @@ resource "aws_vpc" "project_vpc" {
   enable_dns_hostnames = true
   instance_tenancy     = "default"
   tags = {
-    Name = "VPC-CAREERBEE-PROD"
+    Name = "vpc-careerbee-prod"
   }
 }
 
@@ -15,7 +15,7 @@ resource "aws_subnet" "public_subnet_1" {
   availability_zone = "ap-northeast-2a"
   #   map_public_ip_on_launch = true
   tags = {
-    Name = "SUBNET-CAREERBEE-PROD-PUBLIC-Azone"
+    Name = "subnet-careerbee-prod-public-azone"
   }
 
   depends_on = [aws_vpc.project_vpc]
@@ -24,7 +24,7 @@ resource "aws_subnet" "public_subnet_1" {
 resource "aws_internet_gateway" "project_igw" {
   vpc_id = aws_vpc.project_vpc.id
   tags = {
-    Name = "IGW-CAREERBEE-PROD"
+    Name = "igw-careerbee-prod"
   }
 }
 
@@ -37,7 +37,7 @@ resource "aws_route_table" "public_rt" {
   }
 
   tags = {
-    Name = "RT-CAREERBEE-PROD-PUBLIC"
+    Name = "rt-careerbee-prod-public"
   }
 }
 

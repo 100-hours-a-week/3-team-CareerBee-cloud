@@ -45,12 +45,6 @@ variable "ami" {
   default = "ami-05a7f3469a7653972" # Ubuntu 22.04 LTS
 }
 
-variable "instance_type" {
-  type    = string
-  default = "t3.large"
-
-}
-
 variable "ebs_type" {
   type    = string
   default = "gp2"
@@ -139,3 +133,22 @@ variable "availability_zone" {
 #   type = string
 # }
 
+######################################
+
+variable "gcp_project_id" {
+  type = string
+}
+
+variable "gcp_region" {
+  type    = string
+  default = "asia-northeast3"
+}
+variable "gcp_zone" {
+  type    = string
+  default = "asia-northeast3-a"
+}
+
+variable "ai_machine_type" {
+  type    = string
+  default = "g2-standard-4"
+}

@@ -13,7 +13,7 @@ resource "aws_instance" "ec2" {
   key_name               = var.key_name
 
   tags = {
-    Name = "EC2-CAREERBEE-PROD-Azone"
+    Name = "ec2-careerbee-prod-azone"
   }
 
   user_data = templatefile("${path.module}/scripts/init.sh", {
@@ -21,19 +21,17 @@ resource "aws_instance" "ec2" {
   })
 }
 
-# EIP 생성
-resource "aws_eip" "eip_azone" {
-  domain = "vpc"
-  tags = {
-    Name = "EIP-CAREERBEE-PROD"
+# Name 태그 기준으로 EIP 리스트 조회
+data "aws_eips" "tagged_eip" {
+  filter {
+    name   = "tag:Name"
+    values = ["eip-careerbee-prod"]
   }
-
 }
+
 
 # EIP와 인스턴스 연결
 resource "aws_eip_association" "eip_assoc" {
   instance_id   = aws_instance.ec2.id
-  allocation_id = aws_eip.eip_azone.id
-
-  depends_on = [aws_eip.eip_azone]
+  allocation_id = var.eip_allocation_id
 }
