@@ -121,6 +121,7 @@ EOT
       DOMAIN                = var.domain
       EMAIL                 = var.email
       BUCKET_BACKUP         = var.bucket_backup
+      BUCKET_BACKUP_NAME    = var.bucket_backup_name
       
       MOUNT_DIR             = var.mount_dir
       DEVICE_ID             = var.device_id

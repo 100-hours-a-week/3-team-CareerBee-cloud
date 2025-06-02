@@ -45,9 +45,14 @@ variable "aws_region" {
   type        = string
 }
 
-variable "aws_credentials_file" {
-  description = "Path to AWS credentials JSON file"
+variable "aws_access_key_id" {
   type        = string
+  sensitive = true
+}
+
+variable "aws_secret_access_key" {
+  type        = string
+  sensitive   = true
 }
 
 variable "s3_image_bucket_name" {

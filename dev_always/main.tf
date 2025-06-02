@@ -18,14 +18,10 @@ resource "google_compute_disk" "ssmu_disk" {
 }
 
 # AWS
-locals {
-  aws_creds = jsondecode(file(var.aws_credentials_file))
-}
-
 provider "aws" {
   region     = var.aws_region
-  access_key = local.aws_creds.aws_access_key_id
-  secret_key = local.aws_creds.aws_secret_access_key
+  access_key = var.aws_access_key_id
+  secret_key = var.aws_secret_access_key
 }
 
 resource "aws_eip" "static_ip" {

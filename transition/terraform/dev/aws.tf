@@ -160,6 +160,7 @@ resource "aws_instance" "ec2" {
     DOMAIN                    = var.domain
     EMAIL                     = var.email
     BUCKET_BACKUP             = var.bucket_backup
+    BUCKET_BACKUP_NAME        = var.bucket_backup_name
     
     AWS_STATIC_IP             = var.aws_static_ip
     DB_PASSWORD               = var.db_password

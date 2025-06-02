@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
   schedule:
-    - cron: '30 3 * * 1-5'
+    - cron: '20 3 * * 1-5'
 
 jobs:
   deploy:
@@ -81,6 +81,9 @@ jobs:
       - name: Wait for EC2 and GCE startup
         run: |
           set +e 
+
+          echo "🕑 초기 5분 대기 중..."
+          sleep 300  # 5분 대기
 
           MAX_RETRIES=30
           RETRY_DELAY=30
