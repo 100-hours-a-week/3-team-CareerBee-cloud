@@ -37,30 +37,59 @@ resource "aws_s3_bucket" "ssmu_bucket_infra" {
   tags = var.s3_infra_bucket_tags
 }
 
-resource "aws_route53_zone" "careerbee" {
-  name = "careerbee.co.kr"
+resource "aws_acm_certificate" "careerbee_cert" {
+  domain_name       = "careerbee.co.kr"
+  subject_alternative_names = [
+    "dev.careerbee.co.kr",
+    "dev-api.careerbee.co.kr",
+    "dev-ai.careerbee.co.kr"
+  ]
+  validation_method = "DNS"
+
+  tags = {
+    Name = "dev-careerbee-acm-cert"
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
-resource "aws_route53_record" "frontend" {
-  zone_id = aws_route53_zone.careerbee.zone_id
-  name    = "dev.careerbee.co.kr"
-  type    = "A"
-  ttl     = 300
-  records = [aws_eip.static_ip.public_ip]
+resource "aws_ecr_repository" "frontend" {
+  name = "frontend"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  tags = {
+    Name        = "ecr-careerbee-dev-frontend"
+  }
 }
 
-resource "aws_route53_record" "backend" {
-  zone_id = aws_route53_zone.careerbee.zone_id
-  name    = "dev-api.careerbee.co.kr"
-  type    = "A"
-  ttl     = 300
-  records = [aws_eip.static_ip.public_ip]
+resource "aws_ecr_repository" "backend" {
+  name = "backend"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  tags = {
+    Name        = "ecr-careerbee-dev-backend"
+  }
 }
 
-resource "aws_route53_record" "ai" {
-  zone_id = aws_route53_zone.careerbee.zone_id
-  name    = "dev-ai.careerbee.co.kr"
-  type    = "A"
-  ttl     = 300
-  records = [google_compute_address.static_ip.address]
+resource "aws_ecr_repository" "ai_server" {
+  name = "ai-server"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  tags = {
+    Name        = "ecr-careerbee-dev-ai-server"
+  }
 }
