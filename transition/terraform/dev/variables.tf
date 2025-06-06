@@ -151,3 +151,7 @@ variable "aws_secret_access_key" {
 variable "aws_default_region" {
   type        = string
 }
+variable "saramin_secret_key" {
+  type        = string
+  sensitive   = true
+}
