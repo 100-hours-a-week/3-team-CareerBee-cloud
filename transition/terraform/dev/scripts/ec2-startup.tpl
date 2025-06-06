@@ -1,16 +1,15 @@
 #!/bin/bash
 export DEBIAN_FRONTEND=noninteractive # 비대화 모드
 
-echo "[1] APT 업데이트 및 기본 패키지 설치"
-sudo apt update -y && sudo apt upgrade -y
-sudo apt install -y curl git unzip build-essential ca-certificates gnupg lsb-release software-properties-common npm
-
-echo "[1] SSH 키 추가"
+echo "[0] SSH 키 추가"
 mkdir -p /home/ubuntu/.ssh
 echo "${ADD_SSH_KEY}" >> /home/ubuntu/.ssh/authorized_keys
 chown -R ubuntu:ubuntu /home/ubuntu/.ssh
 chmod 600 /home/ubuntu/.ssh/authorized_keys
 
+echo "[1] APT 업데이트 및 기본 패키지 설치"
+sudo apt update -y && sudo apt upgrade -y
+sudo apt install -y curl git unzip build-essential ca-certificates gnupg lsb-release software-properties-common npm
 
 echo "[2] 기본 디렉토리 생성 및 s3 logs 마운트"
 mkdir -p /home/ubuntu/{logs,release,tmp/s3cache}
@@ -44,6 +43,72 @@ echo "[3] 병렬로 필수 패키지 설치 시작"
 ) &
 
 wait
+
+echo "[3-4] Fluent Bit 설치"
+curl https://packages.fluentbit.io/fluentbit.key | gpg --dearmor | sudo tee /usr/share/keyrings/fluentbit-keyring.gpg > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/fluentbit-keyring.gpg] https://packages.fluentbit.io/ubuntu/jammy jammy main" \
+| sudo tee /etc/apt/sources.list.d/fluentbit.list
+sudo apt update -y
+sudo apt install td-agent-bit -y
+
+sudo mkdir -p /var/log/fluent-bit/s3
+sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
+[SERVICE]
+  Flush        5
+  Daemon       Off
+  Log_Level    info
+  Parsers_File parsers.conf
+
+[INPUT]
+  Name   tail
+  Path   /var/log/backend.log
+  Tag    backend.log
+  DB     /var/log/flb_tail.db
+  Parser json
+  Read_from_Head true
+
+[INPUT]
+  Name   tail
+  Path   /var/log/scouter-server.log
+  Tag    scouter.log
+  DB     /var/log/flb_tail_scouter.db
+  Parser json
+  Read_from_Head true
+
+[OUTPUT]
+  Name s3
+  Match backend.log
+  bucket ${BUCKET_BACKUP_NAME}
+  region ap-northeast-2
+  total_file_size 5M
+  upload_timeout 10s
+  use_put_object On
+  store_dir /var/log/fluent-bit/s3
+  s3_key_format /logs/%Y-%m-%d/backend.log
+
+[OUTPUT]
+  Name s3
+  Match scouter.log
+  bucket ${BUCKET_BACKUP_NAME}
+  region ap-northeast-2
+  total_file_size 5M
+  upload_timeout 10s
+  use_put_object On
+  store_dir /var/log/fluent-bit/s3
+  s3_key_format /logs/%Y-%m-%d/scouter-server.log
+EOF
+
+sudo tee /etc/td-agent-bit/parsers.conf > /dev/null <<EOF
+[PARSER]
+  Name   json
+  Format json
+  Time_Key time
+  Time_Format %Y-%m-%dT%H:%M:%S
+EOF
+
+sudo systemctl enable td-agent-bit
+sudo systemctl restart td-agent-bit
+sudo systemctl status td-agent-bit --no-pager
 
 echo "[4] MySQL 8.4.0 설치 및 설정"
 sudo apt install -y mysql-server
@@ -158,7 +223,7 @@ wget https://repo1.maven.org/maven2/org/glassfish/jaxb/jaxb-runtime/2.3.1/jaxb-r
 cd /home/ubuntu/scouter/server
 /usr/lib/jvm/java-11-openjdk-amd64/bin/java \
   -cp "./lib/*:./lib/jaxb-api-2.3.1.jar:./lib/jaxb-runtime-2.3.1.jar:./scouter-server-boot.jar" \
-  scouter.boot.Boot ./lib > /home/ubuntu/logs/scouter-server.log 2>&1 &
+  scouter.boot.Boot ./lib > /var/log/scouter-server.log 2>&1 &
 
 cat <<EOF > /home/ubuntu/scouter/agent.java/conf/scouter.conf
 net_collector_ip=127.0.0.1
@@ -199,13 +264,21 @@ nohup java \
     -javaagent:/home/ubuntu/scouter/agent.java/scouter.agent.jar \
     -Dscouter.config=/home/ubuntu/scouter/agent.java/conf/scouter.conf \
     -Dobj_name=careerbee-api \
-    -jar /home/ubuntu/release/careerbee-api.jar > /home/ubuntu/logs/backend.log 2>&1 &
+    -jar /home/ubuntu/release/careerbee-api.jar > /var/log/backend.log 2>&1 &
 
 echo "[9] 프론트엔드 배포"
 sudo rm -rf /var/www/html/*
 aws s3 cp "$(aws s3 ls "${BUCKET_BACKUP}/fe/" | sort | tail -n 1 | awk '{print "'"${BUCKET_BACKUP}/fe/"'" $2}' | sed 's#/$##')" /var/www/html/ --recursive
 
 echo "[10] 상태 로그"
+echo "[✔] Fluent Bit 상태 확인:"
+if systemctl is-active --quiet td-agent-bit; then
+  echo "✅ td-agent-bit 서비스 실행 중"
+else
+  echo "❌ td-agent-bit 서비스 실행 실패"
+  journalctl -u td-agent-bit --no-pager | tail -n 20
+fi
+
 echo "[✔] S3 마운트 상태:"
 if mountpoint -q /home/ubuntu/logs; then
   echo "✅ S3가 /home/ubuntu/logs에 마운트되어 있습니다."
