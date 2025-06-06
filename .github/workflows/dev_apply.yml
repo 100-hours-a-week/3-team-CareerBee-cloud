@@ -120,6 +120,30 @@ jobs:
           rm -f ${{ env.TERRAFORM_DIR }}/terraform.tfvars
           rm -f ${{ env.SCRIPT_DIR }}/cicd-variables.sh
 
+      - name: Check Application Health
+        run: |
+          for i in $(seq 1 5); do
+            echo "🔁 헬스 체크 시도 $i / 5..."
+
+            FRONT_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://dev.careerbee.co.kr/health-check")
+            BACK_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://dev-api.careerbee.co.kr/health-check")
+            AI_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://dev-ai.careerbee.co.kr/health")
+
+            if [ "$FRONT_STATUS" = "200" ] && [ "$BACK_STATUS" = "200" ] && [ "$AI_STATUS" = "200" ]; then
+              echo "✅ 모든 서버 상태 정상"
+              exit 0
+            fi
+
+            sleep 10
+          done
+
+          # 5번 시도 후에도 모두 실패
+          echo "EC2 서버 상태: $FRONT_STATUS"
+          echo "GCE 서버 상태: $BACK_STATUS"
+          echo "AI 서버 상태: $AI_STATUS"
+
+          exit 1
+
       - name: Notify Discord on Success
         if: success()
         run: |
@@ -144,12 +168,14 @@ jobs:
       - name: Notify Discord on Failure
         if: failure()
         run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
           jq -n \
             '{
               "embeds": [
                 {
                   "title": "❌ DEV 서버 배포 실패",
-                  "description": "워크플로 실행 중 오류가 발생했습니다.\n\n로그를 확인해 주세요. 🔍",
+                  "description": "워크플로 실행 중 오류가 발생했습니다.\n\n로그를 확인해 주세요. 🔍\n\n[🔗 실행 로그 보기](${RUN_URL})",
                   "color": 15548997,
                   "footer": { "text": "Cloud Functions - DEV Server" },
                   "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
