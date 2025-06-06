@@ -92,8 +92,7 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   use_put_object On
   store_dir /var/log/fluent-bit/s3
   s3_key_format /logs/%Y-%m-%d/vLLM.log
-  s3_key_format_tag_delimiters ""
-  auto_retry_requests Off
+  auto_uuid Off
 
 [OUTPUT]
   Name s3
@@ -105,8 +104,7 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   use_put_object On
   store_dir /var/log/fluent-bit/s3
   s3_key_format /logs/%Y-%m-%d/uvicorn.log
-  s3_key_format_tag_delimiters ""
-  auto_retry_requests Off
+  auto_uuid Off
 EOF
 
 sudo tee /etc/td-agent-bit/parsers.conf > /dev/null <<EOF
