@@ -53,3 +53,18 @@ variable "key_name" {
 variable "db_password" {
   type = string
 }
+
+# ALB
+variable "alb_name" {
+  type    = string
+  default = "careerbee-prod-alb"
+}
+
+variable "sg_alb_ids" {
+  type = list(string)
+}
+
+variable "target_group_port" {
+  type    = number
+  default = 8080
+}

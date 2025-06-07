@@ -37,3 +37,51 @@ module "ec2" {
   ami                = var.ami #  AMI (예: AL2023)
   depends_on         = [module.vpc]
 }
+
+# ALB - Security Group
+resource "aws_security_group" "sg_alb" {
+  vpc_id = module.vpc.vpc_id
+  name   = "SG-careerbee-prod-alb"
+
+  ingress = [
+    {
+      from_port        = 80
+      to_port          = 80
+      protocol         = "tcp"
+      cidr_blocks      = ["0.0.0.0/0"]
+      description      = "Allow HTTP"
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    }
+  ]
+
+  egress = [
+    {
+      from_port        = 0
+      to_port          = 0
+      protocol         = "-1"
+      cidr_blocks      = ["0.0.0.0/0"]
+      description      = "Allow All Outbound"
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    }
+  ]
+
+  tags = {
+    Name = "SG-careerbee-prod-alb"
+  }
+}
+
+# ALB
+module "alb" {
+  source            = "../../prod_common/modules/aws/loadbalancer/alb"
+  alb_name          = var.alb_name
+  sg_alb_ids        = [aws_security_group.sg_alb.id]
+  subnet_ids        = module.vpc.subnet_public
+  target_group_port = var.target_group_port
+  vpc_id            = module.vpc.vpc_id
+}
