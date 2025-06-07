@@ -13,7 +13,7 @@ terraform {
 
 # AWS VPC
 module "vpc" {
-  source          = "./modules/aws/vpc"
+  source          = "../../prod_common/modules/aws/vpc"
   vpc_main_cidr   = var.vpc_main_cidr
   subnet_public_1 = var.subnet_public_1
   #   subnet_public_2  = var.subnet_public_2
@@ -58,7 +58,7 @@ resource "aws_security_group" "sg_ec2" {
 
 # EC2 
 module "ec2" {
-  source             = "./modules/aws/ec2"
+  source             = "../../prod_common/modules/aws/ec2"
   instance_type      = "t3.large"
   ebs_type           = var.ebs_type
   instance_ebs_size  = var.instance_ebs_size
@@ -72,12 +72,12 @@ module "ec2" {
 
 # GCP-VPC
 module "gcp_vpc" {
-  source = "./modules/gcp/vpc"
+  source = "../../prod_common/modules/gcp/vpc"
   region = var.gcp_region
 }
 
 module "gce" {
-  source       = "./modules/gcp/compute"
+  source       = "../../prod_common/modules/gcp/compute"
   machine_type = var.ai_machine_type
   zone         = var.gcp_zone
   network_id   = module.gcp_vpc.vpc_network_id
