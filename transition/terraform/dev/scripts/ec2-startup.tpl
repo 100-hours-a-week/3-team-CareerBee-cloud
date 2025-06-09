@@ -231,10 +231,12 @@ cd /home/ubuntu/scouter/agent.host
 sh host.sh start
 
 echo "[8] 백엔드 배포"
+sudo -u ubuntu bash <<EOF
+sudo touch /var/log/backend.log
+sudo chown -R ubuntu:ubuntu /var/log/backend.log
+
 aws s3 cp "$(aws s3 ls "${BUCKET_BACKUP}/be/" | sort | tail -n 1 | awk '{print "'"${BUCKET_BACKUP}/be/"'" $2}' | sed 's#/$##')/careerbee-api.jar" /home/ubuntu/release/careerbee-api.jar
-
 pkill -f "careerbee-api.jar" || true
-
 nohup java \
     -Dspring.profiles.active=dev \
     -DDB_URL="${DB_URL}" \
@@ -260,10 +262,13 @@ nohup java \
     -Dscouter.config=/home/ubuntu/scouter/agent.java/conf/scouter.conf \
     -Dobj_name=careerbee-api \
     -jar /home/ubuntu/release/careerbee-api.jar > /var/log/backend.log 2>&1 &
+EOF
 
 echo "[9] 프론트엔드 배포"
+sudo -u ubuntu bash <<EOF
 sudo rm -rf /var/www/html/*
 aws s3 cp "$(aws s3 ls "${BUCKET_BACKUP}/fe/" | sort | tail -n 1 | awk '{print "'"${BUCKET_BACKUP}/fe/"'" $2}' | sed 's#/$##')" /var/www/html/ --recursive
+EOF
 
 echo "[10] 상태 로그"
 echo "[✔] Fluent Bit 상태 확인:"
