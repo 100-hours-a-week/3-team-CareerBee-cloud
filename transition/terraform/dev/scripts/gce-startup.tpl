@@ -83,28 +83,20 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   Read_from_Head true
 
 [OUTPUT]
-  Name s3
+  Name cloudwatch_logs
   Match vLLM.log
-  bucket ${BUCKET_BACKUP_NAME}
   region ap-northeast-2
-  total_file_size 5M
-  upload_timeout 10s
-  use_put_object On
-  store_dir /var/log/fluent-bit/s3
-  s3_key_format /logs/%Y-%m-%d/vLLM.log
-  auto_uuid Off
+  log_group_name vLLM-log
+  log_stream_name vLLM-\${HOSTNAME}
+  auto_create_group true
 
 [OUTPUT]
-  Name s3
+  Name cloudwatch_logs
   Match uvicorn.log
-  bucket ${BUCKET_BACKUP_NAME}
   region ap-northeast-2
-  total_file_size 5M
-  upload_timeout 10s
-  use_put_object On
-  store_dir /var/log/fluent-bit/s3
-  s3_key_format /logs/%Y-%m-%d/uvicorn.log
-  auto_uuid Off
+  log_group_name uvicorn-log
+  log_stream_name uvicorn-\${HOSTNAME}
+  auto_create_group true
 EOF
 
 sudo tee /etc/td-agent-bit/parsers.conf > /dev/null <<EOF
