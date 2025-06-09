@@ -159,10 +159,10 @@ pip install --upgrade pip
 pip install huggingface_hub
 
 # 모델 다운로드 (디스트 마운트 확인 시에만)
-if mountpoint -q ${MOUNT_DIR} && [ ! -d "${MOUNT_DIR}/mistral-7b" ]; then
+if mountpoint -q ${MOUNT_DIR} && [ ! -d "${MOUNT_DIR}/aya-expanse-8b" ]; then
   huggingface-cli login --token "${HF_TOKEN}"
-  huggingface-cli download mistralai/Mistral-7B-Instruct-v0.3 \
-    --local-dir "${MOUNT_DIR}/mistral-7b" \
+  huggingface-cli download CohereLabs/aya-expanse-8b \
+    --local-dir "${MOUNT_DIR}/aya-expanse-8b" \
     --local-dir-use-symlinks False
 fi
 
@@ -240,10 +240,12 @@ pip install --no-cache-dir --prefer-binary -r "${DEPLOY_DIR}/requirements.txt"
 pkill -f "uvicorn" || true
 
 nohup python3 -m vllm.entrypoints.openai.api_server \
-    --model ${MOUNT_DIR}/mistral-7b \
-    --dtype float16 \
+    --model ${MOUNT_DIR}/aya-expanse-8b \
+    --tokenizer ${MOUNT_DIR}/aya-expanse-8b \
+    --dtype bfloat16 \
+    --max-model-len 4096 \
     --port 8001 \
-    --gpu-memory-utilization 0.9 > /var/log/vLLM.log 2>&1 &
+    --gpu-memory-utilization 0.8 > /var/log/vLLM.log 2>&1 &
 
 cd "${DEPLOY_DIR}"
 nohup ${MOUNT_DIR}/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 > /var/log/uvicorn.log 2>&1 &
@@ -290,7 +292,7 @@ echo "[✔] Python3 버전:"
 python3 --version
 
 echo "[✔] vLLM 디렉토리 확인:"
-[ -d "${MOUNT_DIR}/mistral-7b" ] && echo "${MOUNT_DIR}/mistral-7b 디렉토리 존재함" || echo "❌ ${MOUNT_DIR}/mistral-7b 디렉토리 없음"
+[ -d "${MOUNT_DIR}/aya-expanse-8b" ] && echo "${MOUNT_DIR}/aya-expanse-8b 디렉토리 존재함" || echo "❌ ${MOUNT_DIR}/aya-expanse-8b 디렉토리 없음"
 
 echo "[✔] Nginx 상태:"
 sudo systemctl is-active --quiet nginx && echo "Nginx 실행 중" || echo "❌ Nginx 비활성 상태"
