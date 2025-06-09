@@ -118,10 +118,6 @@ resource "aws_route_table" "private_db_rt" {
 
   # 보안상 DB는 인터넷 라우트 안 잡는 경우 많음
   # 필요시 NAT 붙이고 사용 가능
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.nat_gw[0].id
-  }
 
   tags = {
     Name = "rt-careerbee-prod-private-db"

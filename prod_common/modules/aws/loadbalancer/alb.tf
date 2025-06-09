@@ -16,7 +16,7 @@ resource "aws_lb" "alb" {
 }
 
 # Target Group 생성
-resource "aws_lb_target_group" "target-group" {
+resource "aws_lb_target_group" "target_group" {
   name        = "tg-${var.alb_name}"
   port        = var.target_group_port
   protocol    = "HTTP"
@@ -56,7 +56,7 @@ resource "aws_lb_listener" "https_listener" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.target-group.arn
+    target_group_arn = aws_lb_target_group.target_group.arn
   }
 }
 

@@ -32,7 +32,12 @@ variable "private_db_subnet_cidrs" {
 # EC2
 variable "ami" {
   type    = string
-  default = "ami-05a7f3469a7653972" # Ubuntu 22.04 LTS
+  default = "ami-09194dca7718a360a" # MVP Version
+}
+
+variable "db_ami" {
+  type    = string
+  default = "ami-0b8c1f2d3e4f5a6b7" # DB AMI
 }
 
 variable "ebs_type" {
@@ -58,10 +63,6 @@ variable "db_password" {
 variable "alb_name" {
   type    = string
   default = "careerbee-prod-alb"
-}
-
-variable "sg_alb_ids" {
-  type = list(string)
 }
 
 variable "target_group_port" {
