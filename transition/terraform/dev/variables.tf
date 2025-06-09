@@ -131,6 +131,9 @@ variable "bucket_image" {
 variable "bucket_backup_name" {
   sensitive = true
 }
+variable "bucket_image_name" {
+  sensitive = true
+}
 variable "device_id" {
   sensitive = true
 }

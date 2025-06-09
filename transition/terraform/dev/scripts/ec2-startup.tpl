@@ -80,7 +80,7 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   Match backend.log
   region ap-northeast-2
   log_group_name backend-log
-  log_stream_name backend-\${HOSTNAME}
+  log_stream_name backend-\$${HOSTNAME}
   auto_create_group true
 
 [OUTPUT]
@@ -88,7 +88,7 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   Match scouter.log
   region ap-northeast-2
   log_group_name scouter-log
-  log_stream_name scouter-\${HOSTNAME}
+  log_stream_name scouter-\$${HOSTNAME}
   auto_create_group true
 EOF
 

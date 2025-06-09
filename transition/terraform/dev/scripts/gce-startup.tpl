@@ -87,7 +87,7 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   Match vLLM.log
   region ap-northeast-2
   log_group_name vLLM-log
-  log_stream_name vLLM-\${HOSTNAME}
+  log_stream_name vLLM-\$${HOSTNAME}
   auto_create_group true
 
 [OUTPUT]
@@ -95,7 +95,7 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   Match uvicorn.log
   region ap-northeast-2
   log_group_name uvicorn-log
-  log_stream_name uvicorn-\${HOSTNAME}
+  log_stream_name uvicorn-\$${HOSTNAME}
   auto_create_group true
 EOF
 

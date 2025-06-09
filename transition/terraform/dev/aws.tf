@@ -178,7 +178,7 @@ resource "aws_instance" "ec2" {
     AWS_ACCESS_KEY_ID         = var.aws_access_key_id
     AWS_SECRET_ACCESS_KEY     = var.aws_secret_access_key
     AWS_DEFAULT_REGION        = var.aws_default_region
-    S3_BUCKET_IMAGE           = var.bucket_image
+    S3_BUCKET_IMAGE           = var.bucket_image_name
     SARAMIN_SECRET_KEY        = var.saramin_secret_key
     ADD_SSH_KEY               = base64decode(var.public_nopass_key_base64)
   })
