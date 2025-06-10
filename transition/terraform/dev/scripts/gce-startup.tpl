@@ -4,16 +4,94 @@ export DEBIAN_FRONTEND=noninteractive # 비대화 모드
 echo "[1] APT 업데이트 및 기본 패키지 설치"
 sudo apt update -y && sudo apt upgrade -y
 sudo apt install -y curl unzip nginx
+
+echo "[2] Fluent Bit 설치"
+curl https://packages.fluentbit.io/fluentbit.key | gpg --dearmor | sudo tee /usr/share/keyrings/fluentbit-keyring.gpg > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/fluentbit-keyring.gpg] https://packages.fluentbit.io/ubuntu/jammy jammy main" \
+| sudo tee /etc/apt/sources.list.d/fluentbit.list
+sudo apt update -y
+sudo apt install td-agent-bit -y
+
+sudo mkdir -p /var/log/fluent-bit/s3
+sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
+[SERVICE]
+  Flush        5
+  Daemon       Off
+  Log_Level    info
+
+[INPUT]
+  Name   tail
+  Path   /var/log/vLLM.log
+  Tag    vLLM.log
+  DB     /var/log/flb_tail.db
+  Read_from_Head true
+  
+[INPUT]
+  Name   tail
+  Path   /var/log/uvicorn.log
+  Tag    uvicorn.log
+  DB     /var/log/flb_tail_uvicorn.db
+  Read_from_Head true
+
+[INPUT]
+  Name   tail
+  Path   /var/log/syslog
+  Tag    startup.log
+  DB     /var/log/flb_tail_startup.db
+  Read_from_Head true
+
+[FILTER]
+  Name   grep
+  Match  startup.log
+  Regex  message startup-script
+
+[OUTPUT]
+  Name cloudwatch_logs
+  Match vLLM.log
+  region ap-northeast-2
+  log_group_name vLLM-log
+  log_stream_name vLLM-\$${HOSTNAME}
+  auto_create_group true
+
+[OUTPUT]
+  Name cloudwatch_logs
+  Match uvicorn.log
+  region ap-northeast-2
+  log_group_name uvicorn-log
+  log_stream_name uvicorn-\$${HOSTNAME}
+  auto_create_group true
+
+[OUTPUT]
+  Name              cloudwatch_logs
+  Match             startup.log
+  region            ap-northeast-2
+  log_group_name    gce-startup-log
+  log_stream_name   startup-\$${HOSTNAME}
+  auto_create_group true
+EOF
+
+sudo mkdir -p /etc/systemd/system/td-agent-bit.service.d
+sudo tee /etc/systemd/system/td-agent-bit.service.d/aws-creds.conf > /dev/null <<EOF
+[Service]
+Environment="AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
+Environment="AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}"
+Environment="AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}"
+EOF
+
+sudo systemctl enable td-agent-bit
+sudo systemctl restart td-agent-bit
+sudo systemctl status td-agent-bit --no-pager
+
 (
   sudo apt-get install -y nvidia-driver-570
 ) &
 (
-  echo "[2] Certbot 설치"
+  echo "[3] Certbot 설치"
   sudo snap install --classic certbot
   sudo ln -sf /snap/bin/certbot /usr/bin/certbot
 ) &
 (
-  echo "[3] Google Cloud Ops Agent 설치"
+  echo "[4] Google Cloud Ops Agent 설치"
   curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
   sudo bash add-google-cloud-ops-agent-repo.sh --also-install
   sudo systemctl enable google-cloud-ops-agent
@@ -21,7 +99,7 @@ sudo apt install -y curl unzip nginx
 ) &
 (
   sudo mkdir -p ~/.aws /home/ubuntu/.aws
-  echo "[4] AWS CLI 설치 및 자격증명 설정"
+  echo "[5] AWS CLI 설치 및 자격증명 설정"
   curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
   unzip -q awscliv2.zip
   sudo ./aws/install
@@ -50,73 +128,6 @@ cat > /home/ubuntu/.aws/config <<EOF
 region = ${AWS_DEFAULT_REGION}
 output = json
 EOF
-
-echo "[5] Fluent Bit 설치"
-curl https://packages.fluentbit.io/fluentbit.key | gpg --dearmor | sudo tee /usr/share/keyrings/fluentbit-keyring.gpg > /dev/null
-echo "deb [signed-by=/usr/share/keyrings/fluentbit-keyring.gpg] https://packages.fluentbit.io/ubuntu/jammy jammy main" \
-| sudo tee /etc/apt/sources.list.d/fluentbit.list
-sudo apt update -y
-sudo apt install td-agent-bit -y
-
-sudo mkdir -p /var/log/fluent-bit/s3
-sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
-[SERVICE]
-  Flush        5
-  Daemon       Off
-  Log_Level    info
-  Parsers_File parsers.conf
-
-[INPUT]
-  Name   tail
-  Path   /var/log/vLLM.log
-  Tag    vLLM.log
-  DB     /var/log/flb_tail.db
-  Parser json
-  Read_from_Head true
-  
-[INPUT]
-  Name   tail
-  Path   /var/log/uvicorn.log
-  Tag    uvicorn.log
-  DB     /var/log/flb_tail_uvicorn.db
-  Parser json
-  Read_from_Head true
-
-[OUTPUT]
-  Name cloudwatch_logs
-  Match vLLM.log
-  region ap-northeast-2
-  log_group_name vLLM-log
-  log_stream_name vLLM-\$${HOSTNAME}
-  auto_create_group true
-
-[OUTPUT]
-  Name cloudwatch_logs
-  Match uvicorn.log
-  region ap-northeast-2
-  log_group_name uvicorn-log
-  log_stream_name uvicorn-\$${HOSTNAME}
-  auto_create_group true
-EOF
-
-sudo tee /etc/td-agent-bit/parsers.conf > /dev/null <<EOF
-[PARSER]
-  Name   json
-  Format json
-  Time_Key time
-  Time_Format %Y-%m-%dT%H:%M:%S
-EOF
-
-sudo tee /etc/systemd/system/td-agent-bit.service.d/aws-creds.conf > /dev/null <<EOF
-[Service]
-Environment="AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
-Environment="AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}"
-Environment="AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}"
-EOF
-
-sudo systemctl enable td-agent-bit
-sudo systemctl restart td-agent-bit
-sudo systemctl status td-agent-bit --no-pager
 
 echo "[6] 디스크&S3(mount-s3) 마운트 시작"
 if sudo ls "${DEVICE_ID}" > /dev/null 2>&1; then

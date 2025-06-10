@@ -11,40 +11,7 @@ echo "[1] APT 업데이트 및 기본 패키지 설치"
 sudo apt update -y && sudo apt upgrade -y
 sudo apt install -y curl git unzip build-essential ca-certificates gnupg lsb-release software-properties-common npm
 
-echo "[2] 기본 디렉토리 생성 및 s3 logs 마운트"
-mkdir -p /home/ubuntu/{logs,release,tmp/s3cache}
-sudo chown -R ubuntu:ubuntu /home/ubuntu
-wget https://s3.amazonaws.com/mountpoint-s3-release/latest/x86_64/mount-s3.deb
-sudo apt install -y ./mount-s3.deb
-rm -f ./mount-s3.deb
-echo "user_allow_other" | sudo tee -a /etc/fuse.conf
-
-sudo -u ubuntu bash <<EOF
-mount-s3 ${BUCKET_BACKUP_NAME} /home/ubuntu/logs --prefix logs/ --region ap-northeast-2 --cache /home/ubuntu/tmp/s3cache --metadata-ttl 60   --allow-other   --allow-overwrite   --allow-delete   --incremental-upload
-EOF
-
-echo "[3] 병렬로 필수 패키지 설치 시작"
-(
-  echo "[3-1] AWS CLI 설치"
-  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-  unzip awscliv2.zip
-  sudo ./aws/install
-) &
-(
-  echo "[3-2] Java 21 설치"
-  sudo apt update -y
-  sudo apt install -y openjdk-21-jdk gradle
-) &
-(
-  echo "[3-3] Node.js 22 + pnpm 설치"
-  curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-  sudo apt install -y nodejs
-  sudo npm install -g pnpm@10.7.1
-) &
-
-wait
-
-echo "[3-4] Fluent Bit 설치"
+echo "[2] Fluent Bit 설치"
 curl https://packages.fluentbit.io/fluentbit.key | gpg --dearmor | sudo tee /usr/share/keyrings/fluentbit-keyring.gpg > /dev/null
 echo "deb [signed-by=/usr/share/keyrings/fluentbit-keyring.gpg] https://packages.fluentbit.io/ubuntu/jammy jammy main" \
 | sudo tee /etc/apt/sources.list.d/fluentbit.list
@@ -57,14 +24,12 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   Flush        5
   Daemon       Off
   Log_Level    info
-  Parsers_File parsers.conf
 
 [INPUT]
   Name   tail
   Path   /var/log/backend.log
   Tag    backend.log
   DB     /var/log/flb_tail.db
-  Parser json
   Read_from_Head true
 
 [INPUT]
@@ -72,7 +37,13 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   Path   /var/log/scouter-server.log
   Tag    scouter.log
   DB     /var/log/flb_tail_scouter.db
-  Parser json
+  Read_from_Head true
+
+[INPUT]
+  Name   tail
+  Path   /var/log/cloud-init-output.log
+  Tag    userdata.log
+  DB     /var/log/flb_tail_userdata.db
   Read_from_Head true
 
 [OUTPUT]
@@ -90,21 +61,54 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   log_group_name scouter-log
   log_stream_name scouter-\$${HOSTNAME}
   auto_create_group true
-EOF
 
-sudo tee /etc/td-agent-bit/parsers.conf > /dev/null <<EOF
-[PARSER]
-  Name   json
-  Format json
-  Time_Key time
-  Time_Format %Y-%m-%dT%H:%M:%S
+[OUTPUT]
+  Name cloudwatch_logs
+  Match userdata.log
+  region ap-northeast-2
+  log_group_name userdata-log
+  log_stream_name userdata-\$${HOSTNAME}
+  auto_create_group true
 EOF
 
 sudo systemctl enable td-agent-bit
 sudo systemctl restart td-agent-bit
 sudo systemctl status td-agent-bit --no-pager
 
-echo "[4] MySQL 8.4.0 설치 및 설정"
+echo "[3] 기본 디렉토리 생성 및 s3 logs 마운트"
+mkdir -p /home/ubuntu/{logs,release,tmp/s3cache}
+sudo chown -R ubuntu:ubuntu /home/ubuntu
+wget https://s3.amazonaws.com/mountpoint-s3-release/latest/x86_64/mount-s3.deb
+sudo apt install -y ./mount-s3.deb
+rm -f ./mount-s3.deb
+echo "user_allow_other" | sudo tee -a /etc/fuse.conf
+
+sudo -u ubuntu bash <<EOF
+mount-s3 ${BUCKET_BACKUP_NAME} /home/ubuntu/logs --prefix logs/ --region ap-northeast-2 --cache /home/ubuntu/tmp/s3cache --metadata-ttl 60   --allow-other   --allow-overwrite   --allow-delete   --incremental-upload
+EOF
+
+echo "[4] 병렬로 필수 패키지 설치 시작"
+(
+  echo "[4-1] AWS CLI 설치"
+  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  unzip awscliv2.zip
+  sudo ./aws/install
+) &
+(
+  echo "[4-2] Java 21 설치"
+  sudo apt update -y
+  sudo apt install -y openjdk-21-jdk gradle
+) &
+(
+  echo "[4-3] Node.js 22 + pnpm 설치"
+  curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+  sudo apt install -y nodejs
+  sudo npm install -g pnpm@10.7.1
+) &
+
+wait
+
+echo "[5] MySQL 8.4.0 설치 및 설정"
 sudo apt install -y mysql-server
 sudo systemctl enable mysql && sudo systemctl start mysql
 
@@ -124,7 +128,7 @@ GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USERNAME}'@'%';
 FLUSH PRIVILEGES;
 MYSQL_SCRIPT
 
-echo "[5] UFW 방화벽 설정"
+echo "[6] UFW 방화벽 설정"
 sudo ufw allow OpenSSH
 sudo ufw allow 80
 sudo ufw allow 443
@@ -134,7 +138,7 @@ sudo ufw allow 5173
 sudo ufw allow 6100
 sudo ufw --force enable
 
-echo "[6] Nginx 및 HTTPS 인증 설정"
+echo "[7] Nginx 및 HTTPS 인증 설정"
 sudo apt install -y nginx
 sudo mkdir -p /var/www/html
 sudo chown -R ubuntu:ubuntu /var/www/html
@@ -205,7 +209,7 @@ EOF_NGINX
 
 sudo nginx -t && sudo systemctl reload nginx
 
-echo "[7] Scouter 설치 및 설정"
+echo "[8] Scouter 설치 및 설정"
 sudo apt install -y openjdk-11-jdk
 cd /home/ubuntu
 wget https://github.com/scouter-project/scouter/releases/download/v2.20.0/scouter-all-2.20.0.tar.gz
@@ -231,7 +235,7 @@ EOF
 cd /home/ubuntu/scouter/agent.host
 sh host.sh start
 
-echo "[8] 백엔드 배포"
+echo "[9] 백엔드 배포"
 sudo -u ubuntu bash <<EOF
 sudo touch /var/log/backend.log
 sudo chown -R ubuntu:ubuntu /var/log/backend.log
@@ -265,13 +269,13 @@ nohup java \
     -jar /home/ubuntu/release/careerbee-api.jar > /var/log/backend.log 2>&1 &
 EOF
 
-echo "[9] 프론트엔드 배포"
+echo "[10] 프론트엔드 배포"
 sudo -u ubuntu bash <<EOF
 sudo rm -rf /var/www/html/*
 aws s3 cp "$(aws s3 ls "${BUCKET_BACKUP}/fe/" | sort | tail -n 1 | awk '{print "'"${BUCKET_BACKUP}/fe/"'" $2}' | sed 's#/$##')" /var/www/html/ --recursive
 EOF
 
-echo "[10] 상태 로그"
+echo "[11] 상태 로그"
 echo "[✔] Fluent Bit 상태 확인:"
 if systemctl is-active --quiet td-agent-bit; then
   echo "✅ td-agent-bit 서비스 실행 중"
@@ -347,5 +351,5 @@ fi
 
 touch /home/ubuntu/tmp/ec2-startup.done
 
-echo "[11] 권한 설정"
+echo "[12] 권한 설정"
 chown -R ubuntu:ubuntu /home/ubuntu/{release,tmp} /var/www/html
