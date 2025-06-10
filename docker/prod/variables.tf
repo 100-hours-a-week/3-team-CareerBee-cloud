@@ -3,6 +3,19 @@ variable "region" {
   default = "ap-northeast-2"
 }
 
+variable "gcp_project_id" {
+  type    = string
+  default = "careerbee-prod"
+}
+
+variable "gcp_region" {
+  type    = string
+  default = "asia-northeast3"
+}
+variable "gcp_zone" {
+  type    = string
+  default = "asia-northeast3-a"
+}
 # VPC
 variable "azs" {
   type    = list(string)
@@ -37,7 +50,7 @@ variable "ami" {
 
 variable "db_ami" {
   type    = string
-  default = "ami-0b8c1f2d3e4f5a6b7" # DB AMI
+  default = "ami-08943a151bd468f4e" # DB AMI
 }
 
 variable "ebs_type" {
@@ -68,4 +81,11 @@ variable "alb_name" {
 variable "target_group_port" {
   type    = number
   default = 8080
+}
+
+# VPN
+variable "gcp_vpc_cidr_block" {
+  type        = string
+  description = "CIDR block of the GCP VPC"
+  default     = "10.0.0/16" # GCP VPC CIDR 블록
 }
