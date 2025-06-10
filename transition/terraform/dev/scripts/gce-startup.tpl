@@ -43,7 +43,7 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
 [FILTER]
   Name   grep
   Match  startup.log
-  Regex  log .*startup%-script.*
+  Regex  log .*startup-script.*
 
 [FILTER]
   Name   lua
