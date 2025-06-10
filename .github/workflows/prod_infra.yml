@@ -11,7 +11,7 @@ concurrency:
 
 env:
   AWS_REGION: ap-northeast-2
-  BUCKET: ${{secrets.PROD_TERRAFORM_STATE_BUCKET}}
+  BUCKET: ${{secrets.PROD_TERRAFORM_STATE_BUCKET_NAME}}
   DYNAMODB_TABLE: ${{secrets.PROD_DYNAMODB_TABLE}}
 
 jobs:
@@ -92,7 +92,7 @@ jobs:
 
       - name: Terraform Apply (PROD)
         working-directory: docker/prod
-        if: steps.dev_plan.outputs.exitcode == '2'
+        if: steps.prod_plan.outputs.exitcode == '2'
         run: |
           terraform apply -auto-approve \
           -var="db_password=${{ secrets.PROD_DB_PASSWORD }}"
