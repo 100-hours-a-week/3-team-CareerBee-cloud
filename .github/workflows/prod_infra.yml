@@ -46,10 +46,10 @@ jobs:
         working-directory: prod_common/backend
         run: terraform import aws_dynamodb_table.terraform_state_lock "${{ env.DYNAMODB_TABLE }}" || echo "DynamoDB table import failed."
 
-      - name: Import Existing GitHub OIDC Provider
+      - name: Import Existing GitHub OIDC IAM Role
         working-directory: prod_common/backend
         run: |
-          terraform import aws_iam_openid_connect_provider.github arn:aws:iam::"${{secrets.AWS_ACCOUNT_ID}}":oidc-provider/token.actions.githubusercontent.com || echo "OIDC Provider already imported."
+          terraform import aws_iam_role arn:aws:iam::"${{secrets.AWS_ACCOUNT_ID}}":role/GitHubActionsOIDCRole || echo "OIDC Provider already imported."
 
       - name: Terraform Plan (Backend)
         working-directory: prod_common/backend
