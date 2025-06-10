@@ -43,7 +43,13 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
 [FILTER]
   Name   grep
   Match  startup.log
-  Regex  message startup-script
+  Regex  log .*startup%-script.*
+
+[FILTER]
+  Name   lua
+  Match  startup.log
+  script /etc/td-agent-bit/trim_log.lua
+  call   trim
 
 [OUTPUT]
   Name cloudwatch_logs
@@ -68,6 +74,17 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   log_group_name    gce-startup-log
   log_stream_name   startup-\$${HOSTNAME}
   auto_create_group true
+EOF
+
+sudo tee /etc/td-agent-bit/trim_log.lua > /dev/null <<'EOF'
+function trim(tag, timestamp, record)
+    local raw = record["log"]
+    local trimmed = string.match(raw, "startup%-script: (.*)")
+    if trimmed then
+        record["log"] = trimmed
+    end
+    return 1, timestamp, record
+end
 EOF
 
 sudo mkdir -p /etc/systemd/system/td-agent-bit.service.d
