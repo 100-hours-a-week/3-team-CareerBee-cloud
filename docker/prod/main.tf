@@ -20,8 +20,129 @@ module "vpc" {
   private_db_subnet_cidrs  = var.private_db_subnet_cidrs
 }
 
-data "aws_security_group" "sg_ec2" {
-  id = "sg-0320ce70d02bd66cf"
+# EC2 공통 보안 그룹 (APP, VPN 포함)
+resource "aws_security_group" "sg_ec2_common" {
+  name   = "SG-careerbee-prod-ec2-common"
+  vpc_id = module.vpc.vpc_id
+
+  ingress = [
+    {
+      from_port   = 22
+      to_port     = 22
+      protocol    = "tcp"
+      cidr_blocks = ["211.244.225.166/32"]
+    },
+    {
+      from_port   = 3000
+      to_port     = 3000
+      protocol    = "tcp"
+      cidr_blocks = ["211.244.225.166/32"]
+    },
+    {
+      from_port   = 6100
+      to_port     = 6100
+      protocol    = "tcp"
+      cidr_blocks = ["211.244.225.166/32"]
+    },
+    {
+      from_port   = 9090
+      to_port     = 9090
+      protocol    = "tcp"
+      cidr_blocks = ["211.244.225.166/32", "15.164.51.95/32"]
+    }
+  ]
+
+  egress = [
+    {
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  ]
+
+  tags = {
+    Name = "SG-careerbee-prod-ec2-common"
+  }
+}
+
+# App 보안 그룹
+resource "aws_security_group" "sg_ec2_app" {
+  name        = "SG-careerbee-prod-ec2-app"
+  description = "Allow HTTP/HTTPS from all, SSH from fixed IP"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress = [
+    {
+      description = "Allow HTTP"
+      from_port   = 80
+      to_port     = 80
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    },
+    {
+      description = "Allow HTTPS"
+      from_port   = 443
+      to_port     = 443
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    },
+    {
+      description = "Allow SSH from office IP"
+      from_port   = 22
+      to_port     = 22
+      protocol    = "tcp"
+      cidr_blocks = ["211.244.225.166/32"]
+    }
+  ]
+
+  egress = [
+    {
+      description = "Allow all outbound traffic"
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  ]
+
+  tags = {
+    Name = "SG-careerbee-prod-ec2-app"
+  }
+}
+
+# DB 보안 그룹
+resource "aws_security_group" "sg_db" {
+  name   = "SG-careerbee-prod-db"
+  vpc_id = module.vpc.vpc_id
+
+  ingress = [
+    {
+      from_port       = 3306
+      to_port         = 3306
+      protocol        = "tcp"
+      security_groups = [aws_security_group.sg_ec2_common.id]
+    },
+    {
+      from_port   = 22
+      to_port     = 22
+      protocol    = "tcp"
+      cidr_blocks = ["211.244.225.166/32"]
+    }
+  ]
+
+  egress = [
+    {
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  ]
+
+  tags = {
+    Name = "SG-careerbee-prod-db"
+  }
 }
 
 # EC2 - OpenVPN
@@ -32,7 +153,7 @@ module "ec2_openvpn" {
   ebs_type                  = var.ebs_type
   instance_ebs_size         = var.instance_ebs_size
   key_name                  = var.key_name
-  sg_ec2_ids                = [data.aws_security_group.sg_ec2.id]
+  sg_ec2_ids                = [aws_security_group.sg_ec2_common.id]
   depends_on                = [module.vpc]
 
 }
@@ -44,7 +165,7 @@ module "ec2_app" {
   ebs_type               = var.ebs_type
   instance_ebs_size      = var.instance_ebs_size
   key_name               = var.key_name
-  sg_ec2_ids             = [data.aws_security_group.sg_ec2.id]
+  sg_ec2_ids             = [aws_security_group.sg_ec2_app.id]
   instance_app_subnet_id = module.vpc.subnet_private_app[count.index]
   ami                    = var.ami #  AMI 
   app_instance_name      = "ec2-careerbee-prod-app-${module.vpc.azs[count.index]}"
@@ -60,7 +181,7 @@ module "ec2_db" {
   ebs_type              = var.ebs_type
   instance_ebs_size     = var.instance_ebs_size
   key_name              = var.key_name
-  sg_ec2_ids            = [data.aws_security_group.sg_ec2.id]
+  sg_ec2_ids            = [aws_security_group.sg_db.id]
   instance_db_subnet_id = module.vpc.subnet_private_db[count.index]
   ami_db                = var.db_ami
   db_instance_name      = "ec2-careerbee-prod-db-${module.vpc.azs[count.index]}"
@@ -114,52 +235,3 @@ module "alb" {
   vpc_id            = module.vpc.vpc_id
 }
 
-#VPC - GCP
-data "google_compute_network" "gcp_vpc" {
-  name    = "vpc-careerbee-ai"
-  project = "careerbee-prod"
-}
-
-data "google_compute_subnetwork" "gcp_subnet" {
-  name    = "subnet-careerbee-ai-private"
-  region  = "asia-northeast3"
-  project = "careerbee-prod"
-}
-
-# VPN
-# resource "google_compute_address" "vpn_static_ip_1" {
-#   name   = "vpn-static-ip-1"
-#   region = "asia-northeast3"
-# }
-
-# resource "google_compute_address" "vpn_static_ip_2" {
-#   name   = "vpn-static-ip-2"
-#   region = "asia-northeast3"
-# }
-
-# module "vpn_aws" {
-#   source             = "../../prod_common/modules/aws/vpn"
-#   vpc_id             = module.vpc.vpc_id
-#   gcp_vpc_cidr_block = data.google_compute_subnetwork.gcp_subnet.ip_cidr_range
-#   gcp_external_ip_1  = google_compute_address.vpn_static_ip_1.address
-#   gcp_external_ip_2  = google_compute_address.vpn_static_ip_2.address
-# }
-
-# module "vpn_gcp" {
-#   source             = "../../prod_common/modules/gcp/vpn"
-#   aws_vpc_cidr_block = module.vpc.vpc_main_cidr
-#   gcp_vpc_cidr_block = data.google_compute_subnetwork.gcp_subnet.ip_cidr_range
-#   vpn_static_ip_1 = {
-#     name    = google_compute_address.vpn_static_ip_1.name
-#     region  = google_compute_address.vpn_static_ip_1.region
-#     address = google_compute_address.vpn_static_ip_1.address
-#   }
-#   vpn_static_ip_2 = {
-#     name    = google_compute_address.vpn_static_ip_2.name
-#     region  = google_compute_address.vpn_static_ip_2.region
-#     address = google_compute_address.vpn_static_ip_2.address
-#   }
-#   aws_external_ip_1 = module.vpn_aws.aws_external_ip_1
-#   aws_external_ip_2 = module.vpn_aws.aws_external_ip_2
-#   gcp_vpc_self_link = data.google_compute_network.gcp_vpc.self_link
-# }
