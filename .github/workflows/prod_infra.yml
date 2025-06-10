@@ -40,11 +40,11 @@ jobs:
 
       - name: Terraform Import S3 Bucket
         working-directory: prod_common/backend
-        run: terraform import aws_s3_bucket.terraform_state $BUCKET || echo "Bucket import failed."
+        run: terraform import aws_s3_bucket.terraform_state "${{ env.BUCKET }}" || echo "Bucket import failed."
 
       - name: Terraform Import DynamoDB Table
         working-directory: prod_common/backend
-        run: terraform import aws_dynamodb_table.terraform_state_lock $DYNAMODB_TABLE || echo "DynamoDB table import failed."
+        run: terraform import aws_dynamodb_table.terraform_state_lock "${{ env.DYNAMODB_TABLE }}" || echo "DynamoDB table import failed."
 
       - name: Terraform Plan (Backend)
         working-directory: prod_common/backend
