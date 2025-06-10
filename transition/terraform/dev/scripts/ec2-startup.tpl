@@ -7,11 +7,11 @@ echo "${ADD_SSH_KEY}" >> /home/ubuntu/.ssh/authorized_keys
 chown -R ubuntu:ubuntu /home/ubuntu/.ssh
 chmod 600 /home/ubuntu/.ssh/authorized_keys
 
-echo "[1] APT 업데이트 및 기본 패키지 설치"
+echo "[1] APT 업데이트"
 sudo apt update -y && sudo apt upgrade -y
-sudo apt install -y curl git unzip build-essential ca-certificates gnupg lsb-release software-properties-common npm
 
 echo "[2] Fluent Bit 설치"
+sudo apt install -y curl
 curl https://packages.fluentbit.io/fluentbit.key | gpg --dearmor | sudo tee /usr/share/keyrings/fluentbit-keyring.gpg > /dev/null
 echo "deb [signed-by=/usr/share/keyrings/fluentbit-keyring.gpg] https://packages.fluentbit.io/ubuntu/jammy jammy main" \
 | sudo tee /etc/apt/sources.list.d/fluentbit.list
@@ -87,7 +87,8 @@ sudo -u ubuntu bash <<EOF
 mount-s3 ${BUCKET_BACKUP_NAME} /home/ubuntu/logs --prefix logs/ --region ap-northeast-2 --cache /home/ubuntu/tmp/s3cache --metadata-ttl 60   --allow-other   --allow-overwrite   --allow-delete   --incremental-upload
 EOF
 
-echo "[4] 병렬로 필수 패키지 설치 시작"
+echo "[4] 기본 패키지 설치 및 병렬로 필수 패키지 설치 시작"
+sudo apt install -y git unzip build-essential ca-certificates gnupg lsb-release software-properties-common npm
 (
   echo "[4-1] AWS CLI 설치"
   curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"

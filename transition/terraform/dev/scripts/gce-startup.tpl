@@ -1,11 +1,11 @@
 #!/bin/bash
 export DEBIAN_FRONTEND=noninteractive # 비대화 모드
 
-echo "[1] APT 업데이트 및 기본 패키지 설치"
+echo "[1] APT 업데이트"
 sudo apt update -y && sudo apt upgrade -y
-sudo apt install -y curl unzip nginx
 
 echo "[2] Fluent Bit 설치"
+sudo apt install -y curl
 curl https://packages.fluentbit.io/fluentbit.key | gpg --dearmor | sudo tee /usr/share/keyrings/fluentbit-keyring.gpg > /dev/null
 echo "deb [signed-by=/usr/share/keyrings/fluentbit-keyring.gpg] https://packages.fluentbit.io/ubuntu/jammy jammy main" \
 | sudo tee /etc/apt/sources.list.d/fluentbit.list
@@ -99,16 +99,18 @@ sudo systemctl enable td-agent-bit
 sudo systemctl restart td-agent-bit
 sudo systemctl status td-agent-bit --no-pager
 
+echo "[3] 기본 패키지 설치"
+sudo apt install -y unzip nginx
 (
   sudo apt-get install -y nvidia-driver-570
 ) &
 (
-  echo "[3] Certbot 설치"
+  echo "[4] Certbot 설치"
   sudo snap install --classic certbot
   sudo ln -sf /snap/bin/certbot /usr/bin/certbot
 ) &
 (
-  echo "[4] Google Cloud Ops Agent 설치"
+  echo "[5] Google Cloud Ops Agent 설치"
   curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
   sudo bash add-google-cloud-ops-agent-repo.sh --also-install
   sudo systemctl enable google-cloud-ops-agent
