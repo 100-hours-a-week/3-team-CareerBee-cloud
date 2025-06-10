@@ -1,35 +1,131 @@
 #!/bin/bash
 export DEBIAN_FRONTEND=noninteractive # 비대화 모드
 
-echo "[1] APT 업데이트 및 기본 패키지 설치"
+echo "[1] APT 업데이트"
 sudo apt update -y && sudo apt upgrade -y
-sudo apt install -y curl unzip nginx
+
+echo "[2] Fluent Bit 설치"
+sudo apt install -y curl
+curl https://packages.fluentbit.io/fluentbit.key | gpg --dearmor | sudo tee /usr/share/keyrings/fluentbit-keyring.gpg > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/fluentbit-keyring.gpg] https://packages.fluentbit.io/ubuntu/jammy jammy main" \
+| sudo tee /etc/apt/sources.list.d/fluentbit.list
+sudo apt update -y
+sudo apt install td-agent-bit -y
+
+sudo mkdir -p /var/log/fluent-bit/s3
+sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
+[SERVICE]
+  Flush        5
+  Daemon       Off
+  Log_Level    info
+
+[INPUT]
+  Name   tail
+  Path   /var/log/vLLM.log
+  Tag    vLLM.log
+  DB     /var/log/flb_tail.db
+  Read_from_Head true
+  
+[INPUT]
+  Name   tail
+  Path   /var/log/uvicorn.log
+  Tag    uvicorn.log
+  DB     /var/log/flb_tail_uvicorn.db
+  Read_from_Head true
+
+[INPUT]
+  Name   tail
+  Path   /var/log/syslog
+  Tag    startup.log
+  DB     /var/log/flb_tail_startup.db
+  Read_from_Head true
+
+[FILTER]
+  Name   grep
+  Match  startup.log
+  Regex  log .*startup-script.*
+
+[FILTER]
+  Name   lua
+  Match  startup.log
+  script /etc/td-agent-bit/trim_log.lua
+  call   trim
+
+[OUTPUT]
+  Name cloudwatch_logs
+  Match vLLM.log
+  region ap-northeast-2
+  log_group_name vLLM-log
+  log_stream_name vLLM-\$(date +%Y-%m-%d)
+  auto_create_group true
+
+[OUTPUT]
+  Name cloudwatch_logs
+  Match uvicorn.log
+  region ap-northeast-2
+  log_group_name uvicorn-log
+  log_stream_name uvicorn-\$(date +%Y-%m-%d)
+  auto_create_group true
+
+[OUTPUT]
+  Name              cloudwatch_logs
+  Match             startup.log
+  region            ap-northeast-2
+  log_group_name    gce-startup-log
+  log_stream_name   startup-\$(date +%Y-%m-%d)
+  auto_create_group true
+EOF
+
+sudo tee /etc/td-agent-bit/trim_log.lua > /dev/null <<'EOF'
+function trim(tag, timestamp, record)
+    local raw = record["log"]
+    local trimmed = string.match(raw, "startup%-script: (.*)")
+    if trimmed then
+        record["log"] = trimmed
+    end
+    return 1, timestamp, record
+end
+EOF
+
+sudo mkdir -p /etc/systemd/system/td-agent-bit.service.d
+sudo tee /etc/systemd/system/td-agent-bit.service.d/aws-creds.conf > /dev/null <<EOF
+[Service]
+Environment="AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
+Environment="AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}"
+Environment="AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}"
+EOF
+
+sudo systemctl enable td-agent-bit
+sudo systemctl restart td-agent-bit
+sudo systemctl status td-agent-bit --no-pager
+
+echo "[3] 기본 패키지 설치"
+sudo apt install -y unzip nginx
 (
   sudo apt-get install -y nvidia-driver-570
-) &
-(
-  sudo mkdir -p ~/.aws /home/ubuntu/.aws
-  echo "[2] AWS CLI 설치"
-  curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-  unzip -q awscliv2.zip
-  sudo ./aws/install
-) &
-(
-  echo "[3] Google Cloud Ops Agent 설치"
-  curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
-  sudo bash add-google-cloud-ops-agent-repo.sh --also-install
-  sudo systemctl enable google-cloud-ops-agent
-  sudo systemctl restart google-cloud-ops-agent
 ) &
 (
   echo "[4] Certbot 설치"
   sudo snap install --classic certbot
   sudo ln -sf /snap/bin/certbot /usr/bin/certbot
 ) &
+(
+  echo "[5] Google Cloud Ops Agent 설치"
+  curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
+  sudo bash add-google-cloud-ops-agent-repo.sh --also-install
+  sudo systemctl enable google-cloud-ops-agent
+  sudo systemctl restart google-cloud-ops-agent
+) &
+(
+  sudo mkdir -p ~/.aws /home/ubuntu/.aws
+  echo "[5] AWS CLI 설치 및 자격증명 설정"
+  curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  unzip -q awscliv2.zip
+  sudo ./aws/install
+) &
 
 wait  # 병렬 설치 모두 완료될 때까지 대기
 
-echo "[5] AWS 자격증명 설정"
 cat > ~/.aws/credentials <<EOF
 [default]
 aws_access_key_id = ${AWS_ACCESS_KEY_ID}
@@ -51,8 +147,6 @@ cat > /home/ubuntu/.aws/config <<EOF
 region = ${AWS_DEFAULT_REGION}
 output = json
 EOF
-
-
 
 echo "[6] 디스크&S3(mount-s3) 마운트 시작"
 if sudo ls "${DEVICE_ID}" > /dev/null 2>&1; then
@@ -96,19 +190,22 @@ if [ ! -d "${MOUNT_DIR}/venv" ]; then
   sudo chown -R ubuntu:ubuntu ${MOUNT_DIR}
 fi
 
+sudo -u ubuntu bash <<EOF
 source ${MOUNT_DIR}/venv/bin/activate
 pip install --upgrade pip
 pip install huggingface_hub
 
 # 모델 다운로드 (디스트 마운트 확인 시에만)
-if mountpoint -q ${MOUNT_DIR} && [ ! -d "${MOUNT_DIR}/mistral-7b" ]; then
+if mountpoint -q ${MOUNT_DIR} && [ ! -d "${MOUNT_DIR}/aya-expanse-8b" ]; then
   huggingface-cli login --token "${HF_TOKEN}"
-  huggingface-cli download mistralai/Mistral-7B-Instruct-v0.3 \
-    --local-dir "${MOUNT_DIR}/mistral-7b" \
+  huggingface-cli download CohereLabs/aya-expanse-8b \
+    --local-dir "${MOUNT_DIR}/aya-expanse-8b" \
     --local-dir-use-symlinks False
 fi
 
+sudo chown -R ubuntu:ubuntu ${MOUNT_DIR}
 deactivate
+EOF
 
 echo "[8] UFW 방화벽 열기"
 sudo ufw allow OpenSSH
@@ -166,6 +263,10 @@ sudo nginx -t && sudo systemctl reload nginx
 
 
 echo "[11] 애플리케이션 배포 및 실행"
+sudo touch /var/log/vLLM.log /var/log/uvicorn.log
+sudo chown -R ubuntu:ubuntu /var/log/vLLM.log /var/log/uvicorn.log
+
+sudo -u ubuntu bash <<EOF
 aws s3 cp "$(aws s3 ls "${BUCKET_BACKUP}/ai/" | awk '{print $2}' | sort | tail -n 1 | sed 's#^#'"${BUCKET_BACKUP}/ai/"'#;s#/$##')" "${DEPLOY_DIR}/" --recursive
 source ${MOUNT_DIR}/venv/bin/activate
 
@@ -176,18 +277,29 @@ pip install --no-cache-dir --prefer-binary -r "${DEPLOY_DIR}/requirements.txt"
 pkill -f "uvicorn" || true
 
 nohup python3 -m vllm.entrypoints.openai.api_server \
-    --model ${MOUNT_DIR}/mistral-7b \
-    --dtype float16 \
+    --model ${MOUNT_DIR}/aya-expanse-8b \
+    --tokenizer ${MOUNT_DIR}/aya-expanse-8b \
+    --dtype bfloat16 \
+    --max-model-len 4096 \
     --port 8001 \
-    --gpu-memory-utilization 0.9 > /home/ubuntu/logs/vLLM.log 2>&1 &
+    --gpu-memory-utilization 0.8 > /var/log/vLLM.log 2>&1 &
 
 cd "${DEPLOY_DIR}"
-nohup ${MOUNT_DIR}/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 > /home/ubuntu/logs/uvicorn.log 2>&1 &
+nohup ${MOUNT_DIR}/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 > /var/log/uvicorn.log 2>&1 &
 
 deactivate
+EOF
 
 # 버전 확인 로그
 echo "[12] 설치 확인 로그"
+echo "[✔] Fluent Bit 상태 확인:"
+if systemctl is-active --quiet td-agent-bit; then
+  echo "✅ td-agent-bit 서비스 실행 중"
+else
+  echo "❌ td-agent-bit 서비스 실행 실패"
+  journalctl -u td-agent-bit --no-pager | tail -n 20
+fi
+
 echo "[✔] 디스크 마운트 상태:"
 if mountpoint -q ${MOUNT_DIR}; then
   echo "✅ 디스크가 ${MOUNT_DIR}에 마운트되어 있습니다."
@@ -217,7 +329,7 @@ echo "[✔] Python3 버전:"
 python3 --version
 
 echo "[✔] vLLM 디렉토리 확인:"
-[ -d "${MOUNT_DIR}/mistral-7b" ] && echo "${MOUNT_DIR}/mistral-7b 디렉토리 존재함" || echo "❌ ${MOUNT_DIR}/mistral-7b 디렉토리 없음"
+[ -d "${MOUNT_DIR}/aya-expanse-8b" ] && echo "${MOUNT_DIR}/aya-expanse-8b 디렉토리 존재함" || echo "❌ ${MOUNT_DIR}/aya-expanse-8b 디렉토리 없음"
 
 echo "[✔] Nginx 상태:"
 sudo systemctl is-active --quiet nginx && echo "Nginx 실행 중" || echo "❌ Nginx 비활성 상태"

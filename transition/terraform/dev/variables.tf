@@ -125,7 +125,13 @@ variable "sentry_auth_token" {
 variable "bucket_backup" {
   sensitive = true
 }
+variable "bucket_image" {
+  sensitive = true
+}
 variable "bucket_backup_name" {
+  sensitive = true
+}
+variable "bucket_image_name" {
   sensitive = true
 }
 variable "device_id" {
@@ -147,4 +153,8 @@ variable "aws_secret_access_key" {
 }
 variable "aws_default_region" {
   type        = string
+}
+variable "saramin_secret_key" {
+  type        = string
+  sensitive   = true
 }
