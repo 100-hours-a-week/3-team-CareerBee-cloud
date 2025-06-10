@@ -137,6 +137,7 @@ sudo ufw --force enable
 echo "[6] Nginx 및 HTTPS 인증 설정"
 sudo apt install -y nginx
 sudo mkdir -p /var/www/html
+sudo chown -R ubuntu:ubuntu /var/www/html
 
 sudo snap install --classic certbot
 sudo ln -sf /snap/bin/certbot /usr/bin/certbot

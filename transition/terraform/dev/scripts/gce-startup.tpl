@@ -107,6 +107,13 @@ sudo tee /etc/td-agent-bit/parsers.conf > /dev/null <<EOF
   Time_Format %Y-%m-%dT%H:%M:%S
 EOF
 
+sudo tee /etc/systemd/system/td-agent-bit.service.d/aws-creds.conf > /dev/null <<EOF
+[Service]
+Environment="AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
+Environment="AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}"
+Environment="AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}"
+EOF
+
 sudo systemctl enable td-agent-bit
 sudo systemctl restart td-agent-bit
 sudo systemctl status td-agent-bit --no-pager
