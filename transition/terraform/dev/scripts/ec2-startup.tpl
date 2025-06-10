@@ -51,7 +51,7 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   Match backend.log
   region ap-northeast-2
   log_group_name backend-log
-  log_stream_name backend-\$(date +%Y-%m-%d)
+  log_stream_name backend-$(date +%Y-%m-%d)
   auto_create_group true
 
 [OUTPUT]
@@ -59,7 +59,7 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   Match scouter.log
   region ap-northeast-2
   log_group_name scouter-log
-  log_stream_name scouter-\$(date +%Y-%m-%d)
+  log_stream_name scouter-$(date +%Y-%m-%d)
   auto_create_group true
 
 [OUTPUT]
@@ -67,7 +67,7 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   Match userdata.log
   region ap-northeast-2
   log_group_name userdata-log
-  log_stream_name userdata-\$(date +%Y-%m-%d)
+  log_stream_name userdata-$(date +%Y-%m-%d)
   auto_create_group true
 EOF
 

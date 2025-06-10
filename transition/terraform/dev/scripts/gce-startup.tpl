@@ -56,7 +56,7 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   Match vLLM.log
   region ap-northeast-2
   log_group_name vLLM-log
-  log_stream_name vLLM-\$(date +%Y-%m-%d)
+  log_stream_name vLLM-"$(date +%Y-%m-%d)"
   auto_create_group true
 
 [OUTPUT]
@@ -64,7 +64,7 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   Match uvicorn.log
   region ap-northeast-2
   log_group_name uvicorn-log
-  log_stream_name uvicorn-\$(date +%Y-%m-%d)
+  log_stream_name uvicorn-$(date +%Y-%m-%d)
   auto_create_group true
 
 [OUTPUT]
@@ -72,7 +72,7 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   Match             startup.log
   region            ap-northeast-2
   log_group_name    gce-startup-log
-  log_stream_name   startup-\$(date +%Y-%m-%d)
+  log_stream_name   startup-$(date +%Y-%m-%d)
   auto_create_group true
 EOF
 
