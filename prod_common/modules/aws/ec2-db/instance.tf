@@ -12,7 +12,7 @@ resource "aws_instance" "ec2_db" {
   key_name               = var.key_name
 
   tags = {
-    Name = "ec2-careerbee-prod-db-azone"
+    Name = var.db_instance_name
   }
 
   user_data = templatefile("${path.module}/scripts/db_init.sh", {

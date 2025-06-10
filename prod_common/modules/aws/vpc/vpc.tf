@@ -93,15 +93,16 @@ resource "aws_nat_gateway" "nat_gw" {
 
 # Private App Route Table
 resource "aws_route_table" "private_app_rt" {
+  count  = length(var.azs)
   vpc_id = aws_vpc.project_vpc.id
 
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.nat_gw[0].id # 단일 NAT 쓸 경우 첫 번째만 사용
+    nat_gateway_id = aws_nat_gateway.nat_gw[count.index].id # 단일 NAT 쓸 경우 첫 번째만 사용
   }
 
   tags = {
-    Name = "rt-careerbee-prod-private-app"
+    Name = "rt-careerbee-prod-private-app-${var.azs[count.index]}"
   }
 }
 
@@ -109,7 +110,7 @@ resource "aws_route_table" "private_app_rt" {
 resource "aws_route_table_association" "private_app_subnet_association" {
   count          = length(var.azs)
   subnet_id      = aws_subnet.private_app[count.index].id
-  route_table_id = aws_route_table.private_app_rt.id
+  route_table_id = aws_route_table.private_app_rt[count.index].id
 }
 
 # Private DB Route Table (DB는 외부 연결 안 하면 생략 가능 — 필요시 추가)

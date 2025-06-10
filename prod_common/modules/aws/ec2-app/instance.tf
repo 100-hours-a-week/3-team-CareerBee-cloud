@@ -12,7 +12,7 @@ resource "aws_instance" "ec2_app" {
   key_name               = var.key_name
 
   tags = {
-    Name = "ec2-careerbee-prod-app-azone"
+    Name = var.app_instance_name
   }
 
   user_data = templatefile("${path.module}/scripts/init.sh", {})

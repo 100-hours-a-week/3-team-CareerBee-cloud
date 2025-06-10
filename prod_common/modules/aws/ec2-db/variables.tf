@@ -15,6 +15,11 @@ variable "instance_db_subnet_id" {
   type        = string
 }
 
+variable "db_instance_name" {
+  description = "DB 인스턴스의 이름"
+  type        = string
+}
+
 variable "key_name" {
   type = string
 }
