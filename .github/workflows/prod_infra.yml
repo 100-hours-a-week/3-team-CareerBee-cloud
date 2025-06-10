@@ -50,7 +50,7 @@ jobs:
         working-directory: prod_common/backend
         run: |
           terraform import aws_iam_openid_connect_provider.github arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:oidc-provider/token.actions.githubusercontent.com || echo "OIDC Provider already imported." \
-          terraform import aws_iam_role.github_actions "GitHubActionsOIDCRole" || echo "OIDC IAM Role already imported."
+          terraform import aws_iam_role.github_actions arn:aws:iam::"${{secrets.AWS_ACCOUNT_ID}}":role/GitHubActionsOIDCRole || echo "OIDC IAM Role already imported."
 
       - name: Terraform Plan (Backend)
         working-directory: prod_common/backend
@@ -69,7 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: backend_config
     steps:
-      - name: Checkout Dev repository
+      - name: Checkout PROD repository
         uses: actions/checkout@v2
 
       - name: Install Terraform
