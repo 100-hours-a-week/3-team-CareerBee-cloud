@@ -11,7 +11,7 @@ concurrency:
 
 env:
   AWS_REGION: ap-northeast-2
-  BUCKET: ${{secrets.PROD_TERRAFORM_STATE_BUCKET}}
+  BUCKET: ${{secrets.PROD_TERRAFORM_STATE_BUCKET_NAME}}
   DYNAMODB_TABLE: ${{secrets.PROD_DYNAMODB_TABLE}}
 
 jobs:
@@ -35,25 +35,31 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Terraform Init (Backend)
-        working-directory: /prod_common/backend
+        working-directory: prod_common/backend
         run: terraform init
 
       - name: Terraform Import S3 Bucket
-        working-directory: /prod_common/backend
-        run: terraform import aws_s3_bucket.terraform_state $BUCKET || echo "Bucket import failed."
+        working-directory: prod_common/backend
+        run: terraform import aws_s3_bucket.terraform_state "${{ env.BUCKET }}" || echo "Bucket import failed."
 
       - name: Terraform Import DynamoDB Table
-        working-directory: /prod_common/backend
-        run: terraform import aws_dynamodb_table.terraform_state_lock $DYNAMODB_TABLE || echo "DynamoDB table import failed."
+        working-directory: prod_common/backend
+        run: terraform import aws_dynamodb_table.terraform_state_lock "${{ env.DYNAMODB_TABLE }}" || echo "DynamoDB table import failed."
+
+      - name: Import Existing GitHub OIDC IAM Role
+        working-directory: prod_common/backend
+        run: |
+          terraform import aws_iam_openid_connect_provider.github arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:oidc-provider/token.actions.githubusercontent.com || echo "OIDC Provider already imported." \
+          terraform import aws_iam_role.github_actions arn:aws:iam::"${{secrets.AWS_ACCOUNT_ID}}":role/GitHubActionsOIDCRole || echo "OIDC IAM Role already imported."
 
       - name: Terraform Plan (Backend)
-        working-directory: /prod_common/backend
+        working-directory: prod_common/backend
         id: backend_plan
         run: |
           terraform plan -detailed-exitcode || exit_code=$? && echo "::set-output name=exitcode::$exit_code"
 
       - name: Terraform Apply (Backend)
-        working-directory: /prod_common/backend
+        working-directory: prod_common/backend
         if: steps.backend_plan.outputs.exitcode == '2'
         run: terraform apply -auto-approve
 
@@ -63,7 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: backend_config
     steps:
-      - name: Checkout Dev repository
+      - name: Checkout PROD repository
         uses: actions/checkout@v2
 
       - name: Install Terraform
@@ -79,11 +85,11 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Terraform Init (PROD)
-        working-directory: /docker/prod
+        working-directory: docker/prod
         run: terraform init
 
       - name: Terraform Plan (PROD)
-        working-directory: /docker/prod
+        working-directory: docker/prod
         id: prod_plan
         run: |
           terraform plan \
@@ -91,8 +97,8 @@ jobs:
           -detailed-exitcode || exit_code=$? && echo "::set-output name=exitcode::$exit_code"
 
       - name: Terraform Apply (PROD)
-        working-directory: /docker/prod
-        if: steps.dev_plan.outputs.exitcode == '2'
+        working-directory: docker/prod
+        if: steps.prod_plan.outputs.exitcode == '2'
         run: |
           terraform apply -auto-approve \
           -var="db_password=${{ secrets.PROD_DB_PASSWORD }}"
