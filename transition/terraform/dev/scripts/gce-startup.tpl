@@ -282,7 +282,7 @@ nohup python3 -m vllm.entrypoints.openai.api_server \
     --dtype bfloat16 \
     --max-model-len 4096 \
     --port 8001 \
-    --gpu-memory-utilization 0.8 > /var/log/vLLM.log 2>&1 &
+    --gpu-memory-utilization 0.85 > /var/log/vLLM.log 2>&1 &
 
 cd "${DEPLOY_DIR}"
 nohup ${MOUNT_DIR}/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 > /var/log/uvicorn.log 2>&1 &
