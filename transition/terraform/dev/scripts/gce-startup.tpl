@@ -56,7 +56,7 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   Match vLLM.log
   region ap-northeast-2
   log_group_name vLLM-log
-  log_stream_name vLLM-"$(date +%Y-%m-%d)"
+  log_stream_name vLLM-$(date +%Y-%m-%d)
   auto_create_group true
 
 [OUTPUT]
