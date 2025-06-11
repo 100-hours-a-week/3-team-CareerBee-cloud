@@ -99,7 +99,7 @@ resource "aws_instance" "openvpn" {
   
   user_data = templatefile("${path.module}/scripts/ec2-openvpn-setup.tpl", {
     openvpn_pw   = var.openvpn_pw
-    bucket_infra = var.bucket_infra
+    # bucket_infra = var.bucket_infra
   })
 
   tags = {
@@ -295,6 +295,22 @@ resource "aws_security_group" "sg_alb" {
   }
 }
 
+resource "aws_lb" "alb" {
+  name               = "alb-${var.prefix}"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.sg_alb.id]
+  subnets            = module.aws_vpc.public_subnet_ids
+
+  tags = {
+    Name = "alb-${var.prefix}"
+  }
+}
+
+########################################################################
+
+# Target Group
+
 resource "aws_lb_target_group" "fe_target_group" {
   name     = "tg-fe-${var.prefix}"
   port     = 80
@@ -305,13 +321,92 @@ resource "aws_lb_target_group" "fe_target_group" {
     enabled             = true
     path                = "/health-check"
     protocol            = "HTTP"
+    port                = "80"
     matcher             = "200-399"
     interval            = 30
     timeout             = 5
     healthy_threshold   = 2
-    unhealthy_threshold = 2
+    unhealthy_threshold = 3
   }
 }
+
+resource "aws_lb_target_group" "be_target_group" {
+  name     = "tg-be-${var.prefix}"
+  port     = 8080
+  protocol = "HTTP"
+  vpc_id   = module.aws_vpc.vpc_id
+
+  health_check {
+    enabled             = true
+    path                = "/health-check"
+    protocol            = "HTTP"
+    port                = "8080"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+  }
+}
+
+resource "aws_lb_target_group" "ai_target_group" {
+  name     = "tg-ai-${var.prefix}"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = module.aws_vpc.vpc_id
+
+  health_check {
+    enabled             = true
+    path                = "/health-check"
+    protocol            = "HTTP"
+    port                = "80"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+  }
+}
+
+# Target 등록
+
+resource "aws_lb_target_group_attachment" "fe_target_attachment_azone" {
+  target_group_arn = aws_lb_target_group.fe_target_group.arn
+  target_id        = aws_instance.service_azone.id
+  port             = 80
+}
+
+resource "aws_lb_target_group_attachment" "fe_target_attachment_czone" {
+  target_group_arn = aws_lb_target_group.fe_target_group.arn
+  target_id        = aws_instance.service_czone.id
+  port             = 80
+}
+
+resource "aws_lb_target_group_attachment" "be_target_attachment_azone" {
+  target_group_arn = aws_lb_target_group.be_target_group.arn
+  target_id        = aws_instance.service_azone.id
+  port             = 8080
+}
+
+resource "aws_lb_target_group_attachment" "be_target_attachment_czone" {
+  target_group_arn = aws_lb_target_group.be_target_group.arn
+  target_id        = aws_instance.service_czone.id
+  port             = 8080
+}
+
+resource "aws_lb_target_group_attachment" "ai_target_attachment_azone" {
+  target_group_arn = aws_lb_target_group.ai_target_group.arn
+  target_id        = aws_instance.service_azone.id
+  port             = 80
+}
+
+resource "aws_lb_target_group_attachment" "ai_target_attachment_czone" {
+  target_group_arn = aws_lb_target_group.ai_target_group.arn
+  target_id        = aws_instance.service_czone.id
+  port             = 80
+}
+
+########################################################################
+
+# ALB Listener
 
 resource "aws_lb_listener" "http_redirect" {
   load_balancer_arn = aws_lb.alb.arn
@@ -337,33 +432,68 @@ resource "aws_lb_listener" "https" {
   certificate_arn   = data.aws_acm_certificate.careerbee_cert.arn
 
   default_action {
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "404 Not Found"
+      status_code  = "404"
+    }
+  }
+}
+
+# Listener Rule for Frontend (SPA)
+
+resource "aws_lb_listener_rule" "fe_rule" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 10
+
+  action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.fe_target_group.arn
   }
-}
 
-resource "aws_lb" "alb" {
-  name               = "alb-${var.prefix}"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.sg_alb.id]
-  subnets            = module.aws_vpc.public_subnet_ids
-
-  tags = {
-    Name = "alb-${var.prefix}"
+  condition {
+    host_header {
+      values = ["dev.careerbee.co.kr"]
+    }
   }
 }
 
-resource "aws_lb_target_group_attachment" "fe_target_attachment_azone" {
-  target_group_arn = aws_lb_target_group.fe_target_group.arn
-  target_id        = aws_instance.service_azone.id
-  port             = 80
+# Listener Rule for Backend API
+
+resource "aws_lb_listener_rule" "be_rule" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 20
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.be_target_group.arn
+  }
+
+  condition {
+    host_header {
+      values = ["dev-api.careerbee.co.kr"]
+    }
+  }
 }
 
-resource "aws_lb_target_group_attachment" "fe_target_attachment_czone" {
-  target_group_arn = aws_lb_target_group.fe_target_group.arn
-  target_id        = aws_instance.service_czone.id
-  port             = 80
+# Listener Rule for AI Service
+
+resource "aws_lb_listener_rule" "ai_rule" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 30
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.ai_target_group.arn
+  }
+
+  condition {
+    host_header {
+      values = ["dev-ai.careerbee.co.kr"]
+    }
+  }
 }
 
 ########################################################################
