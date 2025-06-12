@@ -158,3 +158,6 @@ variable "saramin_secret_key" {
   type        = string
   sensitive   = true
 }
+variable "ai_base_url" {
+  type        = string
+}
