@@ -180,6 +180,7 @@ resource "aws_instance" "ec2" {
     AWS_DEFAULT_REGION        = var.aws_default_region
     S3_BUCKET_IMAGE           = var.bucket_image_name
     SARAMIN_SECRET_KEY        = var.saramin_secret_key
+    AI_BASE_URL               = var.ai_base_url
     ADD_SSH_KEY               = base64decode(var.public_nopass_key_base64)
   })
 

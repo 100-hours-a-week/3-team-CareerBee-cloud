@@ -261,6 +261,7 @@ nohup java \
     -DAWS_REGION="${AWS_DEFAULT_REGION}" \
     -DAWS_S3_BUCKET="${S3_BUCKET_IMAGE}" \
     -DSARAMIN_SECRET_KEY="${SARAMIN_SECRET_KEY}" \
+    -DAI_BASE_URL="${AI_BASE_URL}" \
     --add-opens java.base/java.lang=ALL-UNNAMED \
     --add-exports java.base/sun.net=ALL-UNNAMED \
     -Djdk.attach.allowAttachSelf=true \
