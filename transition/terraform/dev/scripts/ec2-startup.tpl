@@ -148,17 +148,17 @@ sudo snap install --classic certbot
 sudo ln -sf /snap/bin/certbot /usr/bin/certbot
 
 mkdir -p /etc/letsencrypt/{live,archive,renewal}
-mkdir -p /etc/letsencrypt/live/dev.${DOMAIN}
-mkdir -p /etc/letsencrypt/archive/dev.${DOMAIN}
+mkdir -p /etc/letsencrypt/live/${DOMAIN}
+mkdir -p /etc/letsencrypt/archive/${DOMAIN}
 
-aws s3 cp ${BUCKET_BACKUP}/aws/live/dev.${DOMAIN}/     /etc/letsencrypt/live/dev.${DOMAIN}/     --recursive
-aws s3 cp ${BUCKET_BACKUP}/aws/archive/dev.${DOMAIN}/  /etc/letsencrypt/archive/dev.${DOMAIN}/  --recursive
-aws s3 cp ${BUCKET_BACKUP}/aws/renewal/dev.${DOMAIN}.conf /etc/letsencrypt/renewal/
+aws s3 cp ${BUCKET_BACKUP}/aws/live/${DOMAIN}/     /etc/letsencrypt/live/${DOMAIN}/     --recursive
+aws s3 cp ${BUCKET_BACKUP}/aws/archive/${DOMAIN}/  /etc/letsencrypt/archive/${DOMAIN}/  --recursive
+aws s3 cp ${BUCKET_BACKUP}/aws/renewal/${DOMAIN}.conf /etc/letsencrypt/renewal/
 aws s3 cp ${BUCKET_BACKUP}/aws/options-ssl-nginx.conf /etc/letsencrypt/
 aws s3 cp ${BUCKET_BACKUP}/aws/ssl-dhparams.pem /etc/letsencrypt/
 
 # sudo certbot --nginx --non-interactive --agree-tos --no-redirect \
-#   -m ${EMAIL} -d dev.${DOMAIN} -d dev-api.${DOMAIN}
+#   -m ${EMAIL} -d ${DOMAIN}
 
 # NGINX 설정
 sudo tee /etc/nginx/sites-available/default > /dev/null <<EOF_NGINX
@@ -176,13 +176,13 @@ server {
     listen 443 ssl;
     listen [::]:443 ssl;
 
-    server_name dev.${DOMAIN};
+    server_name www.${DOMAIN};
 
     root /var/www/html;
     index index.html;
 
-    ssl_certificate /etc/letsencrypt/live/dev.${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/dev.${DOMAIN}/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
@@ -193,10 +193,10 @@ server {
 
 server {
     listen 443 ssl;
-    server_name dev-api.${DOMAIN};
+    server_name api.${DOMAIN};
 
-    ssl_certificate /etc/letsencrypt/live/dev.${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/dev.${DOMAIN}/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
@@ -313,7 +313,7 @@ echo "[✔] Nginx 상태:"
 sudo systemctl is-active --quiet nginx && echo "Nginx 실행 중" || echo "❌ Nginx 비활성 상태"
 
 echo "[✔] HTTPS 인증서:"
-if [ -f "/etc/letsencrypt/live/dev.${DOMAIN}/fullchain.pem" ]; then
+if [ -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]; then
   echo "인증서 존재함"
 else
   echo "❌ 인증서 없음"
