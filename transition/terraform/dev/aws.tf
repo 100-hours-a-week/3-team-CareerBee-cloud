@@ -193,3 +193,32 @@ resource "aws_eip_association" "eip_assoc" {
   allocation_id = data.aws_eip.existing_eip.id
   instance_id   = aws_instance.ec2.id
 }
+
+data "aws_route53_zone" "dev" {
+  name         = "dev.careerbee.co.kr"
+  private_zone = false
+}
+
+resource "aws_route53_record" "www_dev" {
+  zone_id = data.aws_route53_zone.dev.zone_id
+  name    = "www"
+  type    = "A"
+  ttl     = 300
+  records = [var.aws_static_ip]
+}
+
+resource "aws_route53_record" "api_dev" {
+  zone_id = data.aws_route53_zone.dev.zone_id
+  name    = "api"
+  type    = "A"
+  ttl     = 300
+  records = [var.aws_static_ip]
+}
+
+resource "aws_route53_record" "ai_dev" {
+  zone_id = data.aws_route53_zone.dev.zone_id
+  name    = "ai"
+  type    = "A"
+  ttl     = 300
+  records = [var.gcp_static_ip]
+}
