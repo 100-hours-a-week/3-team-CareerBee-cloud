@@ -51,7 +51,7 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   Match backend.log
   region ap-northeast-2
   log_group_name backend-log
-  log_stream_name backend-\$(date +%Y-%m-%d)
+  log_stream_name backend-$(date +%Y-%m-%d)
   auto_create_group true
 
 [OUTPUT]
@@ -59,7 +59,7 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   Match scouter.log
   region ap-northeast-2
   log_group_name scouter-log
-  log_stream_name scouter-\$(date +%Y-%m-%d)
+  log_stream_name scouter-$(date +%Y-%m-%d)
   auto_create_group true
 
 [OUTPUT]
@@ -67,7 +67,7 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   Match userdata.log
   region ap-northeast-2
   log_group_name userdata-log
-  log_stream_name userdata-\$(date +%Y-%m-%d)
+  log_stream_name userdata-$(date +%Y-%m-%d)
   auto_create_group true
 EOF
 
@@ -148,17 +148,23 @@ sudo snap install --classic certbot
 sudo ln -sf /snap/bin/certbot /usr/bin/certbot
 
 mkdir -p /etc/letsencrypt/{live,archive,renewal}
-mkdir -p /etc/letsencrypt/live/dev.${DOMAIN}
-mkdir -p /etc/letsencrypt/archive/dev.${DOMAIN}
+mkdir -p /etc/letsencrypt/live/www.${DOMAIN}
+mkdir -p /etc/letsencrypt/archive/www.${DOMAIN}
 
-aws s3 cp ${BUCKET_BACKUP}/aws/live/dev.${DOMAIN}/     /etc/letsencrypt/live/dev.${DOMAIN}/     --recursive
-aws s3 cp ${BUCKET_BACKUP}/aws/archive/dev.${DOMAIN}/  /etc/letsencrypt/archive/dev.${DOMAIN}/  --recursive
-aws s3 cp ${BUCKET_BACKUP}/aws/renewal/dev.${DOMAIN}.conf /etc/letsencrypt/renewal/
+aws s3 cp ${BUCKET_BACKUP}/aws/live/{DOMAIN}/     /etc/letsencrypt/live/${DOMAIN}/     --recursive
+aws s3 cp ${BUCKET_BACKUP}/aws/archive/${DOMAIN}/  /etc/letsencrypt/archive/${DOMAIN}/  --recursive
+aws s3 cp ${BUCKET_BACKUP}/aws/renewal/${DOMAIN}.conf /etc/letsencrypt/renewal/
 aws s3 cp ${BUCKET_BACKUP}/aws/options-ssl-nginx.conf /etc/letsencrypt/
 aws s3 cp ${BUCKET_BACKUP}/aws/ssl-dhparams.pem /etc/letsencrypt/
 
 # sudo certbot --nginx --non-interactive --agree-tos --no-redirect \
-#   -m ${EMAIL} -d dev.${DOMAIN} -d dev-api.${DOMAIN}
+#   -m ${EMAIL} -d ${DOMAIN} -d www.${DOMAIN} -d api.${DOMAIN}
+
+# aws s3 cp "/etc/letsencrypt/live/${DOMAIN}/"     "${BUCKET_BACKUP}/aws/live/${DOMAIN}/"     --recursive
+# aws s3 cp "/etc/letsencrypt/archive/${DOMAIN}/"  "${BUCKET_BACKUP}/aws/archive/${DOMAIN}/"  --recursive
+# aws s3 cp "/etc/letsencrypt/renewal/${DOMAIN}.conf" "${BUCKET_BACKUP}/aws/renewal/${DOMAIN}.conf"
+# aws s3 cp "/etc/letsencrypt/options-ssl-nginx.conf" "${BUCKET_BACKUP}/aws/options-ssl-nginx.conf"
+# aws s3 cp "/etc/letsencrypt/ssl-dhparams.pem"       "${BUCKET_BACKUP}/aws/ssl-dhparams.pem"
 
 # NGINX 설정
 sudo tee /etc/nginx/sites-available/default > /dev/null <<EOF_NGINX
@@ -176,13 +182,13 @@ server {
     listen 443 ssl;
     listen [::]:443 ssl;
 
-    server_name dev.${DOMAIN};
+    server_name www.${DOMAIN};
 
     root /var/www/html;
     index index.html;
 
-    ssl_certificate /etc/letsencrypt/live/dev.${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/dev.${DOMAIN}/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
@@ -193,10 +199,10 @@ server {
 
 server {
     listen 443 ssl;
-    server_name dev-api.${DOMAIN};
+    server_name api.${DOMAIN};
 
-    ssl_certificate /etc/letsencrypt/live/dev.${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/dev.${DOMAIN}/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
@@ -261,6 +267,7 @@ nohup java \
     -DAWS_REGION="${AWS_DEFAULT_REGION}" \
     -DAWS_S3_BUCKET="${S3_BUCKET_IMAGE}" \
     -DSARAMIN_SECRET_KEY="${SARAMIN_SECRET_KEY}" \
+    -DAI_BASE_URL="${AI_BASE_URL}" \
     --add-opens java.base/java.lang=ALL-UNNAMED \
     --add-exports java.base/sun.net=ALL-UNNAMED \
     -Djdk.attach.allowAttachSelf=true \
@@ -312,7 +319,7 @@ echo "[✔] Nginx 상태:"
 sudo systemctl is-active --quiet nginx && echo "Nginx 실행 중" || echo "❌ Nginx 비활성 상태"
 
 echo "[✔] HTTPS 인증서:"
-if [ -f "/etc/letsencrypt/live/dev.${DOMAIN}/fullchain.pem" ]; then
+if [ -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]; then
   echo "인증서 존재함"
 else
   echo "❌ 인증서 없음"

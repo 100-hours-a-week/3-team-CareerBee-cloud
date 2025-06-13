@@ -125,9 +125,9 @@ jobs:
           for i in $(seq 1 5); do
             echo "🔁 헬스 체크 시도 $i / 5..."
 
-            FRONT_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://dev.careerbee.co.kr/health-check")
-            BACK_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://dev-api.careerbee.co.kr/health-check")
-            AI_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://dev-ai.careerbee.co.kr/health-check")
+            FRONT_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://www.dev.careerbee.co.kr/health-check")
+            BACK_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.dev.careerbee.co.kr/health-check")
+            AI_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://ai.dev.careerbee.co.kr/health-check")
 
             if [ "$FRONT_STATUS" = "200" ] && [ "$BACK_STATUS" = "200" ] && [ "$AI_STATUS" = "200" ]; then
               echo "✅ 모든 서버 상태 정상"

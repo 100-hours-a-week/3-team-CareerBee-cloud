@@ -56,7 +56,7 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   Match vLLM.log
   region ap-northeast-2
   log_group_name vLLM-log
-  log_stream_name vLLM-\$(date +%Y-%m-%d)
+  log_stream_name vLLM-$(date +%Y-%m-%d)
   auto_create_group true
 
 [OUTPUT]
@@ -64,7 +64,7 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   Match uvicorn.log
   region ap-northeast-2
   log_group_name uvicorn-log
-  log_stream_name uvicorn-\$(date +%Y-%m-%d)
+  log_stream_name uvicorn-$(date +%Y-%m-%d)
   auto_create_group true
 
 [OUTPUT]
@@ -72,7 +72,7 @@ sudo tee /etc/td-agent-bit/td-agent-bit.conf > /dev/null <<EOF
   Match             startup.log
   region            ap-northeast-2
   log_group_name    gce-startup-log
-  log_stream_name   startup-\$(date +%Y-%m-%d)
+  log_stream_name   startup-$(date +%Y-%m-%d)
   auto_create_group true
 EOF
 
@@ -218,25 +218,30 @@ sudo ufw --force enable
 
 echo "[9] Certbot 인증서 복원 시작"
 sudo mkdir -p /etc/letsencrypt/{live,archive,renewal}
-sudo mkdir -p /etc/letsencrypt/live/dev-ai.${DOMAIN}
-sudo mkdir -p /etc/letsencrypt/archive/dev-ai.${DOMAIN}
+sudo mkdir -p /etc/letsencrypt/live/ai.${DOMAIN}
+sudo mkdir -p /etc/letsencrypt/archive/ai.${DOMAIN}
 
-sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/live/dev-ai.${DOMAIN}/     /etc/letsencrypt/live/dev-ai.${DOMAIN}/     --recursive
-sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/archive/dev-ai.${DOMAIN}/  /etc/letsencrypt/archive/dev-ai.${DOMAIN}/  --recursive
-sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/renewal/dev-ai.${DOMAIN}.conf /etc/letsencrypt/renewal/
+sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/live/ai.${DOMAIN}/     /etc/letsencrypt/live/ai.${DOMAIN}/     --recursive
+sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/archive/ai.${DOMAIN}/  /etc/letsencrypt/archive/ai.${DOMAIN}/  --recursive
+sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/renewal/ai.${DOMAIN}.conf /etc/letsencrypt/renewal/
 sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/options-ssl-nginx.conf /etc/letsencrypt/
 sudo -E aws s3 cp ${BUCKET_BACKUP}/gcp/ssl-dhparams.pem /etc/letsencrypt/
 
 # sudo certbot --nginx --non-interactive --agree-tos --no-redirect \
-#   -m ${EMAIL} -d dev-ai.${DOMAIN}
+#   -m ${EMAIL} -d ai.${DOMAIN}
 
+# sudo -E aws s3 cp /etc/letsencrypt/live/ai.${DOMAIN}/     ${BUCKET_BACKUP}/gcp/live/ai.${DOMAIN}/     --recursive
+# sudo -E aws s3 cp /etc/letsencrypt/archive/ai.${DOMAIN}/  ${BUCKET_BACKUP}/gcp/archive/ai.${DOMAIN}/  --recursive
+# sudo -E aws s3 cp /etc/letsencrypt/renewal/ai.${DOMAIN}.conf ${BUCKET_BACKUP}/gcp/renewal/ai.${DOMAIN}.conf
+# sudo -E aws s3 cp /etc/letsencrypt/options-ssl-nginx.conf ${BUCKET_BACKUP}/gcp/options-ssl-nginx.conf
+# sudo -E aws s3 cp /etc/letsencrypt/ssl-dhparams.pem       ${BUCKET_BACKUP}/gcp/ssl-dhparams.pem
 
 echo "[10] NGINX 설정 구성"
 sudo tee /etc/nginx/sites-available/default > /dev/null <<EOF_NGINX
   server {
       listen 80 default_server;
       listen [::]:80 default_server;
-      server_name dev-ai.${DOMAIN};
+      server_name ai.${DOMAIN};
 
       return 301 https://\$host\$request_uri;
   }
@@ -244,10 +249,10 @@ sudo tee /etc/nginx/sites-available/default > /dev/null <<EOF_NGINX
   server {
       listen 443 ssl;
       listen [::]:443 ssl;
-      server_name dev-ai.${DOMAIN};
+      server_name ai.${DOMAIN};
 
-      ssl_certificate /etc/letsencrypt/live/dev-ai.${DOMAIN}/fullchain.pem;
-      ssl_certificate_key /etc/letsencrypt/live/dev-ai.${DOMAIN}/privkey.pem;
+      ssl_certificate /etc/letsencrypt/live/ai.${DOMAIN}/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/ai.${DOMAIN}/privkey.pem;
       include /etc/letsencrypt/options-ssl-nginx.conf;
       ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
@@ -282,7 +287,7 @@ nohup python3 -m vllm.entrypoints.openai.api_server \
     --dtype bfloat16 \
     --max-model-len 4096 \
     --port 8001 \
-    --gpu-memory-utilization 0.8 > /var/log/vLLM.log 2>&1 &
+    --gpu-memory-utilization 0.85 > /var/log/vLLM.log 2>&1 &
 
 cd "${DEPLOY_DIR}"
 nohup ${MOUNT_DIR}/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 > /var/log/uvicorn.log 2>&1 &
@@ -335,7 +340,7 @@ echo "[✔] Nginx 상태:"
 sudo systemctl is-active --quiet nginx && echo "Nginx 실행 중" || echo "❌ Nginx 비활성 상태"
 
 echo "[✔] HTTPS 인증서:"
-if [ -f "/etc/letsencrypt/live/dev-ai.${DOMAIN}/fullchain.pem" ]; then
+if [ -f "/etc/letsencrypt/live/ai.${DOMAIN}/fullchain.pem" ]; then
   echo "인증서 존재함"
 else
   echo "❌ 인증서 없음"
