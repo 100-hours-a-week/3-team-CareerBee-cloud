@@ -1,0 +1,138 @@
+name: Terraform Destroy (Dev)
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: '0 12 * * 1-5'
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+
+    env:
+      TERRAFORM_DIR: docker/dev
+
+    steps:
+      - name: Checkout develop branch
+        uses: actions/checkout@v3
+        with:
+          ref: develop
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
+      - name: Download terraform.tfvars from S3
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          aws s3 cp s3://${{ secrets.DEV_S3_INFRA_NAME }}/terraform.tfvars.enc terraform.tfvars.enc
+          openssl aes-256-cbc -d -salt -pbkdf2 -in terraform.tfvars.enc -out terraform.tfvars -k "${{ secrets.DEV_TFVARS_ENC_PW }}"
+          sorce ./terraform.tfvars
+
+          echo "::add-mask::$S3_BUCKET_NAME"
+          echo "::add-mask::$DB_PASSWORD"
+
+          echo "S3_BUCKET_NAME=$S3_BUCKET_NAME" >> $GITHUB_ENV
+          echo "DB_PASSWORD=$DB_PASSWORD" >> $GITHUB_ENV
+
+      - name: Get EC2 Instance ID from Name
+        id: ec2
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=ec2-careerbee-dev-azone-service" \
+                      "Name=instance-state-name,Values=running" \
+            --query "Reservations[].Instances[].InstanceId" \
+            --output text)
+
+          if [ -z "$INSTANCE_ID" ]; then
+            echo "❌ Instance not found!"
+            exit 1
+          fi
+
+          echo "✅ Found EC2 Instance ID: $INSTANCE_ID"
+          echo "instance_id=$INSTANCE_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Get DB Private IP from EC2 Name
+        id: db
+        run: |
+          DB_PRIVATE_IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=ec2-careerbee-dev-azone-db" \
+                      "Name=instance-state-name,Values=running" \
+            --query "Reservations[].Instances[].PrivateIpAddress" \
+            --output text)
+
+          if [ -z "$DB_PRIVATE_IP" ]; then
+            echo "❌ DB instance not found!"
+            exit 1
+          fi
+
+          echo "DB Private IP: $DB_PRIVATE_IP"
+          echo "db_ip=$DB_PRIVATE_IP" >> "$GITHUB_OUTPUT"
+          
+      - name: DB backup
+        run: |
+          TIMESTAMP=$(date +v%Y%m%d%H%M%S)
+          BACKUP_FILE="backup-${TIMESTAMP}.sql"
+
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --comment "Dump MySQL and upload to S3" \
+            --instance-ids "${{ steps.ec2.outputs.instance_id }}" \
+            --parameters commands=[
+              "VERSION_TAG=$(date +v%Y%m%d%H%M%S)",
+              "FILE=backup-$VERSION_TAG.sql",
+              "mysqldump -h ${{ steps.db.outputs.db_ip }} -u root -p"${{ env.DB_PASSWORD }}" careerbee > ${FILE}",
+              "aws s3 cp ${FILE} s3:${{ env.S3_BUCKET_NAME }}/db/${BACKUP_FILE}"
+            ] \
+            --region ap-northeast-2
+
+      - name: Terraform Init
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: terraform init
+
+      - name: Terraform Destroy
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: terraform destroy -auto-approve -var-file=terraform.tfvars
+      
+      # - name: Notify Discord on Success
+      #   if: success()
+      #   run: |
+      #     jq -n \
+      #       '{
+      #         "embeds": [
+      #           {
+      #             "title": "🛑 DEV 서버 중지됨",
+      #             "description": "커리어비 DEV 서버가 중지되었습니다.\n\n내일 오후 1시에 다시 만나요! 👋🏻👋🏻",
+      #             "color": 9807270,
+      #             "footer": { "text": "Cloud Functions - DEV Server" },
+      #             "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+      #           }
+      #         ]
+      #       }' > payload.json
+
+      #     curl -H "Content-Type: application/json" \
+      #         -X POST \
+      #         -d @payload.json \
+      #         ${{ secrets.SERVER_DISCORD_WEBHOOK_URL }}
+
+      # - name: Notify Discord on Failure
+      #   if: failure()
+      #   run: |
+      #     jq -n \
+      #       '{
+      #         "embeds": [
+      #           {
+      #             "title": "❌ DEV 서버 중지 실패",
+      #             "description": "서버 종료 작업 중 오류가 발생했습니다.\n\nGitHub Actions 로그를 확인해 주세요. 🚨",
+      #             "color": 15548997,
+      #             "footer": { "text": "Cloud Functions - DEV Server" },
+      #             "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+      #           }
+      #         ]
+      #       }' > payload.json
+
+      #     curl -H "Content-Type: application/json" \
+      #         -X POST \
+      #         -d @payload.json \
+      #         ${{ secrets.DISCORD_WEBHOOK_URL }}

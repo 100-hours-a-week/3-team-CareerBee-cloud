@@ -19,7 +19,16 @@ variable "gcp_network" {
   description = "Name of the GCP network."
 }
 
+variable "gcp_vpc_cidr" {
+  description = "GCP VPC CIDR block"
+  type        = string
+}
+
 variable "aws_private_subnets" {
+  type = list(string)
+}
+
+variable "aws_route_table_ids" {
   type = list(string)
 }
 

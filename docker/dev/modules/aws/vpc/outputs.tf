@@ -83,3 +83,10 @@ output "igw_id" {
   description = "인터넷 게이트웨이 ID (존재할 경우)"
   value       = try(aws_internet_gateway.this[0].id, null)
 }
+
+# 라우팅 테이블
+
+output "route_table_private_ids" {
+  description = "라우팅 테이블 ID"
+  value       = aws_route_table.private[*].id
+}

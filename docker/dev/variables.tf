@@ -1,4 +1,5 @@
 # 공통
+
 variable "ssmu_access_cidr_blocks" {
   type = list(string)
 }
@@ -22,6 +23,7 @@ variable "prefix" {
 }
 
 # AWS
+
 variable "aws_region" {
   type        = string
 }
@@ -80,7 +82,12 @@ variable "openvpn_pw" {
   sensitive = true
 }
 
+variable "bucket_infra" {
+  type = string
+}
+
 # GCP
+
 variable "gcp_project_id" {
   type = string
 }
@@ -118,93 +125,204 @@ variable "gcp_service_account_email" {
   type = string
 }
 
+#############################################################################################
 
-# 스크립트
-# variable "domain" {
-#   type = string
-# }
+# DEV_ENV
 
-# variable "email" {
-#   type = string
-# }
+variable "AWS_SERVER_IP" {
+  type        = string
+  description = "AWS server IP address"
+}
 
-# variable "bucket_infra" {
-#   type = string
-# }
+variable "SSH_KEY_NOPASS" {
+  type        = string
+  description = "Path to SSH key without passphrase"
+}
 
-# variable "bucket_infra_name" {
-#   type = string
-# }
+variable "SSH_KEY_BASE64_NOPASS" {
+  type        = string
+  description = "Base64 encoded SSH key without passphrase"
+  sensitive   = true
+}
 
-# variable "db_password" {
-#   type = string
-#   sensitive = true
-# }
+variable "SSH_KEY" {
+  type        = string
+  description = "Path to SSH key"
+}
 
-# variable "db_name" {
-#   type = string
-# }
+variable "SSH_KEY_BASE64" {
+  type        = string
+  description = "Base64 encoded SSH key"
+  sensitive   = true
+}
 
-# variable "db_username" {
-#   type = string
-# }
+variable "S3_BUCKET_INFRA" {
+  type        = string
+  description = "S3 bucket for infrastructure"
+}
 
-# variable "db_url" {
-#   type = string
-# }
+variable "S3_BUCKET_IMAGE" {
+  type        = string
+  description = "S3 bucket for images"
+}
 
-# variable "device_id" {
-#   type = string
-# }
+variable "ECR_REGISTRY" {
+  type        = string
+  description = "ECR registry URL"
+}
 
-# variable "mount_dir" {
-#   type = string
-# }
+# FE
 
-# variable "deploy_dir" {
-#   type = string
-# }
+variable "VITE_KAKAOMAP_KEY" {
+  type        = string
+  description = "Kakao map key for Vite frontend"
+}
 
-# variable "hf_token" {
-#   type        = string
-#   sensitive   = true
-# }
+variable "VITE_API_URL" {
+  type        = string
+  description = "API URL for frontend"
+}
 
-# variable "jwt_secrets" {
-#   type = string
-#   sensitive = true
-# }
+# BE
 
-# variable "kakao_client_id" {
-#   type = string
-#   sensitive = true
-# }
+variable "DOMAIN" {
+  type        = string
+  description = "Application domain"
+}
 
-# variable "kakao_prod_redirect_uri" {
-#   type = string
-#   sensitive = true
-# }
+variable "DB_NAME" {
+  type        = string
+  description = "Database name"
+}
 
-# variable "kakao_dev_redirect_uri" {
-#   type = string
-#   sensitive = true
-# }
+variable "DB_URL" {
+  type        = string
+  description = "Database JDBC URL"
+}
 
-# variable "kakao_local_redirect_uri" {
-#   type = string
-#   sensitive = true
-# }
+variable "DB_PASSWORD" {
+  type        = string
+  description = "Database password"
+  sensitive   = true
+}
 
-# variable "cookie_domain" {
-#   type = string
-# }
+variable "DB_USERNAME" {
+  type        = string
+  description = "Database username"
+}
 
-# variable "sentry_dsn" {
-#   type = string
-# }
+variable "JWT_SECRETS" {
+  type        = string
+  description = "JWT secrets"
+  sensitive   = true
+}
 
-# variable "sentry_auth_token" {
-#   type = string
-#   sensitive = true
-# }
+variable "KAKAO_CLIENT_ID" {
+  type        = string
+  description = "Kakao client ID"
+}
 
+variable "KAKAO_PROD_REDIRECT_URI" {
+  type        = string
+}
+
+variable "KAKAO_DEV_REDIRECT_URI" {
+  type        = string
+}
+
+variable "KAKAO_LOCAL_REDIRECT_URI" {
+  type        = string
+}
+
+variable "COOKIE_DOMAIN" {
+  type        = string
+}
+
+variable "SENTRY_DSN" {
+  type        = string
+}
+
+variable "SENTRY_AUTH_TOKEN" {
+  type        = string
+  sensitive   = true
+}
+
+variable "AWS_ACCESS_KEY_ID" {
+  type        = string
+  sensitive   = true
+}
+
+variable "AWS_SECRET_ACCESS_KEY" {
+  type        = string
+  sensitive   = true
+}
+
+variable "AWS_DEFAULT_REGION" {
+  type        = string
+}
+
+variable "SARAMIN_SECRET_KEY" {
+  type        = string
+  sensitive   = true
+}
+
+variable "AWS_S3_BUCKET" {
+  type        = string
+}
+
+variable "AI_BASE_URL" {
+  type        = string
+}
+
+# AI
+
+variable "APP_ENV" {
+  type        = string
+}
+
+variable "VLLM_URL" {
+  type        = string
+}
+
+variable "PYTHONPATH" {
+  type        = string
+}
+
+variable "DB_HOST" {
+  type        = string
+}
+
+variable "DB_USER" {
+  type        = string
+}
+
+variable "OPENAI_API_KEY" {
+  type        = string
+  sensitive   = true
+}
+
+variable "S3_BUCKET_NAME" {
+  type        = string
+}
+
+variable "HF_TOKEN" {
+  type        = string
+  sensitive   = true
+}
+
+variable "MOUNT_DIR" {
+  type        = string
+}
+
+variable "DEVICE_ID" {
+  type        = string
+}
+
+variable "GCP_CREDENTIALS_BASE64" {
+  type        = string
+  sensitive   = true
+}
+
+variable "GCP_PROJECT_ID" {
+  type        = string
+}

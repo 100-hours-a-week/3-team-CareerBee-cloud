@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:latest
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ap-northeast-2
+        awslogs-group: nginx
+        awslogs-stream-prefix: SERVICE-nginx-$(date +%Y-%m-%d)
+    environment:
+      - GCP_SERVER_IP
+      - AWS_SERVER_IP
+    container_name: nginx-proxy-service
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf.tpl:/etc/nginx/nginx.conf.tpl:ro
+    command: >
+      /bin/sh -c "envsubst '${GCP_SERVER_IP} ${AWS_SERVER_IP}' < /etc/nginx/nginx.conf.tpl > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+    restart: always

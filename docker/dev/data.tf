@@ -3,7 +3,7 @@ data "aws_eip" "existing_eip" {
 }
 
 data "aws_acm_certificate" "careerbee_cert" {
-  domain   = "careerbee.co.kr"
+  domain   = "dev.careerbee.co.kr"
   statuses = ["ISSUED"]
   most_recent = true
 }
@@ -11,4 +11,9 @@ data "aws_acm_certificate" "careerbee_cert" {
 data "google_compute_disk" "boot_disk" {
   name = "disk-careerbee-dev"
   zone = var.gcp_az
+}
+
+data "aws_route53_zone" "dev" {
+  name         = "dev.careerbee.co.kr"
+  private_zone = false
 }
