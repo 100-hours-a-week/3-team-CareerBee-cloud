@@ -42,14 +42,14 @@ jobs:
 
       - name: Load selected env variables into GitHub Environment
         run: |
-          sorce ./terraform.tfvars
+          source ./terraform.tfvars
 
           echo "::add-mask::$S3_BUCKET_NAME"
           echo "::add-mask::$DB_PASSWORD"
 
           echo "S3_BUCKET_NAME=$S3_BUCKET_NAME" >> $GITHUB_ENV
           echo "DB_PASSWORD=$DB_PASSWORD" >> $GITHUB_ENV
-          
+
       - name: Terraform Init
         working-directory: ${{ env.TERRAFORM_DIR }}
         run: terraform init

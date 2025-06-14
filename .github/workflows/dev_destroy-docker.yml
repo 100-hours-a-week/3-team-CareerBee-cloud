@@ -38,7 +38,7 @@ jobs:
       
       - name: Load selected env variables into GitHub Environment
         run: |
-          sorce ./terraform.tfvars
+          source ./terraform.tfvars
 
           echo "::add-mask::$S3_BUCKET_NAME"
           echo "::add-mask::$DB_PASSWORD"
