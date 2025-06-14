@@ -59,6 +59,24 @@ jobs:
         working-directory: ${{ env.TERRAFORM_DIR }}
         run: terraform plan
 
+      - name: Reset parameter
+        run:
+          PARAMS=(
+            "/careerbee/dev/db"
+            "/careerbee/dev/service"
+            "/careerbee/dev/openvpn"
+            "/careerbee/dev/gce"
+          )
+
+          for PARAM in "${PARAMS[@]}"; do
+            aws ssm put-parameter \
+              --name "/careerbee/dev/db" \
+              --value "$PARAM" \
+              --type "String" \
+              --overwrite \
+              --region ap-northeast-2
+          done
+
       - name: Terraform Apply
         working-directory: ${{ env.TERRAFORM_DIR }}
         run: terraform apply -auto-approve
@@ -67,11 +85,11 @@ jobs:
         run: |
           set +e 
 
-          echo "🕑 초기 5분 대기 중..."
+          echo "🕑 초기 2분 대기 중..."
           sleep 120  # 2분 대기
 
           MAX_RETRIES=30
-          RETRY_DELAY=30
+          RETRY_DELAY=30 
           COUNT=0
 
           PARAMS=(
@@ -104,6 +122,7 @@ jobs:
               echo "✅ 모든 서비스가 ready 상태입니다."
               break
             fi
+          done
 
             echo "⏳ 아직 준비되지 않은 서비스가 있습니다. $RETRY_DELAY초 후 재시도..."
             sleep $RETRY_DELAY
