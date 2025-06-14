@@ -122,11 +122,11 @@ jobs:
               echo "✅ 모든 서비스가 ready 상태입니다."
               break
             fi
-          done
-
+          
             echo "⏳ 아직 준비되지 않은 서비스가 있습니다. $RETRY_DELAY초 후 재시도..."
             sleep $RETRY_DELAY
             COUNT=$((COUNT + 1))
+          done
 
           if [ $COUNT -eq $MAX_RETRIES ]; then
             echo "❌ 제한 시간 초과. 모든 서비스가 준비되지 않았습니다."
