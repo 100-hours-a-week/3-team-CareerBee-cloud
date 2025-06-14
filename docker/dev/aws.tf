@@ -265,7 +265,6 @@ resource "aws_instance" "db_azone" {
     DB_NAME                   = var.DB_NAME
     DB_USERNAME               = var.DB_USERNAME
     DB_PASSWORD               = var.DB_PASSWORD
-    DEV_TFVARS_ENC_PW         = var.DEV_TFVARS_ENC_PW
   })    
 
   tags = {

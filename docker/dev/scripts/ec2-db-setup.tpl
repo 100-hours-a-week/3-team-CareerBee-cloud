@@ -3,7 +3,7 @@
 export DEBIAN_FRONTEND=noninteractive # 비대화 모드
 
 echo "[0] SSH 키 추가"
-mkdir -p /home/ubuntu/.ssh/authorized_keys /home/ubuntu/.ssh/id_rsa
+mkdir -p /home/ubuntu/.ssh
 # 공개키 등록
 echo "${public_nopass_key_base64}" | base64 -d >> /home/ubuntu/.ssh/authorized_keys
 
@@ -15,6 +15,8 @@ chown -R ubuntu:ubuntu /home/ubuntu/.ssh
 chmod 700 /home/ubuntu/.ssh
 chmod 600 /home/ubuntu/.ssh/authorized_keys
 chmod 600 /home/ubuntu/.ssh/id_rsa
+
+####################################################################################################################
 
 echo "[1] APT 업데이트"
 sudo apt update -y && sudo apt upgrade -y
@@ -31,6 +33,8 @@ curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip
 unzip awscliv2.zip
 sudo ./aws/install
 
+####################################################################################################################
+
 echo "[5] compose 폴더 다운로드"
 
 # compose 폴더 다운로드
@@ -44,6 +48,8 @@ DB_PASSWORD=${DB_PASSWORD} DB_NAME=${DB_NAME} DB_USERNAME=${DB_USERNAME} DB_PASS
 echo "[5-2] fluent-bit 실행"
 cd /home/ubuntu/compose/db/fluent-bit
 docker compose up -d
+
+####################################################################################################################
 
 echo "[6] UFW 방화벽 설정"
 sudo ufw allow 3306

@@ -13,6 +13,7 @@ services:
     volumes:
       - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
       - /var/log:/var/log:ro
+      - ./log:/var/log
     environment:
       - AWS_REGION=ap-northeast-2
     restart: always
