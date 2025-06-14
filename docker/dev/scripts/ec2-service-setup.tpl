@@ -112,7 +112,7 @@ echo "[8-1] FRONTEND 실행"
 FE_TAG=$(aws ecr describe-images \
   --repository-name frontend \
   --region ${AWS_DEFAULT_REGION} \
-  --query "reverse(sort_by(imageDetails[?imageTags != \`null\` && length(imageTags) > \`0\` && !contains(imageTags[0], 'cache')], & imagePushedAt))[0].imageTags[0]" \
+  --query 'reverse(sort_by(imageDetails[?imageTags != `null` && length(imageTags) > `0` && !contains(imageTags[0], `cache`)], &imagePushedAt))[0].imageTags[0]' \
   --output text)
 docker pull ${ECR_REGISTRY}/frontend:\$FE_TAG
 docker run -d \
@@ -130,7 +130,7 @@ echo "[8-2] BACKEND 실행"
 BE_TAG=$(aws ecr describe-images \
   --repository-name backend \
   --region ${AWS_DEFAULT_REGION} \
-  --query "reverse(sort_by(imageDetails[?imageTags != \`null\` && length(imageTags) > \`0\` && !contains(imageTags[0], 'cache')], & imagePushedAt))[0].imageTags[0]" \
+  --query 'reverse(sort_by(imageDetails[?imageTags != `null` && length(imageTags) > `0` && !contains(imageTags[0], `cache`)], &imagePushedAt))[0].imageTags[0]' \
   --output text)
 docker pull ${ECR_REGISTRY}/backend:\$BE_TAG
 docker run -d \
@@ -151,6 +151,7 @@ docker run -d \
     --add-exports java.base/sun.net=ALL-UNNAMED \
     -Djdk.attach.allowAttachSelf=true" \
   ${ECR_REGISTRY}/backend:\$BE_TAG
+echo \$BE_TAG
 
 echo "[9] SSM에 상태 기록"
 aws ssm put-parameter \
