@@ -109,12 +109,11 @@ aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
 
 # 프론트엔드 실행 & CloudWatch 로그 연동
 echo "[8-1] FRONTEND 실행"
-FE_TAG=$(aws ecr describe-images \
+docker pull ${ECR_REGISTRY}/frontend:$(aws ecr describe-images \
   --repository-name frontend \
   --region ${AWS_DEFAULT_REGION} \
   --query 'reverse(sort_by(imageDetails[?imageTags != `null` && length(imageTags) > `0` && !contains(imageTags[0], `cache`)], &imagePushedAt))[0].imageTags[0]' \
   --output text)
-docker pull ${ECR_REGISTRY}/frontend:\$FE_TAG
 docker run -d \
   --log-driver=awslogs \
   --log-opt awslogs-region=ap-northeast-2 \
@@ -123,16 +122,19 @@ docker run -d \
   --name frontend \
   -p 80:80 \
   --env-file /home/ubuntu/.env \
-  ${ECR_REGISTRY}/frontend:\$FE_TAG
+  ${ECR_REGISTRY}/frontend:$(aws ecr describe-images \
+    --repository-name frontend \
+    --region ${AWS_DEFAULT_REGION} \
+    --query 'reverse(sort_by(imageDetails[?imageTags != `null` && length(imageTags) > `0` && !contains(imageTags[0], `cache`)], &imagePushedAt))[0].imageTags[0]' \
+    --output text)
 
 # 백엔드 실행 & CloudWatch 로그 연동
 echo "[8-2] BACKEND 실행"
-BE_TAG=$(aws ecr describe-images \
+docker pull ${ECR_REGISTRY}/backend:$(aws ecr describe-images \
   --repository-name backend \
   --region ${AWS_DEFAULT_REGION} \
   --query 'reverse(sort_by(imageDetails[?imageTags != `null` && length(imageTags) > `0` && !contains(imageTags[0], `cache`)], &imagePushedAt))[0].imageTags[0]' \
   --output text)
-docker pull ${ECR_REGISTRY}/backend:\$BE_TAG
 docker run -d \
   --log-driver=awslogs \
   --log-opt awslogs-region=ap-northeast-2 \
@@ -150,8 +152,11 @@ docker run -d \
     --add-opens java.base/java.lang=ALL-UNNAMED \
     --add-exports java.base/sun.net=ALL-UNNAMED \
     -Djdk.attach.allowAttachSelf=true" \
-  ${ECR_REGISTRY}/backend:\$BE_TAG
-echo \$BE_TAG
+  ${ECR_REGISTRY}/backend:$(aws ecr describe-images \
+    --repository-name backend \
+    --region ${AWS_DEFAULT_REGION} \
+    --query 'reverse(sort_by(imageDetails[?imageTags != `null` && length(imageTags) > `0` && !contains(imageTags[0], `cache`)], &imagePushedAt))[0].imageTags[0]' \
+    --output text)
 
 echo "[9] SSM에 상태 기록"
 aws ssm put-parameter \
