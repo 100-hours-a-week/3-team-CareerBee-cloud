@@ -70,8 +70,8 @@ jobs:
 
           for PARAM in "${PARAMS[@]}"; do
             aws ssm put-parameter \
-              --name "/careerbee/dev/db" \
-              --value "$PARAM" \
+              --name "$PARAM" \
+              --value "unready" \
               --type "String" \
               --overwrite \
               --region ap-northeast-2
