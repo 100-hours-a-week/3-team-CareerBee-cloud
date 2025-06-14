@@ -24,10 +24,13 @@ systemctl enable openvpnas
 systemctl restart openvpnas
 
 echo "[4] AWS CLI 설치"
+sudo apt update -y
+sudo apt install -y unzip curl
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
 sudo ./aws/install
 
+echo "[5] SSM에 상태 기록"
 aws ssm put-parameter \
   --name "/careerbee/dev/openvpn" \
   --value "ready" \
