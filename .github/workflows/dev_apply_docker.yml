@@ -41,6 +41,7 @@ jobs:
           openssl aes-256-cbc -d -salt -pbkdf2 -in terraform.tfvars.enc -out terraform.tfvars -k "${{ secrets.DEV_TFVARS_ENC_PW }}"
 
       - name: Load selected env variables into GitHub Environment
+        working-directory: ${{ env.TERRAFORM_DIR }}
         run: |
           source ./terraform.tfvars
 
