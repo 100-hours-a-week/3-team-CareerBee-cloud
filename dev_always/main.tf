@@ -78,11 +78,6 @@ resource "aws_s3_bucket" "ssmu_bucket_infra" {
   tags = var.s3_infra_bucket_tags
 }
 
-resource "aws_s3_bucket" "ssmu_bucket_files" {
-  bucket = var.s3_files_bucket_name
-  tags = var.s3_files_bucket_tags
-}
-
 resource "aws_ecr_repository" "frontend" {
   name = "frontend"
   image_tag_mutability = "MUTABLE"
