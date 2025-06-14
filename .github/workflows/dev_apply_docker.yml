@@ -60,7 +60,7 @@ jobs:
         run: terraform plan
 
       - name: Reset parameter
-        run:
+        run: |
           PARAMS=(
             "/careerbee/dev/db"
             "/careerbee/dev/service"
