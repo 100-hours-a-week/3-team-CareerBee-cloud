@@ -11,12 +11,18 @@ sudo apt install -y unzip nginx
 ) &
 (
   sudo mkdir -p ~/.aws /home/ubuntu/.aws
-  echo "[3] AWS CLI 설치 및 자격증명 설정"
+  echo "[2-1] AWS CLI 설치 및 자격증명 설정"
   curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
   unzip -q awscliv2.zip
   sudo ./aws/install
 ) &
-
+(
+  echo "[2-2] Docker 설치"
+  curl -fsSL https://get.docker.com | sudo bash
+  # Docker 유저 권한 부여
+  sudo usermod -aG docker ubuntu
+  newgrp docker
+)
 wait  # 병렬 설치 모두 완료될 때까지 대기
 
 cat > /home/ubuntu/.aws/credentials <<EOF
@@ -30,13 +36,13 @@ region = ${AWS_DEFAULT_REGION}
 output = json
 EOF
 
-echo "[4] UFW 방화벽 열기"
+echo "[3] UFW 방화벽 열기"
 sudo ufw allow OpenSSH
 sudo ufw allow 8000
 sudo ufw allow 8001
 sudo ufw --force enable
 
-echo "[5] 디스크 마운트 시작"
+echo "[4] 디스크 마운트 시작"
 if sudo ls "${DEVICE_ID}" > /dev/null 2>&1; then
   if ! blkid "${DEVICE_ID}"; then
       sudo mkfs.ext4 -F "${DEVICE_ID}"
@@ -51,7 +57,7 @@ if sudo ls "${DEVICE_ID}" > /dev/null 2>&1; then
   fi
 fi
 
-echo "[6] Python3.12 및 가상환경 구성"
+echo "[5] Python3.12 및 가상환경 구성"
 sudo apt update -y
 sudo apt install -y python3.12 python3.12-venv python3.12-dev build-essential cmake libmupdf-dev libopenblas-dev libglib2.0-dev
 sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
@@ -84,7 +90,7 @@ sudo chown -R ubuntu:ubuntu ${MOUNT_DIR}
 deactivate
 EOF
 
-echo "[7] 환경변수 파일 및 compose 폴더 다운로드"
+echo "[6] 환경변수 파일 및 compose 폴더 다운로드"
 
 # .env 다운로드 및 실행
 aws s3 cp s3://s3-careerbee-dev-infra/terraform.tfvars.enc terraform.tfvars.enc
@@ -97,17 +103,17 @@ source /home/ubuntu/.env
 mkdir -p /home/ubuntu/compose/gcp
 aws s3 cp s3://s3-careerbee-dev-infra/compose/gcp /home/ubuntu/compose/gcp --recursive
 
-echo "[7-1] fluent-bit 실행"
+echo "[6-1] fluent-bit 실행"
 cd /home/ubuntu/compose/gcp/fluent-bit
 docker-compose up -d
 
-echo "[8] ECR 최신 이미지 기반 AI 실행"
+echo "[7] ECR 최신 이미지 기반 AI 실행"
 
 # Docker 로그인 (필요시, AWS CLI v2 기준)
 aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
   | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
-echo "[8-1] VLLM 실행"
+echo "[7-1] VLLM 실행"
 docker run --gpus all --rm -it \
   --name VLLM \
   --log-driver=awslogs \
@@ -125,7 +131,7 @@ docker run --gpus all --rm -it \
     --port 8001 \
     --gpu-memory-utilization 0.85
 
-echo "[8-2] UVICORN 실행"
+echo "[7-2] UVICORN 실행"
 docker pull ${ECR_REGISTRY}/ai-server:$(aws ecr describe-images --repository-name ai-server --region ${AWS_DEFAULT_REGION} --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' --output text)
 docker run -d \
   --name ai-server \
@@ -137,6 +143,7 @@ docker run -d \
   --env-file /home/ubuntu/.env \
   ${ECR_REGISTRY}/ai-server:$(aws ecr describe-images --repository-name ai-server --region ${AWS_DEFAULT_REGION} --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' --output text)
 
+echo "[8] SSM에 상태 기록"
 aws ssm put-parameter \
   --name "/careerbee/dev/gce" \
   --value "ready" \

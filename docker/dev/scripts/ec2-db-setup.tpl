@@ -21,28 +21,10 @@ sudo apt update -y && sudo apt upgrade -y
 sudo apt install -y unzip curl wget
 
 echo "[2] Docker 설치"
-sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
-    sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-
-echo \
-  "deb [arch=$(dpkg --print-architecture) \
-  signed-by=/etc/apt/keyrings/docker.gpg] \
-  https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-sudo apt update -y
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-
+curl -fsSL https://get.docker.com | sudo bash
 # Docker 유저 권한 부여
 sudo usermod -aG docker ubuntu
 newgrp docker
-
-echo "[3] Docker Compose 설치"
-sudo curl -L "https://github.com/docker/compose/releases/download/v2.24.7/docker-compose-$(uname -s)-$(uname -m)" \
-  -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
 
 echo "[4] AWS CLI 설치"
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -67,6 +49,7 @@ echo "[6] UFW 방화벽 설정"
 sudo ufw allow 3306
 sudo ufw --force enable
 
+echo "[7] SSM에 상태 기록"
 aws ssm put-parameter \
   --name "/careerbee/dev/db" \
   --value "ready" \
