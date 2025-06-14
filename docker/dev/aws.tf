@@ -190,6 +190,7 @@ resource "aws_instance" "service_azone" {
     AWS_SERVER_IP             = var.AWS_SERVER_IP
     ECR_REGISTRY              = var.ECR_REGISTRY
     AWS_DEFAULT_REGION        = var.AWS_DEFAULT_REGION
+    DEV_TFVARS_ENC_PW         = var.DEV_TFVARS_ENC_PW
   })
 
   tags = {
@@ -260,7 +261,12 @@ resource "aws_instance" "db_azone" {
   user_data = templatefile("${path.module}/scripts/ec2-db-setup.tpl", {
     public_nopass_key_base64  = var.public_nopass_key_base64
     SSH_KEY_BASE64_NOPASS     = var.SSH_KEY_BASE64_NOPASS
-  })
+    DB_PASSWORD               = var.DB_PASSWORD
+    DB_NAME                   = var.DB_NAME
+    DB_USERNAME               = var.DB_USERNAME
+    DB_PASSWORD               = var.DB_PASSWORD
+    DEV_TFVARS_ENC_PW         = var.DEV_TFVARS_ENC_PW
+  })    
 
   tags = {
     Name = "ec2-${var.prefix}-azone-db"

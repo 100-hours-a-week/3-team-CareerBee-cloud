@@ -171,6 +171,11 @@ variable "ECR_REGISTRY" {
   description = "ECR registry URL"
 }
 
+variable "DEV_TFVARS_ENC_PW" {
+  type        = string
+  sensitive   = true
+}
+
 # FE
 
 variable "VITE_KAKAOMAP_KEY" {

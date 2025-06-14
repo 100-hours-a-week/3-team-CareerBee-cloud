@@ -87,7 +87,8 @@ EOF
 echo "[7] 환경변수 파일 및 compose 폴더 다운로드"
 
 # .env 다운로드 및 실행
-aws s3 cp s3://s3-careerbee-dev-infra/terraform.tfvars /home/ubuntu/.env
+aws s3 cp s3://s3-careerbee-dev-infra/terraform.tfvars.enc terraform.tfvars.enc
+openssl aes-256-cbc -d -salt -pbkdf2 -in terraform.tfvars.enc -out /home/ubuntu/.env -k "${DEV_TFVARS_ENC_PW}"
 chmod 600 /home/ubuntu/.env
 chown ubuntu:ubuntu /home/ubuntu
 source /home/ubuntu/.env
@@ -132,7 +133,7 @@ docker run -d \
   --log-opt awslogs-region=ap-northeast-2 \
   --log-opt awslogs-group=uvicorn \
   --log-opt awslogs-stream=GCE-uvicorn-$(date +%Y-%m-%d) \
-  -p 80:80 \
+  -p 8000:8000 \
   --env-file /home/ubuntu/.env \
   ${ECR_REGISTRY}/ai-server:$(aws ecr describe-images --repository-name ai-server --region ${AWS_DEFAULT_REGION} --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' --output text)
 
