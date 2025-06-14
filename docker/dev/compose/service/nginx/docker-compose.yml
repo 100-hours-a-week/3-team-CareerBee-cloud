@@ -8,7 +8,7 @@ services:
       options:
         awslogs-region: ap-northeast-2
         awslogs-group: nginx
-        awslogs-stream-prefix: SERVICE-nginx-$(date +%Y-%m-%d)
+        awslogs-stream: SERVICE-nginx-$(date +%Y-%m-%d)
     environment:
       - GCP_SERVER_IP
       - AWS_SERVER_IP

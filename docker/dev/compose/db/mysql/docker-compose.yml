@@ -8,7 +8,7 @@ services:
       options:
         awslogs-region: ap-northeast-2
         awslogs-group: mysql
-        awslogs-stream-prefix: DB-mysql-$(date +%Y-%m-%d)
+        awslogs-stream: DB-mysql-$(date +%Y-%m-%d)
     container_name: mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
