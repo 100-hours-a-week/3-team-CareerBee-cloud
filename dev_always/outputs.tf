@@ -22,7 +22,6 @@ output "aws_s3_bucket_names" {
   value = {
     image = aws_s3_bucket.ssmu_bucket_image.bucket
     infra = aws_s3_bucket.ssmu_bucket_infra.bucket
-    files = aws_s3_bucket.ssmu_bucket_files.bucket
   }
 }
 

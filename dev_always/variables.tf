@@ -74,11 +74,3 @@ variable "s3_infra_bucket_tags" {
   description = "Tags for the infrastructure S3 bucket"
   type        = map(string)
 }
-
-variable "s3_files_bucket_name" {
-  type        = string
-}
-
-variable "s3_files_bucket_tags" {
-  type        = map(string)
-}
