@@ -39,11 +39,11 @@ aws s3 cp s3://s3-careerbee-dev-infra/compose/db /home/ubuntu/compose/db --recur
 
 echo "[5-1] Mysql 실행"
 cd /home/ubuntu/compose/db/fluent-bit
-DB_PASSWORD=${DB_PASSWORD} DB_NAME=${DB_NAME} DB_USERNAME=${DB_USERNAME} DB_PASSWORD=${DB_PASSWORD} docker-compose up -d
+DB_PASSWORD=${DB_PASSWORD} DB_NAME=${DB_NAME} DB_USERNAME=${DB_USERNAME} DB_PASSWORD=${DB_PASSWORD} docker compose up -d
 
 echo "[5-2] fluent-bit 실행"
 cd /home/ubuntu/compose/db/fluent-bit
-docker-compose up -d
+docker compose up -d
 
 echo "[6] UFW 방화벽 설정"
 sudo ufw allow 3306

@@ -54,11 +54,11 @@ aws s3 cp s3://s3-careerbee-dev-infra/compose/service /home/ubuntu/compose/servi
 
 echo "[5-1] fluent-bit 실행"
 cd /home/ubuntu/compose/service/fluent-bit
-docker-compose up -d
+docker compose up -d
 
 echo "[5-2] nginx 실행"
 cd /home/ubuntu/compose/service/nginx
-GCP_SERVER_IP=${GCP_SERVER_IP} AWS_SERVER_IP=${AWS_SERVER_IP} docker-compose up -d
+GCP_SERVER_IP=${GCP_SERVER_IP} AWS_SERVER_IP=${AWS_SERVER_IP} docker compose up -d
 
 ####################################################################################################################
 
@@ -109,7 +109,12 @@ aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
 
 # 프론트엔드 실행 & CloudWatch 로그 연동
 echo "[8-1] FRONTEND 실행"
-docker pull ${ECR_REGISTRY}/frontend:$(aws ecr describe-images --repository-name frontend --region ${AWS_DEFAULT_REGION} --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' --output text)
+FE_TAG=$(aws ecr describe-images \
+  --repository-name frontend \
+  --region ${AWS_DEFAULT_REGION} \
+  --query "reverse(sort_by(imageDetails[?contains(imageTags[0], 'cache') == \`false\`], & imagePushedAt))[0].imageTags[0]" \
+  --output text)
+docker pull ${ECR_REGISTRY}/frontend:\$FE_TAG
 docker run -d \
   --log-driver=awslogs \
   --log-opt awslogs-region=ap-northeast-2 \
@@ -118,11 +123,16 @@ docker run -d \
   --name frontend \
   -p 80:80 \
   --env-file /home/ubuntu/.env \
-  ${ECR_REGISTRY}/frontend:$(aws ecr describe-images --repository-name frontend --region ${AWS_DEFAULT_REGION} --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' --output text)
+  ${ECR_REGISTRY}/frontend:\$FE_TAG
 
 # 백엔드 실행 & CloudWatch 로그 연동
 echo "[8-2] BACKEND 실행"
-docker pull ${ECR_REGISTRY}/backend:$(aws ecr describe-images --repository-name backend --region ${AWS_DEFAULT_REGION} --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' --output text)
+BE_TAG=$(aws ecr describe-images \
+  --repository-name backend \
+  --region ${AWS_DEFAULT_REGION} \
+  --query "reverse(sort_by(imageDetails[?contains(imageTags[0], 'cache') == \`false\`], & imagePushedAt))[0].imageTags[0]" \
+  --output text)
+docker pull ${ECR_REGISTRY}/backend:\$BE_TAG
 docker run -d \
   --log-driver=awslogs \
   --log-opt awslogs-region=ap-northeast-2 \
@@ -140,7 +150,7 @@ docker run -d \
     --add-opens java.base/java.lang=ALL-UNNAMED \
     --add-exports java.base/sun.net=ALL-UNNAMED \
     -Djdk.attach.allowAttachSelf=true" \
-  ${ECR_REGISTRY}/backend:$(aws ecr describe-images --repository-name backend --region ${AWS_DEFAULT_REGION} --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' --output text)
+  ${ECR_REGISTRY}/backend:\$BE_TAG
 
 echo "[9] SSM에 상태 기록"
 aws ssm put-parameter \

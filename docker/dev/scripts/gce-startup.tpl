@@ -105,7 +105,7 @@ aws s3 cp s3://s3-careerbee-dev-infra/compose/gcp /home/ubuntu/compose/gcp --rec
 
 echo "[6-1] fluent-bit 실행"
 cd /home/ubuntu/compose/gcp/fluent-bit
-docker-compose up -d
+docker compose up -d
 
 echo "[7] ECR 최신 이미지 기반 AI 실행"
 
@@ -132,7 +132,12 @@ docker run --gpus all --rm -it \
     --gpu-memory-utilization 0.85
 
 echo "[7-2] UVICORN 실행"
-docker pull ${ECR_REGISTRY}/ai-server:$(aws ecr describe-images --repository-name ai-server --region ${AWS_DEFAULT_REGION} --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' --output text)
+AI_TAG=$(aws ecr describe-images \
+  --repository-name ai-server \
+  --region ${AWS_DEFAULT_REGION} \
+  --query "reverse(sort_by(imageDetails[?contains(imageTags[0], 'cache') == \`false\`], & imagePushedAt))[0].imageTags[0]" \
+  --output text)
+docker pull ${ECR_REGISTRY}/ai-server:\$AI_TAG
 docker run -d \
   --name ai-server \
   --log-driver=awslogs \
@@ -141,7 +146,7 @@ docker run -d \
   --log-opt awslogs-stream=GCE-uvicorn-$(date +%Y-%m-%d) \
   -p 8000:8000 \
   --env-file /home/ubuntu/.env \
-  ${ECR_REGISTRY}/ai-server:$(aws ecr describe-images --repository-name ai-server --region ${AWS_DEFAULT_REGION} --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' --output text)
+  ${ECR_REGISTRY}/ai-server:\$AI_TAG
 
 echo "[8] SSM에 상태 기록"
 aws ssm put-parameter \
