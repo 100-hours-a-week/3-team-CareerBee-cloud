@@ -6,7 +6,7 @@ on:
     - cron: '20 3 * * 1-5'
 
 jobs:
-  deploy:
+  apply:
     runs-on: ubuntu-latest
 
     env:
@@ -14,10 +14,10 @@ jobs:
       SCRIPT_DIR: transition/deploy/scripts
 
     steps:
-      - name: Checkout develop branch
+      - name: Checkout main branch
         uses: actions/checkout@v3
         with:
-          ref: develop
+          ref: main
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
