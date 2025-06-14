@@ -135,7 +135,7 @@ echo "[7-2] UVICORN 실행"
 AI_TAG=$(aws ecr describe-images \
   --repository-name ai-server \
   --region ${AWS_DEFAULT_REGION} \
-  --query "reverse(sort_by(imageDetails[?contains(imageTags[0], 'cache') == \`false\`], & imagePushedAt))[0].imageTags[0]" \
+  --query "reverse(sort_by(imageDetails[?imageTags != \`null\` && length(imageTags) > \`0\` && !contains(imageTags[0], 'cache')], & imagePushedAt))[0].imageTags[0]" \
   --output text)
 docker pull ${ECR_REGISTRY}/ai-server:\$AI_TAG
 docker run -d \
