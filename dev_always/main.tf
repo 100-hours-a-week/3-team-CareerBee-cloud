@@ -167,3 +167,38 @@ resource "aws_route53_record" "cert_validation_records" {
   records = [each.value.record]
   ttl     = 300
 }
+
+resource "aws_cloudwatch_log_group" "backend" {
+  name              = "backend"
+  retention_in_days = 14
+}
+
+resource "aws_cloudwatch_log_group" "frontend" {
+  name              = "frontend"
+  retention_in_days = 14
+}
+
+resource "aws_cloudwatch_log_group" "vllm" {
+  name              = "vllm"
+  retention_in_days = 14
+}
+
+resource "aws_cloudwatch_log_group" "uvicorn" {
+  name              = "uvicorn"
+  retention_in_days = 14
+}
+
+resource "aws_cloudwatch_log_group" "nginx" {
+  name              = "nginx"
+  retention_in_days = 7
+}
+
+resource "aws_cloudwatch_log_group" "fluent-bit" {
+  name              = "fluent-bit"
+  retention_in_days = 3
+}
+
+resource "aws_cloudwatch_log_group" "mysql" {
+  name              = "mysql"
+  retention_in_days = 3
+}
