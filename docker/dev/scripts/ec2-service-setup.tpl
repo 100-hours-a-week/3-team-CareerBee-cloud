@@ -60,7 +60,8 @@ wait
 echo "[5] 환경변수 파일 및 compose 폴더 다운로드"
 
 # .env 다운로드 및 실행
-aws s3 cp s3://s3-careerbee-dev-infra/terraform.tfvars /home/ubuntu/.env
+aws s3 cp s3://s3-careerbee-dev-infra/terraform.tfvars.enc terraform.tfvars.enc
+openssl aes-256-cbc -d -salt -pbkdf2 -in terraform.tfvars.enc -out /home/ubuntu/.env -k "${DEV_TFVARS_ENC_PW}"
 chmod 600 /home/ubuntu/.env
 chown ubuntu:ubuntu /home/ubuntu
 source /home/ubuntu/.env

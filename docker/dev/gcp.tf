@@ -105,6 +105,7 @@ EOT
       MOUNT_DIR             = var.MOUNT_DIR
       DEVICE_ID             = var.DEVICE_ID
       ECR_REGISTRY          = var.ECR_REGISTRY
+      DEV_TFVARS_ENC_PW     = var.DEV_TFVARS_ENC_PW
     })
   }
 

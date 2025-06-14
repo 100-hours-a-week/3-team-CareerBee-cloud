@@ -49,13 +49,7 @@ curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip
 unzip awscliv2.zip
 sudo ./aws/install
 
-echo "[5] 환경변수 파일 및 compose 폴더 다운로드"
-
-# .env 다운로드 및 실행
-aws s3 cp s3://s3-careerbee-dev-infra/terraform.tfvars /home/ubuntu/.env
-chmod 600 /home/ubuntu/.env
-chown ubuntu:ubuntu /home/ubuntu
-source /home/ubuntu/.env
+echo "[5] compose 폴더 다운로드"
 
 # compose 폴더 다운로드
 mkdir -p /home/ubuntu/compose/db
@@ -63,7 +57,7 @@ aws s3 cp s3://s3-careerbee-dev-infra/compose/db /home/ubuntu/compose/db --recur
 
 echo "[5-1] Mysql 실행"
 cd /home/ubuntu/compose/db/fluent-bit
-docker-compose up -d
+DB_PASSWORD=${DB_PASSWORD} DB_NAME=${DB_NAME} DB_USERNAME=${DB_USERNAME} DB_PASSWORD=${DB_PASSWORD} docker-compose up -d
 
 echo "[5-2] fluent-bit 실행"
 cd /home/ubuntu/compose/db/fluent-bit

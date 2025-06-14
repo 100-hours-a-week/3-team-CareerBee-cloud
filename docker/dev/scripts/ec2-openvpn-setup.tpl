@@ -23,6 +23,11 @@ echo "[3] OpenVPN 서비스 시작"
 systemctl enable openvpnas
 systemctl restart openvpnas
 
+echo "[4] AWS CLI 설치"
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+
 aws ssm put-parameter \
   --name "/careerbee/dev/openvpn" \
   --value "ready" \
