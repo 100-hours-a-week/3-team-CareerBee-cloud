@@ -1,11 +1,7 @@
-name: Terraform Apply (Dev)
+name: Terraform Apply - Transition (Dev)
 
 on:
-  push:
-    branches: [ develop ]
-
   workflow_dispatch:
-
   schedule:
     - cron: '20 3 * * 1-5'
 

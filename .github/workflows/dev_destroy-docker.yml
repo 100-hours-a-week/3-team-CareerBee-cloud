@@ -1,8 +1,7 @@
-name: Terraform Destroy (Dev)
+name: Terraform Destroy - Docker (Dev)
 
 on:
   workflow_dispatch:
-
   schedule:
     - cron: '0 12 * * 1-5'
 jobs:
