@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  fluent-bit:
+    image: fluent/fluent-bit:latest
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ap-northeast-2
+        awslogs-group: fluent-bit
+        awslogs-stream: GCE-fluent-bit-$(date +%Y-%m-%d)
+    container_name: fluent-bit
+    volumes:
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+      - ./trim_log.lua:/fluent-bit/etc/trim_log.lua
+      - /var/log:/var/log:ro
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=ap-northeast-2
+    restart: always

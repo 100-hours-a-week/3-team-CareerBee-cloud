@@ -151,7 +151,7 @@ mkdir -p /etc/letsencrypt/{live,archive,renewal}
 mkdir -p /etc/letsencrypt/live/www.${DOMAIN}
 mkdir -p /etc/letsencrypt/archive/www.${DOMAIN}
 
-aws s3 cp ${BUCKET_BACKUP}/aws/live/{DOMAIN}/     /etc/letsencrypt/live/${DOMAIN}/     --recursive
+aws s3 cp ${BUCKET_BACKUP}/aws/live/${DOMAIN}/     /etc/letsencrypt/live/${DOMAIN}/     --recursive
 aws s3 cp ${BUCKET_BACKUP}/aws/archive/${DOMAIN}/  /etc/letsencrypt/archive/${DOMAIN}/  --recursive
 aws s3 cp ${BUCKET_BACKUP}/aws/renewal/${DOMAIN}.conf /etc/letsencrypt/renewal/
 aws s3 cp ${BUCKET_BACKUP}/aws/options-ssl-nginx.conf /etc/letsencrypt/

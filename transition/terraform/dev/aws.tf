@@ -199,6 +199,14 @@ data "aws_route53_zone" "dev" {
   private_zone = false
 }
 
+resource "aws_route53_record" "apex_dev" {
+  zone_id = data.aws_route53_zone.dev.zone_id
+  name    = ""
+  type    = "A"
+  ttl     = 300
+  records = [var.aws_static_ip]
+}
+
 resource "aws_route53_record" "www_dev" {
   zone_id = data.aws_route53_zone.dev.zone_id
   name    = "www"

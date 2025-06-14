@@ -44,14 +44,38 @@ resource "aws_s3_bucket_cors_configuration" "ssmu_bucket_image_cors" {
   }
 }
 
+resource "aws_s3_bucket_public_access_block" "ssmu_bucket_image_public_access" {
+  bucket                  = aws_s3_bucket.ssmu_bucket_image.id
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+resource "aws_s3_bucket_policy" "ssmu_bucket_image_policy" {
+  bucket = aws_s3_bucket.ssmu_bucket_image.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Sid       = "AllowPublicRead",
+        Effect    = "Allow",
+        Principal = "*",
+        Action    = [
+          "s3:GetObject"
+        ],
+        Resource = "${aws_s3_bucket.ssmu_bucket_image.arn}/*"
+      }
+    ]
+  })
+
+  depends_on = [aws_s3_bucket_public_access_block.ssmu_bucket_image_public_access]
+}
+
 resource "aws_s3_bucket" "ssmu_bucket_infra" {
   bucket = var.s3_infra_bucket_name
   tags = var.s3_infra_bucket_tags
-}
-
-resource "aws_s3_bucket" "ssmu_bucket_files" {
-  bucket = var.s3_files_bucket_name
-  tags = var.s3_files_bucket_tags
 }
 
 resource "aws_ecr_repository" "frontend" {
@@ -137,4 +161,39 @@ resource "aws_route53_record" "cert_validation_records" {
   type    = each.value.type
   records = [each.value.record]
   ttl     = 300
+}
+
+resource "aws_cloudwatch_log_group" "backend" {
+  name              = "backend"
+  retention_in_days = 14
+}
+
+resource "aws_cloudwatch_log_group" "frontend" {
+  name              = "frontend"
+  retention_in_days = 14
+}
+
+resource "aws_cloudwatch_log_group" "vllm" {
+  name              = "vllm"
+  retention_in_days = 14
+}
+
+resource "aws_cloudwatch_log_group" "uvicorn" {
+  name              = "uvicorn"
+  retention_in_days = 14
+}
+
+resource "aws_cloudwatch_log_group" "nginx" {
+  name              = "nginx"
+  retention_in_days = 7
+}
+
+resource "aws_cloudwatch_log_group" "fluent-bit" {
+  name              = "fluent-bit"
+  retention_in_days = 3
+}
+
+resource "aws_cloudwatch_log_group" "mysql" {
+  name              = "mysql"
+  retention_in_days = 3
 }

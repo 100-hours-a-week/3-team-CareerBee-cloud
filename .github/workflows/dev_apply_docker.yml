@@ -1,0 +1,491 @@
+name: Terraform Apply (Dev)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '20 3 * * 1-5'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      TERRAFORM_DIR: docker/dev
+
+    steps:
+      - name: Checkout develop branch
+        uses: actions/checkout@v3
+        with:
+          ref: feature/docker_dev
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      - name: Download terraform.tfvars from S3
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          aws s3 cp s3://${{ secrets.DEV_S3_INFRA_NAME }}/terraform.tfvars.enc terraform.tfvars.enc
+          openssl aes-256-cbc -d -salt -pbkdf2 -in terraform.tfvars.enc -out terraform.tfvars -k "${{ secrets.DEV_TFVARS_ENC_PW }}"
+
+      - name: Load selected env variables into GitHub Environment
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          source ./terraform.tfvars
+
+          echo "::add-mask::$S3_BUCKET_NAME"
+          echo "::add-mask::$DB_PASSWORD"
+
+          echo "S3_BUCKET_NAME=$S3_BUCKET_NAME" >> $GITHUB_ENV
+          echo "DB_PASSWORD=$DB_PASSWORD" >> $GITHUB_ENV
+
+      - name: Terraform Init
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: terraform plan
+
+      - name: Reset parameter
+        run: |
+          PARAMS=(
+            "/careerbee/dev/db"
+            "/careerbee/dev/service"
+            "/careerbee/dev/openvpn"
+            "/careerbee/dev/gce"
+          )
+
+          for PARAM in "${PARAMS[@]}"; do
+            aws ssm put-parameter \
+              --name "$PARAM" \
+              --value "unready" \
+              --type "String" \
+              --overwrite \
+              --region ap-northeast-2
+          done
+
+      - name: Terraform Apply
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: terraform apply -auto-approve
+
+      - name: Wait for EC2 and GCE startup
+        run: |
+          set +e 
+
+          MAX_RETRIES=30
+          RETRY_DELAY=30 
+          COUNT=0
+
+          PARAMS=(
+            "/careerbee/dev/db"
+            "/careerbee/dev/service"
+            "/careerbee/dev/openvpn"
+            "/careerbee/dev/gce"
+          )
+
+          while [ $COUNT -lt $MAX_RETRIES ]; do
+            echo "시도 $((COUNT + 1)) / $MAX_RETRIES"
+
+            ALL_READY=true
+
+            for PARAM in "${PARAMS[@]}"; do
+              VALUE=$(aws ssm get-parameter \
+                --name "$PARAM" \
+                --query 'Parameter.Value' \
+                --output text \
+                --region ap-northeast-2 2>/dev/null || echo "not-found")
+
+              echo "$PARAM = $VALUE"
+
+              if [ "$VALUE" != "ready" ]; then
+                ALL_READY=false
+              fi
+            done
+
+            if [ "$ALL_READY" = true ]; then
+              echo "✅ 모든 서비스가 ready 상태입니다."
+              break
+            fi
+          
+            echo "⏳ 아직 준비되지 않은 서비스가 있습니다. $RETRY_DELAY초 후 재시도..."
+            sleep $RETRY_DELAY
+            COUNT=$((COUNT + 1))
+          done
+
+          if [ $COUNT -eq $MAX_RETRIES ]; then
+            echo "❌ 제한 시간 초과. 모든 서비스가 준비되지 않았습니다."
+            exit 1
+          fi
+
+          set -e
+
+      - name: Get EC2 Instance ID from Name
+        id: ec2
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=ec2-careerbee-dev-azone-service" \
+                      "Name=instance-state-name,Values=running" \
+            --query "Reservations[].Instances[].InstanceId" \
+            --output text)
+
+          if [ -z "$INSTANCE_ID" ]; then
+            echo "❌ Instance not found!"
+            exit 1
+          fi
+
+          echo "✅ Found EC2 Instance ID: $INSTANCE_ID"
+          echo "instance_id=$INSTANCE_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Get DB Private IP from EC2 Name
+        id: db
+        run: |
+          DB_PRIVATE_IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=ec2-careerbee-dev-azone-db" \
+                      "Name=instance-state-name,Values=running" \
+            --query "Reservations[].Instances[].PrivateIpAddress" \
+            --output text)
+
+          if [ -z "$DB_PRIVATE_IP" ]; then
+            echo "❌ DB instance not found!"
+            exit 1
+          fi
+
+          echo "DB Private IP: $DB_PRIVATE_IP"
+          echo "db_ip=$DB_PRIVATE_IP" >> "$GITHUB_OUTPUT"
+          
+      - name: DB restore
+        run: |
+          LATEST_BACKUP=$(aws s3 ls ${{ env.S3_BUCKET_NAME }}/db/ | sort | tail -n 1 | awk '{print $4}')
+
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --comment "download from S3 and Dump MySQL" \
+            --instance-ids "${{ steps.ec2.outputs.instance_id }}" \
+            --parameters commands=[
+              "aws s3 cp s3://${{ env.S3_BUCKET_NAME }}/db/${LATEST_BACKUP} ${LATEST_BACKUP}"
+              "mysqldump -h ${{ steps.db.outputs.db_ip }} -u root -p"${{ env.DB_PASSWORD }}" careerbee < ${LATEST_BACKUP}",
+            ] \
+            --region ap-northeast-2
+
+      - name: Check Application Health
+        run: |
+          for i in $(seq 1 5); do
+            echo "🔁 헬스 체크 시도 $i / 5..."
+
+            FRONT_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://dev.careerbee.co.kr/health-check")
+            BACK_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://dev-api.careerbee.co.kr/health-check")
+            AI_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://dev-ai.careerbee.co.kr/health-check")
+
+            if [ "$FRONT_STATUS" = "200" ] && [ "$BACK_STATUS" = "200" ] && [ "$AI_STATUS" = "200" ]; then
+              echo "✅ 모든 서버 상태 정상"
+              exit 0
+            fi
+
+            sleep 10
+          done
+
+          # 5번 시도 후에도 모두 실패
+          echo "EC2 서버 상태: $FRONT_STATUS"
+          echo "GCE 서버 상태: $BACK_STATUS"
+          echo "AI 서버 상태: $AI_STATUS"
+
+          exit 1
+
+      # - name: Notify Discord on Success
+      #   if: success()
+      #   run: |
+      #     jq -n \
+      #       '{
+      #         "embeds": [
+      #           {
+      #             "title": "🚀 DEV 서버 시작",
+      #             "description": "커리어비 DEV 서버가 시작되었습니다.\n\n오늘도 열심히 일해요! 💪🏻💪🏻",
+      #             "color": 5763719,
+      #             "footer": { "text": "Cloud Functions - DEV Server" },
+      #             "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+      #           }
+      #         ]
+      #       }' > payload.json
+
+      #     curl -H "Content-Type: application/json" \
+      #         -X POST \
+      #         -d @payload.json \
+      #         ${{ secrets.SERVER_DISCORD_WEBHOOK_URL }}
+
+      # - name: Notify Discord on Failure
+      #   if: failure()
+      #   run: |
+      #     RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      #     jq -n \
+      #       --arg RUN_URL "$RUN_URL"
+      #       '{
+      #         "embeds": [
+      #           {
+      #             "title": "❌ DEV 서버 배포 실패",
+      #             "description": "워크플로 실행 중 오류가 발생했습니다.\n\n로그를 확인해 주세요. 🔍\n\n[🔗 실행 로그 보기](\($RUN_URL))",
+      #             "color": 15548997,
+      #             "footer": { "text": "Cloud Functions - DEV Server" },
+      #             "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+      #           }
+      #         ]
+      #       }' > payload.json
+
+      #     curl -H "Content-Type: application/json" \
+      #         -X POST \
+      #         -d @payload.json \
+      #         ${{ secrets.DISCORD_WEBHOOK_URL }}name: Terraform Apply - Docker (Dev)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '20 3 * * 1-5'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      TERRAFORM_DIR: docker/dev
+
+    steps:
+      - name: Checkout develop branch
+        uses: actions/checkout@v3
+        with:
+          ref: feature/docker_dev
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      - name: Download terraform.tfvars from S3
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          aws s3 cp s3://${{ secrets.DEV_S3_INFRA_NAME }}/terraform.tfvars.enc terraform.tfvars.enc
+          openssl aes-256-cbc -d -salt -pbkdf2 -in terraform.tfvars.enc -out terraform.tfvars -k "${{ secrets.DEV_TFVARS_ENC_PW }}"
+
+      - name: Load selected env variables into GitHub Environment
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          source ./terraform.tfvars
+
+          echo "::add-mask::$S3_BUCKET_NAME"
+          echo "::add-mask::$DB_PASSWORD"
+
+          echo "S3_BUCKET_NAME=$S3_BUCKET_NAME" >> $GITHUB_ENV
+          echo "DB_PASSWORD=$DB_PASSWORD" >> $GITHUB_ENV
+
+      - name: Terraform Init
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: terraform plan
+
+      - name: Reset parameter
+        run: |
+          PARAMS=(
+            "/careerbee/dev/db"
+            "/careerbee/dev/service"
+            "/careerbee/dev/openvpn"
+            "/careerbee/dev/gce"
+          )
+
+          for PARAM in "${PARAMS[@]}"; do
+            aws ssm put-parameter \
+              --name "$PARAM" \
+              --value "unready" \
+              --type "String" \
+              --overwrite \
+              --region ap-northeast-2
+          done
+
+      - name: Terraform Apply
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: terraform apply -auto-approve
+
+      - name: Wait for EC2 and GCE startup
+        run: |
+          set +e 
+
+          MAX_RETRIES=30
+          RETRY_DELAY=30 
+          COUNT=0
+
+          PARAMS=(
+            "/careerbee/dev/db"
+            "/careerbee/dev/service"
+            "/careerbee/dev/openvpn"
+            "/careerbee/dev/gce"
+          )
+
+          while [ $COUNT -lt $MAX_RETRIES ]; do
+            echo "시도 $((COUNT + 1)) / $MAX_RETRIES"
+
+            ALL_READY=true
+
+            for PARAM in "${PARAMS[@]}"; do
+              VALUE=$(aws ssm get-parameter \
+                --name "$PARAM" \
+                --query 'Parameter.Value' \
+                --output text \
+                --region ap-northeast-2 2>/dev/null || echo "not-found")
+
+              echo "$PARAM = $VALUE"
+
+              if [ "$VALUE" != "ready" ]; then
+                ALL_READY=false
+              fi
+            done
+
+            if [ "$ALL_READY" = true ]; then
+              echo "✅ 모든 서비스가 ready 상태입니다."
+              break
+            fi
+          
+            echo "⏳ 아직 준비되지 않은 서비스가 있습니다. $RETRY_DELAY초 후 재시도..."
+            sleep $RETRY_DELAY
+            COUNT=$((COUNT + 1))
+          done
+
+          if [ $COUNT -eq $MAX_RETRIES ]; then
+            echo "❌ 제한 시간 초과. 모든 서비스가 준비되지 않았습니다."
+            exit 1
+          fi
+
+          set -e
+
+      - name: Get EC2 Instance ID from Name
+        id: ec2
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=ec2-careerbee-dev-azone-service" \
+                      "Name=instance-state-name,Values=running" \
+            --query "Reservations[].Instances[].InstanceId" \
+            --output text)
+
+          if [ -z "$INSTANCE_ID" ]; then
+            echo "❌ Instance not found!"
+            exit 1
+          fi
+
+          echo "✅ Found EC2 Instance ID: $INSTANCE_ID"
+          echo "instance_id=$INSTANCE_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Get DB Private IP from EC2 Name
+        id: db
+        run: |
+          DB_PRIVATE_IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=ec2-careerbee-dev-azone-db" \
+                      "Name=instance-state-name,Values=running" \
+            --query "Reservations[].Instances[].PrivateIpAddress" \
+            --output text)
+
+          if [ -z "$DB_PRIVATE_IP" ]; then
+            echo "❌ DB instance not found!"
+            exit 1
+          fi
+
+          echo "DB Private IP: $DB_PRIVATE_IP"
+          echo "db_ip=$DB_PRIVATE_IP" >> "$GITHUB_OUTPUT"
+          
+      - name: DB restore
+        run: |
+          LATEST_BACKUP=$(aws s3 ls ${{ env.S3_BUCKET_NAME }}/db/ | sort | tail -n 1 | awk '{print $4}')
+
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --comment "download from S3 and Dump MySQL" \
+            --instance-ids "${{ steps.ec2.outputs.instance_id }}" \
+            --parameters commands=[
+              "aws s3 cp s3://${{ env.S3_BUCKET_NAME }}/db/${LATEST_BACKUP} ${LATEST_BACKUP}"
+              "mysqldump -h ${{ steps.db.outputs.db_ip }} -u root -p"${{ env.DB_PASSWORD }}" careerbee < ${LATEST_BACKUP}",
+            ] \
+            --region ap-northeast-2
+
+      - name: Check Application Health
+        run: |
+          for i in $(seq 1 5); do
+            echo "🔁 헬스 체크 시도 $i / 5..."
+
+            FRONT_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://dev.careerbee.co.kr/health-check")
+            BACK_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://dev-api.careerbee.co.kr/health-check")
+            AI_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://dev-ai.careerbee.co.kr/health-check")
+
+            if [ "$FRONT_STATUS" = "200" ] && [ "$BACK_STATUS" = "200" ] && [ "$AI_STATUS" = "200" ]; then
+              echo "✅ 모든 서버 상태 정상"
+              exit 0
+            fi
+
+            sleep 10
+          done
+
+          # 5번 시도 후에도 모두 실패
+          echo "EC2 서버 상태: $FRONT_STATUS"
+          echo "GCE 서버 상태: $BACK_STATUS"
+          echo "AI 서버 상태: $AI_STATUS"
+
+          exit 1
+
+      # - name: Notify Discord on Success
+      #   if: success()
+      #   run: |
+      #     jq -n \
+      #       '{
+      #         "embeds": [
+      #           {
+      #             "title": "🚀 DEV 서버 시작",
+      #             "description": "커리어비 DEV 서버가 시작되었습니다.\n\n오늘도 열심히 일해요! 💪🏻💪🏻",
+      #             "color": 5763719,
+      #             "footer": { "text": "Cloud Functions - DEV Server" },
+      #             "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+      #           }
+      #         ]
+      #       }' > payload.json
+
+      #     curl -H "Content-Type: application/json" \
+      #         -X POST \
+      #         -d @payload.json \
+      #         ${{ secrets.SERVER_DISCORD_WEBHOOK_URL }}
+
+      # - name: Notify Discord on Failure
+      #   if: failure()
+      #   run: |
+      #     RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      #     jq -n \
+      #       --arg RUN_URL "$RUN_URL"
+      #       '{
+      #         "embeds": [
+      #           {
+      #             "title": "❌ DEV 서버 배포 실패",
+      #             "description": "워크플로 실행 중 오류가 발생했습니다.\n\n로그를 확인해 주세요. 🔍\n\n[🔗 실행 로그 보기](\($RUN_URL))",
+      #             "color": 15548997,
+      #             "footer": { "text": "Cloud Functions - DEV Server" },
+      #             "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+      #           }
+      #         ]
+      #       }' > payload.json
+
+      #     curl -H "Content-Type: application/json" \
+      #         -X POST \
+      #         -d @payload.json \
+      #         ${{ secrets.DISCORD_WEBHOOK_URL }}
