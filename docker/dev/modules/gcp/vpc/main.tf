@@ -3,7 +3,7 @@
 resource "google_compute_network" "this" {
   name                    = "vpc-${var.prefix}"
   auto_create_subnetworks = false
-  routing_mode            = "REGIONAL"
+  routing_mode            = "GLOBAL"
 }
 
 resource "google_compute_subnetwork" "public" {

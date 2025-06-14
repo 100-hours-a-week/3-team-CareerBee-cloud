@@ -99,9 +99,8 @@ resource "aws_instance" "openvpn" {
   
   user_data = templatefile("${path.module}/scripts/ec2-openvpn-setup.tpl", {
     openvpn_pw   = var.openvpn_pw
-    # bucket_infra = var.bucket_infra
   })
-
+  
   tags = {
     Name = "ec2-${var.prefix}-azone-openvpn"
   }
@@ -184,24 +183,41 @@ resource "aws_instance" "service_azone" {
   iam_instance_profile        = aws_iam_instance_profile.ec2_instance_profile.name
   security_groups             = [aws_security_group.sg_service.id]
 
+  user_data = templatefile("${path.module}/scripts/ec2-service-setup.tpl", {
+    public_nopass_key_base64  = var.public_nopass_key_base64
+    SSH_KEY_BASE64_NOPASS     = var.SSH_KEY_BASE64_NOPASS
+    GCP_SERVER_IP             = google_compute_instance.gce.network_interface[0].network_ip
+    AWS_SERVER_IP             = var.AWS_SERVER_IP
+    ECR_REGISTRY              = var.ECR_REGISTRY
+    AWS_DEFAULT_REGION        = var.AWS_DEFAULT_REGION
+  })
+
   tags = {
     Name = "ec2-${var.prefix}-azone-service"
   }
 }
 
-resource "aws_instance" "service_czone" {
-  ami                         = "ami-0d5bb3742db8fc264"
-  instance_type               = "t3.medium"
-  subnet_id                   = module.aws_vpc.private_subnet_ids[1]
-  associate_public_ip_address = false
-  key_name                    = aws_key_pair.key.key_name
-  iam_instance_profile        = aws_iam_instance_profile.ec2_instance_profile.name
-  security_groups             = [aws_security_group.sg_service.id]
+# resource "aws_instance" "service_czone" {
+#   ami                         = "ami-0d5bb3742db8fc264"
+#   instance_type               = "t3.medium"
+#   subnet_id                   = module.aws_vpc.private_subnet_ids[1]
+#   associate_public_ip_address = false
+#   key_name                    = aws_key_pair.key.key_name
+#   iam_instance_profile        = aws_iam_instance_profile.ec2_instance_profile.name
+#   security_groups             = [aws_security_group.sg_service.id]
 
-  tags = {
-    Name = "ec2-${var.prefix}-czone-service"
-  }
-}
+#   user_data = templatefile("${path.module}/scripts/ec2-service-setup.tpl", {
+#     public_nopass_key_base64  = var.public_nopass_key_base64
+#     SSH_KEY_BASE64_NOPASS     = var.SSH_KEY_BASE64_NOPASS
+#     gcp_server_ip             = google_compute_instance.gce.network_interface[0].network_ip
+#     ECR_REGISTRY              = var.ECR_REGISTRY
+#     AWS_DEFAULT_REGION        = var.AWS_DEFAULT_REGION
+#   })
+
+#   tags = {
+#     Name = "ec2-${var.prefix}-czone-service"
+#   }
+# }
 
 ########################################################################
 
@@ -241,24 +257,34 @@ resource "aws_instance" "db_azone" {
   iam_instance_profile        = aws_iam_instance_profile.ec2_instance_profile.name
   security_groups             = [aws_security_group.sg_db.id]
 
+  user_data = templatefile("${path.module}/scripts/ec2-db-setup.tpl", {
+    public_nopass_key_base64  = var.public_nopass_key_base64
+    SSH_KEY_BASE64_NOPASS     = var.SSH_KEY_BASE64_NOPASS
+  })
+
   tags = {
     Name = "ec2-${var.prefix}-azone-db"
   }
 }
 
-resource "aws_instance" "db_czone" {
-  ami                         = "ami-0d5bb3742db8fc264"
-  instance_type               = "t3.medium"
-  subnet_id                   = module.aws_vpc.private_subnet_ids[3]
-  associate_public_ip_address = false
-  key_name                    = aws_key_pair.key.key_name
-  iam_instance_profile        = aws_iam_instance_profile.ec2_instance_profile.name
-  security_groups             = [aws_security_group.sg_db.id]
+# resource "aws_instance" "db_czone" {
+#   ami                         = "ami-0d5bb3742db8fc264"
+#   instance_type               = "t3.medium"
+#   subnet_id                   = module.aws_vpc.private_subnet_ids[3]
+#   associate_public_ip_address = false
+#   key_name                    = aws_key_pair.key.key_name
+#   iam_instance_profile        = aws_iam_instance_profile.ec2_instance_profile.name
+#   security_groups             = [aws_security_group.sg_db.id]
 
-  tags = {
-    Name = "ec2-${var.prefix}-czone-db"
-  }
-}
+#   user_data = templatefile("${path.module}/scripts/ec2-db-setup.tpl", {
+#     public_nopass_key_base64  = var.public_nopass_key_base64
+#     SSH_KEY_BASE64_NOPASS     = var.SSH_KEY_BASE64_NOPASS
+#   })
+
+#   tags = {
+#     Name = "ec2-${var.prefix}-czone-db"
+#   }
+# }
 
 ########################################################################
 
@@ -311,8 +337,8 @@ resource "aws_lb" "alb" {
 
 # Target Group
 
-resource "aws_lb_target_group" "fe_target_group" {
-  name     = "tg-fe-${var.prefix}"
+resource "aws_lb_target_group" "nginx_target_group" {
+  name     = "tg-nginx-${var.prefix}"
   port     = 80
   protocol = "HTTP"
   vpc_id   = module.aws_vpc.vpc_id
@@ -330,79 +356,19 @@ resource "aws_lb_target_group" "fe_target_group" {
   }
 }
 
-resource "aws_lb_target_group" "be_target_group" {
-  name     = "tg-be-${var.prefix}"
-  port     = 8080
-  protocol = "HTTP"
-  vpc_id   = module.aws_vpc.vpc_id
-
-  health_check {
-    enabled             = true
-    path                = "/health-check"
-    protocol            = "HTTP"
-    port                = "8080"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 3
-  }
-}
-
-resource "aws_lb_target_group" "ai_target_group" {
-  name     = "tg-ai-${var.prefix}"
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = module.aws_vpc.vpc_id
-
-  health_check {
-    enabled             = true
-    path                = "/health-check"
-    protocol            = "HTTP"
-    port                = "80"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 3
-  }
-}
-
 # Target 등록
 
-resource "aws_lb_target_group_attachment" "fe_target_attachment_azone" {
-  target_group_arn = aws_lb_target_group.fe_target_group.arn
+resource "aws_lb_target_group_attachment" "nginx_attachment_azone" {
+  target_group_arn = aws_lb_target_group.nginx_target_group.arn
   target_id        = aws_instance.service_azone.id
   port             = 80
 }
 
-resource "aws_lb_target_group_attachment" "fe_target_attachment_czone" {
-  target_group_arn = aws_lb_target_group.fe_target_group.arn
-  target_id        = aws_instance.service_czone.id
-  port             = 80
-}
-
-resource "aws_lb_target_group_attachment" "be_target_attachment_azone" {
-  target_group_arn = aws_lb_target_group.be_target_group.arn
-  target_id        = aws_instance.service_azone.id
-  port             = 8080
-}
-
-resource "aws_lb_target_group_attachment" "be_target_attachment_czone" {
-  target_group_arn = aws_lb_target_group.be_target_group.arn
-  target_id        = aws_instance.service_czone.id
-  port             = 8080
-}
-
-resource "aws_lb_target_group_attachment" "ai_target_attachment_azone" {
-  target_group_arn = aws_lb_target_group.ai_target_group.arn
-  target_id        = aws_instance.service_azone.id
-  port             = 80
-}
-
-resource "aws_lb_target_group_attachment" "ai_target_attachment_czone" {
-  target_group_arn = aws_lb_target_group.ai_target_group.arn
-  target_id        = aws_instance.service_czone.id
-  port             = 80
-}
+# resource "aws_lb_target_group_attachment" "nginx_attachment_czone" {
+#   target_group_arn = aws_lb_target_group.nginx_target_group.arn
+#   target_id        = aws_instance.service_czone.id
+#   port             = 80
+# }
 
 ########################################################################
 
@@ -442,58 +408,124 @@ resource "aws_lb_listener" "https" {
   }
 }
 
-# Listener Rule for Frontend (SPA)
+# Listener Rule
+
+resource "aws_lb_listener_rule" "openvpn_rule" {
+  listener_arn     = aws_lb_listener.https.arn
+  priority         = 10
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.nginx_target_group.arn
+  }
+  condition {
+    host_header {
+      values = ["openvpn.dev.careerbee.co.kr"]
+    }
+  }
+}
 
 resource "aws_lb_listener_rule" "fe_rule" {
-  listener_arn = aws_lb_listener.https.arn
-  priority     = 10
-
+  listener_arn     = aws_lb_listener.https.arn
+  priority         = 20
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.fe_target_group.arn
+    target_group_arn = aws_lb_target_group.nginx_target_group.arn
   }
-
   condition {
     host_header {
-      values = ["dev.careerbee.co.kr"]
+      values = ["www.dev.careerbee.co.kr"]
     }
   }
 }
-
-# Listener Rule for Backend API
 
 resource "aws_lb_listener_rule" "be_rule" {
-  listener_arn = aws_lb_listener.https.arn
-  priority     = 20
-
+  listener_arn     = aws_lb_listener.https.arn
+  priority         = 30
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.be_target_group.arn
+    target_group_arn = aws_lb_target_group.nginx_target_group.arn
   }
-
   condition {
     host_header {
-      values = ["dev-api.careerbee.co.kr"]
+      values = ["api.dev.careerbee.co.kr"]
     }
   }
 }
 
-# Listener Rule for AI Service
-
 resource "aws_lb_listener_rule" "ai_rule" {
-  listener_arn = aws_lb_listener.https.arn
-  priority     = 30
-
+  listener_arn     = aws_lb_listener.https.arn
+  priority         = 40
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.ai_target_group.arn
+    target_group_arn = aws_lb_target_group.nginx_target_group.arn
   }
-
   condition {
     host_header {
-      values = ["dev-ai.careerbee.co.kr"]
+      values = ["ai.dev.careerbee.co.kr"]
     }
   }
 }
 
 ########################################################################
+
+# Route53
+
+resource "aws_route53_record" "dev_alb" {
+  zone_id = data.aws_route53_zone.dev.zone_id
+  name    = ""
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.alb.dns_name
+    zone_id                = aws_lb.alb.zone_id
+    evaluate_target_health = true
+  }
+}
+
+resource "aws_route53_record" "www_dev_alb" {
+  zone_id = data.aws_route53_zone.dev.zone_id
+  name    = "www"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.alb.dns_name
+    zone_id                = aws_lb.alb.zone_id
+    evaluate_target_health = true
+  }
+}
+
+resource "aws_route53_record" "api_dev_alb" {
+  zone_id = data.aws_route53_zone.dev.zone_id
+  name    = "api"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.alb.dns_name
+    zone_id                = aws_lb.alb.zone_id
+    evaluate_target_health = true
+  }
+}
+
+resource "aws_route53_record" "ai_dev_alb" {
+  zone_id = data.aws_route53_zone.dev.zone_id
+  name    = "ai"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.alb.dns_name
+    zone_id                = aws_lb.alb.zone_id
+    evaluate_target_health = true
+  }
+}
+
+resource "aws_route53_record" "openvpn_dev_alb" {
+  zone_id = data.aws_route53_zone.dev.zone_id
+  name    = "openvpn"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.alb.dns_name
+    zone_id                = aws_lb.alb.zone_id
+    evaluate_target_health = true
+  }
+}

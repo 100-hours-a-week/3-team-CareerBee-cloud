@@ -41,7 +41,7 @@ output "openvpn_instance_id" {
 
 output "openvpn_instance_public_ip" {
   description = "OpenVPN EC2의 공인 IP 주소"
-  value       = aws_instance.openvpn.public_ip
+  value       = data.aws_eip.existing_eip.public_ip
 }
 
 output "openvpn_eip_allocation_id" {
@@ -59,15 +59,15 @@ output "service_azone_instance_private_ip" {
   value       = aws_instance.service_azone.private_ip
 }
 
-output "service_czone_instance_id" {
-  description = "서비스(C) EC2 인스턴스 ID"
-  value       = aws_instance.service_czone.id
-}
+# output "service_czone_instance_id" {
+#   description = "서비스(C) EC2 인스턴스 ID"
+#   value       = aws_instance.service_czone.id
+# }
 
-output "service_czone_instance_private_ip" {
-  description = "서비스(C) EC2 인스턴스의 프라이빗 IP"
-  value       = aws_instance.service_czone.private_ip
-}
+# output "service_czone_instance_private_ip" {
+#   description = "서비스(C) EC2 인스턴스의 프라이빗 IP"
+#   value       = aws_instance.service_czone.private_ip
+# }
 
 # GCE 인스턴스
 
@@ -84,6 +84,11 @@ output "gce_instance_zone" {
 output "gce_instance_network" {
   description = "GCE VM이 연결된 네트워크"
   value       = google_compute_instance.gce.network_interface[0].network
+}
+
+output "gce_instance_private_ip" {
+  description = "GCE 인스턴스의 프라이빗 IP"
+  value       = google_compute_instance.gce.network_interface[0].network_ip
 }
 
 # ALB 및 대상 그룹
@@ -105,7 +110,7 @@ output "alb_listener_https_arn" {
 
 output "alb_target_group_arn" {
   description = "ALB 타겟 그룹 ARN"
-  value       = aws_lb_target_group.fe_target_group.arn
+  value       = aws_lb_target_group.nginx_target_group.arn
 }
 
 # IAM, Key, 보안 그룹 등

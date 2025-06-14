@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  fluent-bit:
+    image: fluent/fluent-bit:latest
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ap-northeast-2
+        awslogs-group: fluent-bit
+        awslogs-stream-prefix: DB-fluent-bit-$(date +%Y-%m-%d)
+    container_name: fluent-bit
+    volumes:
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+      - /var/log:/var/log:ro
+    environment:
+      - AWS_REGION=ap-northeast-2
+    restart: always

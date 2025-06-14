@@ -41,6 +41,25 @@ resource "awscc_ec2_transit_gateway_attachment" "tgw_attachment" {
   ]
 }
 
+resource "aws_ec2_transit_gateway_route" "to_gcp" {
+  destination_cidr_block         = var.gcp_vpc_cidr
+  transit_gateway_attachment_id  = awscc_ec2_transit_gateway_attachment.tgw_attachment.id
+  transit_gateway_route_table_id = aws_ec2_transit_gateway.tgw.association_default_route_table_id
+
+  depends_on = [
+    aws_vpn_connection.vpn_conn,
+    awscc_ec2_transit_gateway_attachment.tgw_attachment
+  ]
+}
+
+resource "aws_route" "to_gcp" {
+  count = length(var.aws_route_table_ids)
+
+  route_table_id         = var.aws_route_table_ids[count.index]
+  destination_cidr_block = var.gcp_vpc_cidr
+  transit_gateway_id     = aws_ec2_transit_gateway.tgw.id
+}
+
 resource "aws_vpn_connection" "vpn_conn" {
   for_each = aws_customer_gateway.gwy
 

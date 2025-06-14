@@ -97,6 +97,15 @@ resource "google_compute_instance" "gce" {
       ubuntu:${base64decode(var.public_key_base64)}
       ubuntu:${base64decode(var.public_nopass_key_base64)}
 EOT
+    startup-script = templatefile("${path.module}/scripts/gce-startup.tpl", {
+      AWS_ACCESS_KEY_ID     = var.AWS_ACCESS_KEY_ID
+      AWS_SECRET_ACCESS_KEY = var.AWS_SECRET_ACCESS_KEY
+      AWS_DEFAULT_REGION    = var.AWS_DEFAULT_REGION
+      HF_TOKEN              = var.HF_TOKEN
+      MOUNT_DIR             = var.MOUNT_DIR
+      DEVICE_ID             = var.DEVICE_ID
+      ECR_REGISTRY          = var.ECR_REGISTRY
+    })
   }
 
   tags = ["gce-careerbee-dev"]
