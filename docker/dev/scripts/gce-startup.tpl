@@ -23,8 +23,19 @@ sudo apt install -y unzip nginx
   # Docker 유저 권한 부여
   sudo usermod -aG docker ubuntu
   newgrp docker
-)
+) &
 wait  # 병렬 설치 모두 완료될 때까지 대기
+
+cat > ~/.aws/credentials <<EOF
+[default]
+aws_access_key_id = ${AWS_ACCESS_KEY_ID}
+aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}
+EOF
+cat > ~/.aws/config <<EOF
+[default]
+region = ${AWS_DEFAULT_REGION}
+output = json
+EOF
 
 cat > /home/ubuntu/.aws/credentials <<EOF
 [default]
@@ -101,11 +112,11 @@ chown ubuntu:ubuntu /home/ubuntu
 source /home/ubuntu/.env
 
 # compose 폴더 다운로드
-mkdir -p /home/ubuntu/compose/gcp
-aws s3 cp s3://s3-careerbee-dev-infra/compose/gcp /home/ubuntu/compose/gcp --recursive
+mkdir -p /home/ubuntu/compose/gce
+aws s3 cp s3://s3-careerbee-dev-infra/compose/gce /home/ubuntu/compose/gce --recursive
 
 echo "[6-1] fluent-bit 실행"
-cd /home/ubuntu/compose/gcp/fluent-bit
+cd /home/ubuntu/compose/gce/fluent-bit
 docker compose up -d
 
 echo "[7] ECR 최신 이미지 기반 AI 실행"
