@@ -35,6 +35,9 @@ jobs:
         run: |
           aws s3 cp s3://${{ secrets.DEV_S3_INFRA_NAME }}/terraform.tfvars.enc terraform.tfvars.enc
           openssl aes-256-cbc -d -salt -pbkdf2 -in terraform.tfvars.enc -out terraform.tfvars -k "${{ secrets.DEV_TFVARS_ENC_PW }}"
+      
+      - name: Load selected env variables into GitHub Environment
+        run: |
           sorce ./terraform.tfvars
 
           echo "::add-mask::$S3_BUCKET_NAME"
