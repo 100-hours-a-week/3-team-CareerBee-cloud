@@ -1,4 +1,5 @@
 #!/bin/bash
+# set -e
 export DEBIAN_FRONTEND=noninteractive # 비대화 모드
 
 echo "[1] APT 업데이트"
