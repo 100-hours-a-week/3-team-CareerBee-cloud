@@ -43,9 +43,9 @@ echo "[5] 환경변수 파일 및 compose 폴더 다운로드"
 
 # .env 다운로드 및 실행
 aws s3 cp s3://s3-careerbee-dev-infra/terraform.tfvars.enc terraform.tfvars.enc
-openssl aes-256-cbc -d -salt -pbkdf2 -in terraform.tfvars.enc -out /home/ubuntu/.env -k "${DEV_TFVARS_ENC_PW}"
+sudo openssl aes-256-cbc -d -salt -pbkdf2 -in terraform.tfvars.enc -out /home/ubuntu/.env -k "${DEV_TFVARS_ENC_PW}"
 chmod 600 /home/ubuntu/.env
-chown ubuntu:ubuntu /home/ubuntu
+chown ubuntu:ubuntu /home/ubuntu/.env
 source /home/ubuntu/.env
 
 # compose 폴더 다운로드
@@ -107,20 +107,20 @@ echo "[8] ECR 최신 이미지 기반 프론트/백엔드 실행"
 aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
   | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
-# 프론트엔드 실행 & CloudWatch 로그 연동
+sudo -u ubuntu bash <<EOF
 echo "[8-1] FRONTEND 실행"
-docker pull ${ECR_REGISTRY}/frontend:$(aws ecr describe-images \
+sudo docker pull ${ECR_REGISTRY}/frontend:$(aws ecr describe-images \
   --repository-name frontend \
   --region ${AWS_DEFAULT_REGION} \
   --query 'reverse(sort_by(imageDetails[?imageTags != `null` && length(imageTags) > `0` && !contains(imageTags[0], `cache`)], &imagePushedAt))[0].imageTags[0]' \
   --output text)
-docker run -d \
+sudo docker run -d \
   --log-driver=awslogs \
   --log-opt awslogs-region=ap-northeast-2 \
   --log-opt awslogs-group=frontend \
   --log-opt awslogs-stream=frontend-$(date +%Y-%m-%d) \
   --name frontend \
-  -p 80:80 \
+  -p 5173:5173 \
   --env-file /home/ubuntu/.env \
   ${ECR_REGISTRY}/frontend:$(aws ecr describe-images \
     --repository-name frontend \
@@ -128,14 +128,13 @@ docker run -d \
     --query 'reverse(sort_by(imageDetails[?imageTags != `null` && length(imageTags) > `0` && !contains(imageTags[0], `cache`)], &imagePushedAt))[0].imageTags[0]' \
     --output text)
 
-# 백엔드 실행 & CloudWatch 로그 연동
 echo "[8-2] BACKEND 실행"
-docker pull ${ECR_REGISTRY}/backend:$(aws ecr describe-images \
+sudo docker pull ${ECR_REGISTRY}/backend:$(aws ecr describe-images \
   --repository-name backend \
   --region ${AWS_DEFAULT_REGION} \
   --query 'reverse(sort_by(imageDetails[?imageTags != `null` && length(imageTags) > `0` && !contains(imageTags[0], `cache`)], &imagePushedAt))[0].imageTags[0]' \
   --output text)
-docker run -d \
+sudo docker run -d \
   --log-driver=awslogs \
   --log-opt awslogs-region=ap-northeast-2 \
   --log-opt awslogs-group=backend \
@@ -157,6 +156,7 @@ docker run -d \
     --region ${AWS_DEFAULT_REGION} \
     --query 'reverse(sort_by(imageDetails[?imageTags != `null` && length(imageTags) > `0` && !contains(imageTags[0], `cache`)], &imagePushedAt))[0].imageTags[0]' \
     --output text)
+EOF
 
 echo "[9] SSM에 상태 기록"
 aws ssm put-parameter \

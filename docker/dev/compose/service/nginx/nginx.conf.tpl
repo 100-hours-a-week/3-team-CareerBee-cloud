@@ -14,12 +14,8 @@ http {
   server {
       listen 80;
       server_name www.dev.careerbee.co.kr;
-
-      root /var/www/html;
-      index index.html;
-
       location / {
-          try_files $uri $uri/ /index.html;
+          proxy_pass http://localhost:80;
       }
   }
 
@@ -30,13 +26,24 @@ http {
           proxy_pass http://localhost:8080;
           proxy_set_header Host $host;
           proxy_set_header X-Real-IP $remote_addr;
-          proxy_http_version 1.1;
-          proxy_set_header Connection '';
-          proxy_buffering off;
-          proxy_cache off;
-          proxy_read_timeout 3600;
-          chunked_transfer_encoding off;
       }
+
+      location /api/v1/sse/subscribe {
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+
+        proxy_http_version 1.1;
+        proxy_set_header Connection '';
+        proxy_set_header Cache-Control no-cache;
+        proxy_set_header X-Accel-Buffering no;
+        proxy_set_header Content-Type text/event-stream;
+
+        proxy_buffering off;
+        chunked_transfer_encoding on;
+        proxy_read_timeout 86400;
+    }
+
   }
 
   server {
