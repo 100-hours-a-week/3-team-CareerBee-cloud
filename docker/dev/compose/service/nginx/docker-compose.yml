@@ -10,8 +10,8 @@ services:
         awslogs-group: nginx
         awslogs-stream: SERVICE-nginx-$(date +%Y-%m-%d)
     environment:
-      - GCP_SERVER_IP
-      - AWS_SERVER_IP
+      GCP_SERVER_IP: ${GCP_SERVER_IP}
+      AWS_SERVER_IP: ${AWS_SERVER_IP}
     container_name: nginx-proxy-service
     ports:
       - "80:80"

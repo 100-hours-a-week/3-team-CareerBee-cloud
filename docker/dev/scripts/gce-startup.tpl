@@ -151,12 +151,11 @@ docker run --gpus all --rm -it \
     --gpu-memory-utilization 0.85
 
 echo "[7-2] UVICORN 실행"
-AI_TAG=$(aws ecr describe-images \
+docker pull ${ECR_REGISTRY}/ai-server:$(aws ecr describe-images \
   --repository-name ai-server \
   --region ${AWS_DEFAULT_REGION} \
   --query 'reverse(sort_by(imageDetails[?imageTags != `null` && length(imageTags) > `0` && !contains(imageTags[0], `cache`)], &imagePushedAt))[0].imageTags[0]' \
   --output text)
-docker pull ${ECR_REGISTRY}/ai-server:\$AI_TAG
 docker run -d \
   --name ai-server \
   --log-driver=awslogs \
@@ -165,7 +164,11 @@ docker run -d \
   --log-opt awslogs-stream=GCE-uvicorn-$(date +%Y-%m-%d) \
   -p 8000:8000 \
   --env-file /home/ubuntu/.env \
-  ${ECR_REGISTRY}/ai-server:\$AI_TAG
+  ${ECR_REGISTRY}/ai-server:$(aws ecr describe-images \
+    --repository-name ai-server \
+    --region ${AWS_DEFAULT_REGION} \
+    --query 'reverse(sort_by(imageDetails[?imageTags != `null` && length(imageTags) > `0` && !contains(imageTags[0], `cache`)], &imagePushedAt))[0].imageTags[0]' \
+    --output text)
 
 echo "[8] SSM에 상태 기록"
 aws ssm put-parameter \

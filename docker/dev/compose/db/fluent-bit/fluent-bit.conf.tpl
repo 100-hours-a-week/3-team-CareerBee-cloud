@@ -7,7 +7,7 @@
   Name   tail
   Path   /var/log/cloud-init-output.log
   Tag    userdata.log
-  DB     /var/log/flb_tail_userdata.db
+  DB     /var/log/flb_tail_userdata_db.db
   Read_from_Head true
 
 [OUTPUT]

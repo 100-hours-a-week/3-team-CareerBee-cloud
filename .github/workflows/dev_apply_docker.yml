@@ -13,10 +13,10 @@ jobs:
       TERRAFORM_DIR: docker/dev
 
     steps:
-      - name: Checkout main branch
+      - name: Checkout develop branch
         uses: actions/checkout@v3
         with:
-          ref: main
+          ref: develop
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -161,20 +161,6 @@ jobs:
 
           echo "DB Private IP: $DB_PRIVATE_IP"
           echo "db_ip=$DB_PRIVATE_IP" >> "$GITHUB_OUTPUT"
-          
-      - name: DB restore
-        run: |
-          LATEST_BACKUP=$(aws s3 ls ${{ env.S3_BUCKET_NAME }}/db/ | sort | tail -n 1 | awk '{print $4}')
-
-          aws ssm send-command \
-            --document-name "AWS-RunShellScript" \
-            --comment "download from S3 and Dump MySQL" \
-            --instance-ids "${{ steps.ec2.outputs.instance_id }}" \
-            --parameters commands=[
-              "aws s3 cp s3://${{ env.S3_BUCKET_NAME }}/db/${LATEST_BACKUP} ${LATEST_BACKUP}"
-              "mysqldump -h ${{ steps.db.outputs.db_ip }} -u root -p"${{ env.DB_PASSWORD }}" careerbee < ${LATEST_BACKUP}",
-            ] \
-            --region ap-northeast-2
 
       - name: Check Application Health
         run: |
@@ -199,6 +185,22 @@ jobs:
           echo "AI 서버 상태: $AI_STATUS"
 
           exit 1
+          
+      - name: DB restore
+        run: |
+          LATEST_BACKUP=$(aws s3 ls ${{ env.S3_BUCKET_NAME }}/db/ | sort | tail -n 1 | awk '{print $4}')
+
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --comment "Download from S3 and restore MySQL" \
+            --instance-ids "${{ steps.ec2.outputs.instance_id }}" \
+            --parameters '{
+              "commands": [
+                "aws s3 cp s3://${{ env.S3_BUCKET_NAME }}/db/'"$LATEST_BACKUP"' '"$LATEST_BACKUP"'",
+                "mysql -h ${{ steps.db.outputs.db_ip }} -u root -p${{ env.DB_PASSWORD }} careerbee < '"$LATEST_BACKUP"'"
+              ]
+            }' \
+            --region ap-northeast-2
 
       # - name: Notify Discord on Success
       #   if: success()
