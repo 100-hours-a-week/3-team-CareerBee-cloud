@@ -123,7 +123,7 @@ sudo docker run -d \
   --log-opt awslogs-group=frontend \
   --log-opt awslogs-stream=frontend-$(date +%Y-%m-%d) \
   --name frontend \
-  -p 5173:5173 \
+  -p 5173:80 \
   --env-file /home/ubuntu/.env \
   ${ECR_REGISTRY}/frontend:$(aws ecr describe-images \
     --repository-name frontend \
