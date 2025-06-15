@@ -15,7 +15,7 @@ http {
       listen 80;
       server_name www.dev.careerbee.co.kr;
       location / {
-          proxy_pass http://localhost:80;
+          proxy_pass http://localhost:5173;
       }
   }
 
