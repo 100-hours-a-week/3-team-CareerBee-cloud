@@ -47,6 +47,10 @@ jobs:
           echo "S3_BUCKET_NAME=$S3_BUCKET_NAME" >> $GITHUB_ENV
           echo "DB_PASSWORD=$DB_PASSWORD" >> $GITHUB_ENV
 
+      - name: /compose upload to S3
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: aws s3 cp ./compose s3://s3-careerbee-dev-infra/compose/ --recursive
+        
       - name: Terraform Init
         working-directory: ${{ env.TERRAFORM_DIR }}
         run: terraform init
