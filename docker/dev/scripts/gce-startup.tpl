@@ -114,7 +114,9 @@ aws s3 cp s3://s3-careerbee-dev-infra/terraform.tfvars.enc terraform.tfvars.enc
 sudo openssl aes-256-cbc -d -salt -pbkdf2 -in terraform.tfvars.enc -out /home/ubuntu/.env -k "${DEV_TFVARS_ENC_PW}"
 chmod 600 /home/ubuntu/.env
 chown ubuntu:ubuntu /home/ubuntu/.env
+set -a
 source /home/ubuntu/.env
+set +a
 
 # compose 폴더 다운로드
 mkdir -p /home/ubuntu/compose/gce
