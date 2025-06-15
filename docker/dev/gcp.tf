@@ -85,6 +85,7 @@ resource "google_compute_instance" "gce" {
   network_interface {
     network    = module.gcp_vpc.network_id
     subnetwork = module.gcp_vpc.private_subnet_ids[0]
+    network_ip = var.GCP_SERVER_IP
   }
 
   service_account {

@@ -119,6 +119,7 @@ source /home/ubuntu/.env
 # compose 폴더 다운로드
 mkdir -p /home/ubuntu/compose/gce
 aws s3 cp s3://s3-careerbee-dev-infra/compose/gce /home/ubuntu/compose/gce --recursive
+chown ubuntu:ubuntu /home/ubuntu
 
 echo "[6-1] fluent-bit 실행"
 cd /home/ubuntu/compose/gce/fluent-bit
