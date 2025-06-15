@@ -20,7 +20,7 @@ chmod 600 /home/ubuntu/.ssh/id_rsa
 
 echo "[1] APT 업데이트"
 sudo apt update -y && sudo apt upgrade -y
-sudo apt install -y unzip curl wget
+sudo apt install -y unzip curl wget openssl
 
 ####################################################################################################################
 (
@@ -42,15 +42,18 @@ wait
 echo "[5] 환경변수 파일 및 compose 폴더 다운로드"
 
 # .env 다운로드 및 실행
-aws s3 cp s3://s3-careerbee-dev-infra/terraform.tfvars.enc terraform.tfvars.enc
-sudo openssl aes-256-cbc -d -salt -pbkdf2 -in terraform.tfvars.enc -out /home/ubuntu/.env -k "${DEV_TFVARS_ENC_PW}"
+aws s3 cp s3://s3-careerbee-dev-infra/terraform.tfvars.enc ./terraform.tfvars.enc
+openssl aes-256-cbc -d -salt -pbkdf2 -in ./terraform.tfvars.enc -out /home/ubuntu/.env -k ${DEV_TFVARS_ENC_PW}
 chmod 600 /home/ubuntu/.env
 chown ubuntu:ubuntu /home/ubuntu/.env
+set -a
 source /home/ubuntu/.env
+set +a
 
 # compose 폴더 다운로드
 mkdir -p /home/ubuntu/compose/service
 aws s3 cp s3://s3-careerbee-dev-infra/compose/service /home/ubuntu/compose/service --recursive
+chown ubuntu:ubuntu /home/ubuntu
 
 echo "[5-1] fluent-bit 실행"
 cd /home/ubuntu/compose/service/fluent-bit
@@ -58,7 +61,7 @@ docker compose up -d
 
 echo "[5-2] nginx 실행"
 cd /home/ubuntu/compose/service/nginx
-GCP_SERVER_IP=${GCP_SERVER_IP} AWS_SERVER_IP=${AWS_SERVER_IP} docker compose up -d
+docker compose up -d
 
 ####################################################################################################################
 
@@ -120,7 +123,7 @@ sudo docker run -d \
   --log-opt awslogs-group=frontend \
   --log-opt awslogs-stream=frontend-$(date +%Y-%m-%d) \
   --name frontend \
-  -p 5173:5173 \
+  -p 5173:80 \
   --env-file /home/ubuntu/.env \
   ${ECR_REGISTRY}/frontend:$(aws ecr describe-images \
     --repository-name frontend \

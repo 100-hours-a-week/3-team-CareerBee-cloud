@@ -42,7 +42,7 @@ mkdir -p /home/ubuntu/compose/db
 aws s3 cp s3://s3-careerbee-dev-infra/compose/db /home/ubuntu/compose/db --recursive
 
 echo "[5-1] Mysql 실행"
-cd /home/ubuntu/compose/db/fluent-bit
+cd /home/ubuntu/compose/db/mysql
 DB_PASSWORD=${DB_PASSWORD} DB_NAME=${DB_NAME} DB_USERNAME=${DB_USERNAME} DB_PASSWORD=${DB_PASSWORD} docker compose up -d
 
 echo "[5-2] fluent-bit 실행"

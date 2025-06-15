@@ -134,6 +134,11 @@ variable "AWS_SERVER_IP" {
   description = "AWS server IP address"
 }
 
+variable "GCP_SERVER_IP" {
+  type        = string
+  description = "GCP server IP address"
+}
+
 variable "SSH_KEY_NOPASS" {
   type        = string
   description = "Path to SSH key without passphrase"

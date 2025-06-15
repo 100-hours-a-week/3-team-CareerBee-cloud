@@ -11,10 +11,8 @@ services:
         awslogs-stream: DB-fluent-bit-$(date +%Y-%m-%d)
     container_name: fluent-bit
     volumes:
-      - ./fluent-bit.conf.tpl:/fluent-bit.conf.tpl
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
       - /var/log:/var/log
     environment:
       - AWS_REGION=ap-northeast-2
     restart: always
-    command: >
-      /bin/sh -c "envsubst < fluent-bit.conf.tpl > fluent-bit.conf && fluent-bit -c fluent-bit.conf"

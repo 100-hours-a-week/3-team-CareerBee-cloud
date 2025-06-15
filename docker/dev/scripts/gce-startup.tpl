@@ -10,7 +10,7 @@ sudo apt install -y curl unzip
 (
   sudo apt-get install -y nvidia-driver-570
   sudo apt install -y nginx python3.12 python3.12-venv python3.12-dev \
-  build-essential cmake libmupdf-dev libopenblas-dev libglib2.0-dev
+  build-essential cmake libmupdf-dev libopenblas-dev libglib2.0-dev openssl
 sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 ) &
 (
@@ -110,15 +110,18 @@ EOF
 echo "[6] 환경변수 파일 및 compose 폴더 다운로드"
 
 # .env 다운로드 및 실행
-aws s3 cp s3://s3-careerbee-dev-infra/terraform.tfvars.enc terraform.tfvars.enc
-sudo openssl aes-256-cbc -d -salt -pbkdf2 -in terraform.tfvars.enc -out /home/ubuntu/.env -k "${DEV_TFVARS_ENC_PW}"
+aws s3 cp s3://s3-careerbee-dev-infra/terraform.tfvars.enc ./terraform.tfvars.enc
+openssl aes-256-cbc -d -salt -pbkdf2 -in ./terraform.tfvars.enc -out /home/ubuntu/.env -k ${DEV_TFVARS_ENC_PW}
 chmod 600 /home/ubuntu/.env
 chown ubuntu:ubuntu /home/ubuntu/.env
+set -a
 source /home/ubuntu/.env
+set +a
 
 # compose 폴더 다운로드
 mkdir -p /home/ubuntu/compose/gce
 aws s3 cp s3://s3-careerbee-dev-infra/compose/gce /home/ubuntu/compose/gce --recursive
+chown ubuntu:ubuntu /home/ubuntu
 
 echo "[6-1] fluent-bit 실행"
 cd /home/ubuntu/compose/gce/fluent-bit
