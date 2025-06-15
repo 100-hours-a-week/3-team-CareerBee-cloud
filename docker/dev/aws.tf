@@ -186,7 +186,7 @@ resource "aws_instance" "service_azone" {
   user_data = templatefile("${path.module}/scripts/ec2-service-setup.tpl", {
     public_nopass_key_base64  = var.public_nopass_key_base64
     SSH_KEY_BASE64_NOPASS     = var.SSH_KEY_BASE64_NOPASS
-    GCP_SERVER_IP             = google_compute_instance.gce.network_interface[0].network_ip
+    GCP_SERVER_IP             = var.GCP_SERVER_IP
     AWS_SERVER_IP             = var.AWS_SERVER_IP
     ECR_REGISTRY              = var.ECR_REGISTRY
     AWS_DEFAULT_REGION        = var.AWS_DEFAULT_REGION

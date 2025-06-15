@@ -51,6 +51,7 @@ source /home/ubuntu/.env
 # compose 폴더 다운로드
 mkdir -p /home/ubuntu/compose/service
 aws s3 cp s3://s3-careerbee-dev-infra/compose/service /home/ubuntu/compose/service --recursive
+chown ubuntu:ubuntu /home/ubuntu
 
 echo "[5-1] fluent-bit 실행"
 cd /home/ubuntu/compose/service/fluent-bit
