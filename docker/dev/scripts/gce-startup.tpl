@@ -111,9 +111,9 @@ echo "[6] 환경변수 파일 및 compose 폴더 다운로드"
 
 # .env 다운로드 및 실행
 aws s3 cp s3://s3-careerbee-dev-infra/terraform.tfvars.enc terraform.tfvars.enc
-openssl aes-256-cbc -d -salt -pbkdf2 -in terraform.tfvars.enc -out /home/ubuntu/.env -k "${DEV_TFVARS_ENC_PW}"
+sudo openssl aes-256-cbc -d -salt -pbkdf2 -in terraform.tfvars.enc -out /home/ubuntu/.env -k "${DEV_TFVARS_ENC_PW}"
 chmod 600 /home/ubuntu/.env
-chown ubuntu:ubuntu /home/ubuntu
+chown ubuntu:ubuntu /home/ubuntu/.env
 source /home/ubuntu/.env
 
 # compose 폴더 다운로드
@@ -132,8 +132,9 @@ echo "[7] ECR 최신 이미지 기반 AI 실행"
 aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
   | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
+sudo -u ubuntu bash <<EOF
 echo "[7-1] VLLM 실행"
-docker run --gpus all --rm -it \
+sudo docker run --gpus all --rm -it \
   --name VLLM \
   --log-driver=awslogs \
   --log-opt awslogs-region=ap-northeast-2 \
@@ -151,12 +152,12 @@ docker run --gpus all --rm -it \
     --gpu-memory-utilization 0.85
 
 echo "[7-2] UVICORN 실행"
-docker pull ${ECR_REGISTRY}/ai-server:$(aws ecr describe-images \
+sudo docker pull ${ECR_REGISTRY}/ai-server:$(aws ecr describe-images \
   --repository-name ai-server \
   --region ${AWS_DEFAULT_REGION} \
   --query 'reverse(sort_by(imageDetails[?imageTags != `null` && length(imageTags) > `0` && !contains(imageTags[0], `cache`)], &imagePushedAt))[0].imageTags[0]' \
   --output text)
-docker run -d \
+sudo docker run -d \
   --name ai-server \
   --log-driver=awslogs \
   --log-opt awslogs-region=ap-northeast-2 \
@@ -169,6 +170,7 @@ docker run -d \
     --region ${AWS_DEFAULT_REGION} \
     --query 'reverse(sort_by(imageDetails[?imageTags != `null` && length(imageTags) > `0` && !contains(imageTags[0], `cache`)], &imagePushedAt))[0].imageTags[0]' \
     --output text)
+EOF
 
 echo "[8] SSM에 상태 기록"
 aws ssm put-parameter \
