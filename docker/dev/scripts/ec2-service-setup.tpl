@@ -46,7 +46,9 @@ aws s3 cp s3://s3-careerbee-dev-infra/terraform.tfvars.enc terraform.tfvars.enc
 sudo openssl aes-256-cbc -d -salt -pbkdf2 -in terraform.tfvars.enc -out /home/ubuntu/.env -k "${DEV_TFVARS_ENC_PW}"
 chmod 600 /home/ubuntu/.env
 chown ubuntu:ubuntu /home/ubuntu/.env
+set -a
 source /home/ubuntu/.env
+set +a
 
 # compose 폴더 다운로드
 mkdir -p /home/ubuntu/compose/service
@@ -59,7 +61,7 @@ docker compose up -d
 
 echo "[5-2] nginx 실행"
 cd /home/ubuntu/compose/service/nginx
-GCP_SERVER_IP=${GCP_SERVER_IP} AWS_SERVER_IP=${AWS_SERVER_IP} docker compose up -d
+docker compose up -d
 
 ####################################################################################################################
 
