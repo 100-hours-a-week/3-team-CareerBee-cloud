@@ -62,7 +62,7 @@ module "gcp_vpc" {
 ########################################################################
 
 resource "google_compute_instance" "gce" {
-  name         = "gce-careerbee-dev-azone"
+  name         = "gce-${var.prefix}-azone"
   machine_type = "g2-standard-4"
   zone         = var.gcp_az
 
