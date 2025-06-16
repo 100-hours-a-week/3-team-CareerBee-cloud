@@ -24,24 +24,21 @@ sudo timedatectl set-timezone Asia/Seoul
 sudo apt install -y unzip curl wget openssl git python3-pip python3-venv jq
 
 ####################################################################################################################
-(
-  echo "[2] Docker 설치"
-  curl -fsSL https://get.docker.com | sudo bash
-  # Docker 유저 권한 부여
-  sudo usermod -aG docker ubuntu
-  newgrp docker
 
-  echo "[3] AWS CLI 설치"
-  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-  unzip awscliv2.zip
-  sudo ./aws/install
-) &
-(
-  echo "[5] WEBHOOK 관련 패키지 설치"
-  wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-  sudo dpkg -i cloudflared-linux-amd64.deb
-) &
-wait
+echo "[2] Docker 설치"
+curl -fsSL https://get.docker.com | sudo bash
+# Docker 유저 권한 부여
+sudo usermod -aG docker ubuntu
+newgrp docker
+
+echo "[3] AWS CLI 설치"
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip -q awscliv2.zip
+sudo ./aws/install > /dev/null 2>&1
+
+echo "[5] WEBHOOK 관련 패키지 설치"
+wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+sudo dpkg -i cloudflared-linux-amd64.deb
 
 echo "[6] Cloudflare 실행"
 aws s3 cp s3://s3-careerbee-dev-infra/.cloudflared /home/ubuntu/.cloudflared --recursive
@@ -72,7 +69,7 @@ aws s3 cp s3://s3-careerbee-dev-infra/compose/service /home/ubuntu --recursive
 chown ubuntu:ubuntu /home/ubuntu/*
 
 echo "[5-1] webhook, nginx, fluent-bit 실행"
-su - ubuntu -c "cd /home/ubuntu && docker compose up -d --build"
+su - ubuntu -c "cd /home/ubuntu && sudo docker compose up -d --build"
 
 ####################################################################################################################
 
@@ -123,7 +120,7 @@ docker pull "${ECR_REGISTRY}/frontend:latest"
 docker pull "${ECR_REGISTRY}/backend:latest"
 
 cd /home/ubuntu/deploy
-su - ubuntu -c "docker compose --env-file ../.env up -d"
+su - ubuntu -c "sudo docker compose --env-file ../.env up -d"
 
 ####################################################################################################################
 

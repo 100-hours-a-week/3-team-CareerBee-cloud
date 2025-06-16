@@ -8,12 +8,10 @@ sudo timedatectl set-timezone Asia/Seoul
 
 echo "[2] 기본 및 필수 패키지 설치"
 sudo apt install -y curl unzip
-(
-  sudo apt-get install -y nvidia-driver-570
-  sudo apt install -y nginx python3.12 python3.12-venv python3.12-dev \
+sudo apt-get install -y nvidia-driver-570
+sudo apt install -y nginx python3.12 python3.12-venv python3.12-dev \
   build-essential cmake libmupdf-dev libopenblas-dev libglib2.0-dev openssl
 sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
-) &
 (
   sudo mkdir -p ~/.aws /home/ubuntu/.aws
   echo "[2-1] AWS CLI 설치 및 자격증명 설정"
@@ -48,7 +46,6 @@ EOF
   curl -fsSL https://get.docker.com | sudo bash
   # Docker 유저 권한 부여
   sudo usermod -aG docker ubuntu
-  newgrp docker
 ) &
 wait
 
@@ -127,7 +124,7 @@ chown ubuntu:ubuntu /home/ubuntu/*
 
 echo "[6-1] fluent-bit 실행"
 cd /home/ubuntu
-su - ubuntu -c "docker compose up -d"
+su - ubuntu -c "sudo docker compose up -d"
 
 ####################################################################################################################
 
@@ -139,7 +136,7 @@ aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
 docker pull "${ECR_REGISTRY}/ai-server:latest" 
 
 cd /home/ubuntu/deploy
-su - ubuntu -c "docker compose --env-file ../.env up -d"
+su - ubuntu -c "sudo docker compose --env-file ../.env up -d"
 
 echo "[8] SSM에 상태 기록"
 aws ssm put-parameter \
