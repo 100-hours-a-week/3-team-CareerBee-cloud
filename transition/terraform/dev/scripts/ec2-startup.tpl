@@ -7,8 +7,9 @@ echo "${ADD_SSH_KEY}" >> /home/ubuntu/.ssh/authorized_keys
 chown -R ubuntu:ubuntu /home/ubuntu/.ssh
 chmod 600 /home/ubuntu/.ssh/authorized_keys
 
-echo "[1] APT 업데이트"
+echo "[1] APT 업데이트 및 시간대 설정"
 sudo apt update -y && sudo apt upgrade -y
+sudo timedatectl set-timezone Asia/Seoul
 
 echo "[2] Fluent Bit 설치"
 sudo apt install -y curl
@@ -283,6 +284,7 @@ nohup java \
     --add-opens java.base/java.lang=ALL-UNNAMED \
     --add-exports java.base/sun.net=ALL-UNNAMED \
     -Djdk.attach.allowAttachSelf=true \
+    -Duser.timezone=Asia/Seoul \
     -javaagent:/home/ubuntu/scouter/agent.java/scouter.agent.jar \
     -Dscouter.config=/home/ubuntu/scouter/agent.java/conf/scouter.conf \
     -Dobj_name=careerbee-api \
