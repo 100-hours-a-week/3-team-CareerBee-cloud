@@ -60,10 +60,13 @@ source /home/ubuntu/.env
 set +a
 
 # deploy 폴더 다운로드
-mkdir -p /home/ubuntu/{deploy,log, frontend}
+mkdir -p /home/ubuntu/{deploy,log}
 aws s3 cp s3://s3-careerbee-dev-infra/compose/service /home/ubuntu --recursive
 
-echo "[5-1] webhook, nginx, fluent-bit 실행"
+
+echo "[5-1] webhook, fluent-bit 실행"
+export ECR_REGISTRY=${ECR_REGISTRY}
+export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
 cd /home/ubuntu && docker compose up -d --build
 
 ####################################################################################################################
@@ -115,7 +118,8 @@ docker pull "${ECR_REGISTRY}/frontend:latest"
 docker pull "${ECR_REGISTRY}/backend:latest"
 
 cd /home/ubuntu/deploy
-docker compose --env-file ../.env up -d
+export TAG=latest
+docker compose --env-file /home/ubuntu/.env up -d
 docker ps # debug
 ####################################################################################################################
 

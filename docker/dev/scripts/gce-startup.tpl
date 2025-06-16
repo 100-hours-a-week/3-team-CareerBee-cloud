@@ -121,7 +121,7 @@ aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
 docker pull "${ECR_REGISTRY}/ai-server:latest" 
 
 cd /home/ubuntu/deploy
-docker compose --env-file ../.env up -d
+docker compose --env-file /home/ubuntu/.env up -d
 docker ps # debug
 
 echo "[8] SSM에 상태 기록"

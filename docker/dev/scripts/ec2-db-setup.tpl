@@ -43,14 +43,10 @@ aws s3 cp s3://s3-careerbee-dev-infra/compose/db /home/ubuntu --recursive
 chown -R 999:999 /home/ubuntu/mysql
 
 echo "[5-1] Mysql, fluent-bit 실행"
+export DB_NAME=${DB_NAME}
+export DB_USERNAME=${DB_USERNAME}
+export DB_PASSWORD=${DB_PASSWORD}
 cd /home/ubuntu
-
-# 환경변수 확인 (디버깅용)
-echo "Using DB_NAME=$DB_NAME, DB_USERNAME=$DB_USERNAME"
-
-DB_NAME=${DB_NAME} \
-DB_USERNAME=${DB_USERNAME} \
-DB_PASSWORD=${DB_PASSWORD} \
 docker compose up -d
 
 ####################################################################################################################
