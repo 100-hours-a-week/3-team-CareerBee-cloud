@@ -206,10 +206,22 @@ server {
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
+    location /api/v1/sse/ {
+        proxy_pass http://localhost:8080;
+        proxy_http_version 1.1;
+        
+        proxy_set_header Cache-Control no-cache;
+        proxy_set_header X-Accel-Buffering no;
+        proxy_set_header Accept text/event-stream;
+        proxy_buffering  off;
+        proxy_read_timeout 86400;
+    }
+
     location / {
         proxy_pass http://localhost:8080;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
     }
 }
 EOF_NGINX
