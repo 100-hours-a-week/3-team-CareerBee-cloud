@@ -25,7 +25,7 @@ services:
       - ${MOUNT_DIR}/aya-expanse-8b:/model
 
   ai-server:
-    image: ${ECR_REGISTRY}/ai-server:latest
+    image: ${ECR_REGISTRY}/ai-server:${TAG}
     container_name: ai-server
     restart: always
     env_file:
