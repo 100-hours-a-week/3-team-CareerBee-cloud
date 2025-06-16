@@ -109,44 +109,44 @@ jobs:
         working-directory: ${{ env.TERRAFORM_DIR }}
         run: terraform destroy -auto-approve -var-file=terraform.tfvars
       
-      # - name: Notify Discord on Success
-      #   if: success()
-      #   run: |
-      #     jq -n \
-      #       '{
-      #         "embeds": [
-      #           {
-      #             "title": "🛑 DEV 서버 중지됨",
-      #             "description": "커리어비 DEV 서버가 중지되었습니다.\n\n내일 오후 1시에 다시 만나요! 👋🏻👋🏻",
-      #             "color": 9807270,
-      #             "footer": { "text": "Cloud Functions - DEV Server" },
-      #             "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
-      #           }
-      #         ]
-      #       }' > payload.json
+      - name: Notify Discord on Success
+        if: success()
+        run: |
+          jq -n \
+            '{
+              "embeds": [
+                {
+                  "title": "🛑 DEV 서버 중지됨",
+                  "description": "커리어비 DEV 서버가 중지되었습니다.\n\n내일 오후 1시에 다시 만나요! 👋🏻👋🏻",
+                  "color": 9807270,
+                  "footer": { "text": "Cloud Functions - DEV Server" },
+                  "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+                }
+              ]
+            }' > payload.json
 
-      #     curl -H "Content-Type: application/json" \
-      #         -X POST \
-      #         -d @payload.json \
-      #         ${{ secrets.SERVER_DISCORD_WEBHOOK_URL }}
+          curl -H "Content-Type: application/json" \
+              -X POST \
+              -d @payload.json \
+              ${{ secrets.SERVER_DISCORD_WEBHOOK_URL }}
 
-      # - name: Notify Discord on Failure
-      #   if: failure()
-      #   run: |
-      #     jq -n \
-      #       '{
-      #         "embeds": [
-      #           {
-      #             "title": "❌ DEV 서버 중지 실패",
-      #             "description": "서버 종료 작업 중 오류가 발생했습니다.\n\nGitHub Actions 로그를 확인해 주세요. 🚨",
-      #             "color": 15548997,
-      #             "footer": { "text": "Cloud Functions - DEV Server" },
-      #             "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
-      #           }
-      #         ]
-      #       }' > payload.json
+      - name: Notify Discord on Failure
+        if: failure()
+        run: |
+          jq -n \
+            '{
+              "embeds": [
+                {
+                  "title": "❌ DEV 서버 중지 실패",
+                  "description": "서버 종료 작업 중 오류가 발생했습니다.\n\nGitHub Actions 로그를 확인해 주세요. 🚨",
+                  "color": 15548997,
+                  "footer": { "text": "Cloud Functions - DEV Server" },
+                  "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+                }
+              ]
+            }' > payload.json
 
-      #     curl -H "Content-Type: application/json" \
-      #         -X POST \
-      #         -d @payload.json \
-      #         ${{ secrets.DISCORD_WEBHOOK_URL }}
+          curl -H "Content-Type: application/json" \
+              -X POST \
+              -d @payload.json \
+              ${{ secrets.DISCORD_WEBHOOK_URL }}
