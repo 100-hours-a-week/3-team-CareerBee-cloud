@@ -135,29 +135,22 @@ resource "aws_security_group" "sg_service" {
   }
 
   ingress {
-    from_port   = 3306
-    to_port     = 3306
+    from_port   = 3000
+    to_port     = 3000
     protocol    = "tcp"
-    cidr_blocks = [var.aws_vpc_cidr, var.gcp_vpc_cidr]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
-    from_port   = 5173
-    to_port     = 5173
+    from_port   = 5000
+    to_port     = 5000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-    ingress {
+  ingress {
     from_port   = 6100
     to_port     = 6100
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-    ingress {
-    from_port   = 8080
-    to_port     = 8080
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -186,12 +179,12 @@ resource "aws_instance" "service_azone" {
   user_data = templatefile("${path.module}/scripts/ec2-service-setup.tpl", {
     public_nopass_key_base64  = var.public_nopass_key_base64
     SSH_KEY_BASE64_NOPASS     = var.SSH_KEY_BASE64_NOPASS
-    GCP_SERVER_IP             = var.GCP_SERVER_IP
-    AWS_SERVER_IP             = var.AWS_SERVER_IP
     ECR_REGISTRY              = var.ECR_REGISTRY
     AWS_DEFAULT_REGION        = var.AWS_DEFAULT_REGION
     DEV_TFVARS_ENC_PW         = var.DEV_TFVARS_ENC_PW
   })
+
+  depends_on = [module.vpn]
 
   tags = {
     Name = "ec2-${var.prefix}-azone-service"
@@ -267,6 +260,8 @@ resource "aws_instance" "db_azone" {
     DB_PASSWORD               = var.DB_PASSWORD
   })    
 
+  depends_on = [module.vpn]
+  
   tags = {
     Name = "ec2-${var.prefix}-azone-db"
   }
@@ -344,7 +339,7 @@ resource "aws_lb" "alb" {
 
 resource "aws_lb_target_group" "nginx_target_group" {
   name     = "tg-nginx-${var.prefix}"
-  port     = 80
+  port     = 3000
   protocol = "HTTP"
   vpc_id   = module.aws_vpc.vpc_id
 
@@ -352,7 +347,6 @@ resource "aws_lb_target_group" "nginx_target_group" {
     enabled             = true
     path                = "/health-check"
     protocol            = "HTTP"
-    port                = "80"
     matcher             = "200-399"
     interval            = 30
     timeout             = 5
@@ -366,13 +360,13 @@ resource "aws_lb_target_group" "nginx_target_group" {
 resource "aws_lb_target_group_attachment" "nginx_attachment_azone" {
   target_group_arn = aws_lb_target_group.nginx_target_group.arn
   target_id        = aws_instance.service_azone.id
-  port             = 80
+  port             = 3000
 }
 
 # resource "aws_lb_target_group_attachment" "nginx_attachment_czone" {
 #   target_group_arn = aws_lb_target_group.nginx_target_group.arn
 #   target_id        = aws_instance.service_czone.id
-#   port             = 80
+#   port             = 3000
 # }
 
 ########################################################################
@@ -415,9 +409,23 @@ resource "aws_lb_listener" "https" {
 
 # Listener Rule
 
-resource "aws_lb_listener_rule" "openvpn_rule" {
+resource "aws_lb_listener_rule" "webhook_rule" {
   listener_arn     = aws_lb_listener.https.arn
   priority         = 10
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.nginx_target_group.arn
+  }
+  condition {
+    host_header {
+      values = ["webhook.dev.careerbee.co.kr"]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "openvpn_rule" {
+  listener_arn     = aws_lb_listener.https.arn
+  priority         = 20
   action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.nginx_target_group.arn
@@ -431,7 +439,7 @@ resource "aws_lb_listener_rule" "openvpn_rule" {
 
 resource "aws_lb_listener_rule" "fe_rule" {
   listener_arn     = aws_lb_listener.https.arn
-  priority         = 20
+  priority         = 30
   action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.nginx_target_group.arn
@@ -445,7 +453,7 @@ resource "aws_lb_listener_rule" "fe_rule" {
 
 resource "aws_lb_listener_rule" "be_rule" {
   listener_arn     = aws_lb_listener.https.arn
-  priority         = 30
+  priority         = 40
   action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.nginx_target_group.arn
@@ -459,7 +467,7 @@ resource "aws_lb_listener_rule" "be_rule" {
 
 resource "aws_lb_listener_rule" "ai_rule" {
   listener_arn     = aws_lb_listener.https.arn
-  priority         = 40
+  priority         = 50
   action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.nginx_target_group.arn
@@ -478,6 +486,18 @@ resource "aws_lb_listener_rule" "ai_rule" {
 resource "aws_route53_record" "dev_alb" {
   zone_id = data.aws_route53_zone.dev.zone_id
   name    = ""
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.alb.dns_name
+    zone_id                = aws_lb.alb.zone_id
+    evaluate_target_health = true
+  }
+}
+
+resource "aws_route53_record" "webhook_alb" {
+  zone_id = data.aws_route53_zone.dev.zone_id
+  name    = "webhook"
   type    = "A"
 
   alias {

@@ -1,0 +1,34 @@
+services:
+  vllm:
+    image: vllm/vllm:latest
+    container_name: vllm
+    restart: always
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+    command: >
+      python3 -m vllm.entrypoints.api_server
+      --model /model
+      --tokenizer /model
+      --dtype bfloat16
+      --max-model-len 4096
+      --port 8001
+      --gpu-memory-utilization 0.85
+    ports:
+      - "8001:8001"
+    volumes:
+      - ${MOUNT_DIR}/aya-expanse-8b:/model
+
+  ai-server:
+    image: ${ECR_REGISTRY}/ai-server:latest
+    container_name: ai-server
+    restart: always
+    env_file:
+      - /home/ubuntu/.env
+    ports:
+      - "8000:8000"
