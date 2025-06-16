@@ -38,15 +38,21 @@ sudo ./aws/install
 echo "[5] compose 폴더 다운로드"
 
 # compose 폴더 다운로드
-mkdir -p /home/ubuntu/compose/db
-aws s3 cp s3://s3-careerbee-dev-infra/compose/db /home/ubuntu/compose/db --recursive
+mkdir -p /home/ubuntu/{log,mysql/data}
+aws s3 cp s3://s3-careerbee-dev-infra/compose/db /home/ubuntu --recursive
+sudo chown -R 999:999 /home/ubuntu/mysql
+sudo chown -R ubuntu:ubuntu /home/ubuntu/log
 
-echo "[5-1] Mysql 실행"
-cd /home/ubuntu/compose/db/mysql
-DB_PASSWORD=${DB_PASSWORD} DB_NAME=${DB_NAME} DB_USERNAME=${DB_USERNAME} DB_PASSWORD=${DB_PASSWORD} docker compose up -d
+echo "[5-1] Mysql, fluent-bit 실행"
+cd /home/ubuntu
 
-echo "[5-2] fluent-bit 실행"
-cd /home/ubuntu/compose/db/fluent-bit
+# 환경변수 확인 (디버깅용)
+echo "Using DB_NAME=$DB_NAME, DB_USERNAME=$DB_USERNAME"
+
+DB_PASSWORD=${DB_PASSWORD} \
+DB_NAME=${DB_NAME} \
+DB_USERNAME=${DB_USERNAME} \
+DB_PASSWORD=${DB_PASSWORD} \
 docker compose up -d
 
 ####################################################################################################################

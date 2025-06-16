@@ -18,9 +18,10 @@ chmod 600 /home/ubuntu/.ssh/id_rsa
 
 ####################################################################################################################
 
-echo "[1] APT 업데이트"
+echo "[1] APT 업데이트 및 시간대 설정"
 sudo apt update -y && sudo apt upgrade -y
-sudo apt install -y unzip curl wget openssl
+sudo timedatectl set-timezone Asia/Seoul
+sudo apt install -y unzip curl wget openssl git python3-pip python3-venv jq
 
 ####################################################################################################################
 (
@@ -29,53 +30,60 @@ sudo apt install -y unzip curl wget openssl
   # Docker 유저 권한 부여
   sudo usermod -aG docker ubuntu
   newgrp docker
-) &
-(
-  echo "[4] AWS CLI 설치"
+
+  echo "[3] AWS CLI 설치"
   curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
   unzip awscliv2.zip
   sudo ./aws/install
 ) &
-
+(
+  echo "[5] WEBHOOK 관련 패키지 설치"
+  wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+  sudo dpkg -i cloudflared-linux-amd64.deb
+) &
 wait
 
-echo "[5] 환경변수 파일 및 compose 폴더 다운로드"
+echo "[6] Cloudflare 실행"
+aws s3 cp s3://s3-careerbee-dev-infra/.cloudflared /home/ubuntu/.cloudflared --recursive
+sudo mkdir -p /etc/cloudflared
+sudo cp /home/ubuntu/.cloudflared/* /etc/cloudflared/
+sudo chown root:root /etc/cloudflared/*
+rm -rf /home/ubuntu/.cloudflared
 
+sudo cloudflared service install
+sudo systemctl enable cloudflared
+sudo systemctl start cloudflared
+
+####################################################################################################################
+
+echo "[7] 환경변수 파일 및 compose 폴더 다운로드"
 # .env 다운로드 및 실행
 aws s3 cp s3://s3-careerbee-dev-infra/terraform.tfvars.enc ./terraform.tfvars.enc
 openssl aes-256-cbc -d -salt -pbkdf2 -in ./terraform.tfvars.enc -out /home/ubuntu/.env -k ${DEV_TFVARS_ENC_PW}
 chmod 600 /home/ubuntu/.env
-chown ubuntu:ubuntu /home/ubuntu/.env
+chown ubuntu:ubuntu /home/ubuntu/*
 set -a
 source /home/ubuntu/.env
 set +a
 
-# compose 폴더 다운로드
-mkdir -p /home/ubuntu/compose/service
-aws s3 cp s3://s3-careerbee-dev-infra/compose/service /home/ubuntu/compose/service --recursive
-chown ubuntu:ubuntu /home/ubuntu
+# deploy 폴더 다운로드
+mkdir -p /home/ubuntu/{deploy,log, frontend}
+aws s3 cp s3://s3-careerbee-dev-infra/compose/service /home/ubuntu --recursive
+chown ubuntu:ubuntu /home/ubuntu/*
 
-echo "[5-1] fluent-bit 실행"
-cd /home/ubuntu/compose/service/fluent-bit
-docker compose up -d
-
-echo "[5-2] nginx 실행"
-cd /home/ubuntu/compose/service/nginx
-docker compose up -d
+echo "[5-1] webhook, nginx, fluent-bit 실행"
+su - ubuntu -c "cd /home/ubuntu && docker compose up -d --build"
 
 ####################################################################################################################
 
-echo "[6] UFW 방화벽 설정"
+echo "[8] UFW 방화벽 설정"
 sudo ufw allow OpenSSH
 sudo ufw allow 80
-sudo ufw allow 8080
-sudo ufw allow 5173
-sudo ufw allow 6100
 sudo ufw --force enable
 
 ####################################################################################################################
 
-echo "[7] Scouter 설치 및 설정"
+echo "[9] Scouter 설치 및 설정"
 sudo apt-get update
 sudo apt install -y openjdk-11-jdk
 cd /home/ubuntu
@@ -89,7 +97,7 @@ wget https://repo1.maven.org/maven2/org/glassfish/jaxb/jaxb-runtime/2.3.1/jaxb-r
 cd /home/ubuntu/scouter/server
 /usr/lib/jvm/java-11-openjdk-amd64/bin/java \
   -cp "./lib/*:./lib/jaxb-api-2.3.1.jar:./lib/jaxb-runtime-2.3.1.jar:./scouter-server-boot.jar" \
-  scouter.boot.Boot ./lib > /var/log/scouter-server.log 2>&1 &
+  scouter.boot.Boot ./lib > /home/ubuntu/log/scouter.log 2>&1 &
 
 cat <<EOF > /home/ubuntu/scouter/agent.java/conf/scouter.conf
 net_collector_ip=127.0.0.1
@@ -104,64 +112,20 @@ sh host.sh start
 
 ####################################################################################################################
 
-echo "[8] ECR 최신 이미지 기반 프론트/백엔드 실행"
-
+echo "[10] ECR latest 이미지 기반 프론트/백엔드 실행"
 # Docker 로그인 (필요시, AWS CLI v2 기준)
 aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
   | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
-sudo -u ubuntu bash <<EOF
-echo "[8-1] FRONTEND 실행"
-sudo docker pull ${ECR_REGISTRY}/frontend:$(aws ecr describe-images \
-  --repository-name frontend \
-  --region ${AWS_DEFAULT_REGION} \
-  --query 'reverse(sort_by(imageDetails[?imageTags != `null` && length(imageTags) > `0` && !contains(imageTags[0], `cache`)], &imagePushedAt))[0].imageTags[0]' \
-  --output text)
-sudo docker run -d \
-  --log-driver=awslogs \
-  --log-opt awslogs-region=ap-northeast-2 \
-  --log-opt awslogs-group=frontend \
-  --log-opt awslogs-stream=frontend-$(date +%Y-%m-%d) \
-  --name frontend \
-  -p 5173:80 \
-  --env-file /home/ubuntu/.env \
-  ${ECR_REGISTRY}/frontend:$(aws ecr describe-images \
-    --repository-name frontend \
-    --region ${AWS_DEFAULT_REGION} \
-    --query 'reverse(sort_by(imageDetails[?imageTags != `null` && length(imageTags) > `0` && !contains(imageTags[0], `cache`)], &imagePushedAt))[0].imageTags[0]' \
-    --output text)
+docker pull "${ECR_REGISTRY}/frontend:latest"
+docker pull "${ECR_REGISTRY}/backend:latest"
 
-echo "[8-2] BACKEND 실행"
-sudo docker pull ${ECR_REGISTRY}/backend:$(aws ecr describe-images \
-  --repository-name backend \
-  --region ${AWS_DEFAULT_REGION} \
-  --query 'reverse(sort_by(imageDetails[?imageTags != `null` && length(imageTags) > `0` && !contains(imageTags[0], `cache`)], &imagePushedAt))[0].imageTags[0]' \
-  --output text)
-sudo docker run -d \
-  --log-driver=awslogs \
-  --log-opt awslogs-region=ap-northeast-2 \
-  --log-opt awslogs-group=backend \
-  --log-opt awslogs-stream=backend-$(date +%Y-%m-%d) \
-  --name backend \
-  -p 8080:8080 \
-  --env-file /home/ubuntu/.env \
-  -v /home/ubuntu/scouter:/scouter \
-  -e JAVA_TOOL_compose/serviceIONS="\
-    -Dspring.profiles.active=dev \
-    -javaagent:/scouter/agent.java/scouter.agent.jar \
-    -Dscouter.config=/scouter/agent.java/conf/scouter.conf \
-    -Dobj_name=careerbee-api \
-    --add-opens java.base/java.lang=ALL-UNNAMED \
-    --add-exports java.base/sun.net=ALL-UNNAMED \
-    -Djdk.attach.allowAttachSelf=true" \
-  ${ECR_REGISTRY}/backend:$(aws ecr describe-images \
-    --repository-name backend \
-    --region ${AWS_DEFAULT_REGION} \
-    --query 'reverse(sort_by(imageDetails[?imageTags != `null` && length(imageTags) > `0` && !contains(imageTags[0], `cache`)], &imagePushedAt))[0].imageTags[0]' \
-    --output text)
-EOF
+cd /home/ubuntu/deploy
+su - ubuntu -c "docker compose --env-file ../.env up -d"
 
-echo "[9] SSM에 상태 기록"
+####################################################################################################################
+
+echo "[11] SSM에 상태 기록"
 aws ssm put-parameter \
   --name "/careerbee/dev/service" \
   --value "ready" \

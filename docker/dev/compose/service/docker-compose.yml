@@ -1,0 +1,47 @@
+services:
+  webhook:
+    build: ./webhook
+    container_name: webhook
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./deploy.sh:/deploy/deploy.sh
+      - ./webhook:/app
+      - /home/ubuntu/log:/var/log/app
+      - /var/run/docker.sock:/var/run/docker.sock  # 컨테이너 내에서 docker 명령 실행 가능
+    working_dir: /app
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      "python webhook.py 2>&1 | tee /var/log/app/webhook.log"
+    environment:
+      - ECR_REGISTRY=${ECR_REGISTRY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+    restart: always
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx-proxy-service
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /home/ubuntu/frontend:/usr/share/nginx/html:ro
+      - /home/ubuntu/log:/var/log/app
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      "nginx -g 'daemon off;' 2>&1 | tee /var/log/app/nginx.log"
+    restart: always
+
+  fluent-bit:
+    image: fluent/fluent-bit:latest
+    container_name: fluent-bit
+    volumes:
+      - ./fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - /home/ubuntu/log:/var/log/app:ro
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ap-northeast-2
+        awslogs-group: fluent-bit
+        awslogs-stream: service/fluent-bit
+    restart: always

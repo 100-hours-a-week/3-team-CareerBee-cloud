@@ -2,8 +2,9 @@
 # set -e
 export DEBIAN_FRONTEND=noninteractive # 비대화 모드
 
-echo "[1] APT 업데이트"
+echo "[1] APT 업데이트 및 시간대 설정"
 sudo apt update -y && sudo apt upgrade -y
+sudo timedatectl set-timezone Asia/Seoul
 
 echo "[2] 기본 및 필수 패키지 설치"
 sudo apt install -y curl unzip
@@ -49,6 +50,8 @@ EOF
   sudo usermod -aG docker ubuntu
   newgrp docker
 ) &
+wait
+
 (
   echo "[3] UFW 방화벽 열기"
   sudo ufw allow OpenSSH
@@ -72,7 +75,7 @@ EOF
     fi
   fi
 ) &
-wait  # 병렬 설치 모두 완료될 때까지 대기
+wait
 
 ####################################################################################################################
 
@@ -108,72 +111,35 @@ EOF
 ####################################################################################################################
 
 echo "[6] 환경변수 파일 및 compose 폴더 다운로드"
-
 # .env 다운로드 및 실행
 aws s3 cp s3://s3-careerbee-dev-infra/terraform.tfvars.enc ./terraform.tfvars.enc
 openssl aes-256-cbc -d -salt -pbkdf2 -in ./terraform.tfvars.enc -out /home/ubuntu/.env -k ${DEV_TFVARS_ENC_PW}
 chmod 600 /home/ubuntu/.env
-chown ubuntu:ubuntu /home/ubuntu/.env
+chown ubuntu:ubuntu /home/ubuntu/*
 set -a
 source /home/ubuntu/.env
 set +a
 
 # compose 폴더 다운로드
 mkdir -p /home/ubuntu/compose/gce
-aws s3 cp s3://s3-careerbee-dev-infra/compose/gce /home/ubuntu/compose/gce --recursive
-chown ubuntu:ubuntu /home/ubuntu
+aws s3 cp s3://s3-careerbee-dev-infra/compose/gce /home/ubuntu --recursive
+chown ubuntu:ubuntu /home/ubuntu/*
 
 echo "[6-1] fluent-bit 실행"
-cd /home/ubuntu/compose/gce/fluent-bit
+cd /home/ubuntu
 docker compose up -d
 
 ####################################################################################################################
 
 echo "[7] ECR 최신 이미지 기반 AI 실행"
-
 # Docker 로그인 (필요시, AWS CLI v2 기준)
 aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
   | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
-sudo -u ubuntu bash <<EOF
-echo "[7-1] VLLM 실행"
-sudo docker run --gpus all --rm -it \
-  --name VLLM \
-  --log-driver=awslogs \
-  --log-opt awslogs-region=ap-northeast-2 \
-  --log-opt awslogs-group=vllm \
-  --log-opt awslogs-stream=GCE-vllm-$(date +%Y-%m-%d) \
-  -v ${MOUNT_DIR}/aya-expanse-8b:/model \
-  -p 8001:8001 \
-  vllm/vllm:latest \
-  python3 -m vllm.entrypoints.api_server \
-    --model /model \
-    --tokenizer /model \
-    --dtype bfloat16 \
-    --max-model-len 4096 \
-    --port 8001 \
-    --gpu-memory-utilization 0.85
+docker pull "${ECR_REGISTRY}/ai-server:latest" 
 
-echo "[7-2] UVICORN 실행"
-sudo docker pull ${ECR_REGISTRY}/ai-server:$(aws ecr describe-images \
-  --repository-name ai-server \
-  --region ${AWS_DEFAULT_REGION} \
-  --query 'reverse(sort_by(imageDetails[?imageTags != `null` && length(imageTags) > `0` && !contains(imageTags[0], `cache`)], &imagePushedAt))[0].imageTags[0]' \
-  --output text)
-sudo docker run -d \
-  --name ai-server \
-  --log-driver=awslogs \
-  --log-opt awslogs-region=ap-northeast-2 \
-  --log-opt awslogs-group=uvicorn \
-  --log-opt awslogs-stream=GCE-uvicorn-$(date +%Y-%m-%d) \
-  -p 8000:8000 \
-  --env-file /home/ubuntu/.env \
-  ${ECR_REGISTRY}/ai-server:$(aws ecr describe-images \
-    --repository-name ai-server \
-    --region ${AWS_DEFAULT_REGION} \
-    --query 'reverse(sort_by(imageDetails[?imageTags != `null` && length(imageTags) > `0` && !contains(imageTags[0], `cache`)], &imagePushedAt))[0].imageTags[0]' \
-    --output text)
-EOF
+cd /home/ubuntu/deploy
+su - ubuntu -c "docker compose --env-file ../.env up -d"
 
 echo "[8] SSM에 상태 기록"
 aws ssm put-parameter \
