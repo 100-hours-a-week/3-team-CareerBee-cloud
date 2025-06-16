@@ -49,7 +49,6 @@ cd /home/ubuntu
 # 환경변수 확인 (디버깅용)
 echo "Using DB_NAME=$DB_NAME, DB_USERNAME=$DB_USERNAME"
 
-DB_PASSWORD=${DB_PASSWORD} \
 DB_NAME=${DB_NAME} \
 DB_USERNAME=${DB_USERNAME} \
 DB_PASSWORD=${DB_PASSWORD} \
