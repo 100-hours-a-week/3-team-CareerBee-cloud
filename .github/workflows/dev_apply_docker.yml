@@ -46,6 +46,7 @@ jobs:
 
           echo "S3_BUCKET_NAME=$S3_BUCKET_NAME" >> $GITHUB_ENV
           echo "DB_PASSWORD=$DB_PASSWORD" >> $GITHUB_ENV
+          echo "PREFIX=$prefix" >> $GITHUB_ENV
 
       - name: /compose upload to S3
         working-directory: ${{ env.TERRAFORM_DIR }}
@@ -132,40 +133,6 @@ jobs:
 
           set -e
 
-      - name: Get EC2 Instance ID from Name
-        id: ec2
-        run: |
-          INSTANCE_ID=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=ec2-careerbee-dev-azone-service" \
-                      "Name=instance-state-name,Values=running" \
-            --query "Reservations[].Instances[].InstanceId" \
-            --output text)
-
-          if [ -z "$INSTANCE_ID" ]; then
-            echo "❌ Instance not found!"
-            exit 1
-          fi
-
-          echo "✅ Found EC2 Instance ID: $INSTANCE_ID"
-          echo "instance_id=$INSTANCE_ID" >> "$GITHUB_OUTPUT"
-
-      - name: Get DB Private IP from EC2 Name
-        id: db
-        run: |
-          DB_PRIVATE_IP=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=ec2-careerbee-dev-azone-db" \
-                      "Name=instance-state-name,Values=running" \
-            --query "Reservations[].Instances[].PrivateIpAddress" \
-            --output text)
-
-          if [ -z "$DB_PRIVATE_IP" ]; then
-            echo "❌ DB instance not found!"
-            exit 1
-          fi
-
-          echo "DB Private IP: $DB_PRIVATE_IP"
-          echo "db_ip=$DB_PRIVATE_IP" >> "$GITHUB_OUTPUT"
-
       - name: Check Application Health
         run: |
           for i in $(seq 1 5); do
@@ -189,6 +156,40 @@ jobs:
           echo "AI 서버 상태: $AI_STATUS"
 
           exit 1
+          
+      - name: Get EC2 Instance ID from Name
+        id: ec2
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=ec2-${{ env.PREFIX }}-azone-service" \
+                      "Name=instance-state-name,Values=running" \
+            --query "Reservations[].Instances[].InstanceId" \
+            --output text)
+
+          if [ -z "$INSTANCE_ID" ]; then
+            echo "❌ Instance not found!"
+            exit 1
+          fi
+
+          echo "✅ Found EC2 Instance ID: $INSTANCE_ID"
+          echo "instance_id=$INSTANCE_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Get DB Private IP from EC2 Name
+        id: db
+        run: |
+          DB_PRIVATE_IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=ec2-${{ env.PREFIX }}-azone-db" \
+                      "Name=instance-state-name,Values=running" \
+            --query "Reservations[].Instances[].PrivateIpAddress" \
+            --output text)
+
+          if [ -z "$DB_PRIVATE_IP" ]; then
+            echo "❌ DB instance not found!"
+            exit 1
+          fi
+
+          echo "DB Private IP: $DB_PRIVATE_IP"
+          echo "db_ip=$DB_PRIVATE_IP" >> "$GITHUB_OUTPUT"
           
       - name: DB restore
         run: |
