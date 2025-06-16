@@ -28,8 +28,8 @@ services:
       - /home/ubuntu/frontend:/usr/share/nginx/html:ro
       - /home/ubuntu/log:/var/log/app
     entrypoint: ["/bin/sh", "-c"]
-    command: |
-      "nginx -g 'daemon off;' 2>&1 | tee /var/log/app/nginx.log"
+    command: >
+      nginx -g 'daemon off;' 2>&1 | tee /var/log/app/nginx.log
     restart: always
 
   fluent-bit:

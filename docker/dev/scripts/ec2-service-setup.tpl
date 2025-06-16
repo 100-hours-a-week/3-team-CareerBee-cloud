@@ -19,46 +19,42 @@ chmod 600 /home/ubuntu/.ssh/id_rsa
 ####################################################################################################################
 
 echo "[1] APT 업데이트 및 시간대 설정"
-sudo apt update -y && sudo apt upgrade -y
-sudo timedatectl set-timezone Asia/Seoul
-sudo apt install -y unzip curl wget openssl git python3-pip python3-venv jq
+apt update -y && apt upgrade -y
+timedatectl set-timezone Asia/Seoul
+apt install -y unzip curl wget openssl git python3-pip python3-venv jq
 
 ####################################################################################################################
 
 echo "[2] Docker 설치"
-curl -fsSL https://get.docker.com | sudo bash
-# Docker 유저 권한 부여
-sudo usermod -aG docker ubuntu
-newgrp docker
+curl -fsSL https://get.docker.com | bash
 
 echo "[3] AWS CLI 설치"
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip -q awscliv2.zip
-sudo ./aws/install > /dev/null 2>&1
+./aws/install > /dev/null 2>&1
 
 echo "[5] WEBHOOK 관련 패키지 설치"
 wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-sudo dpkg -i cloudflared-linux-amd64.deb
+dpkg -i cloudflared-linux-amd64.deb
 
 echo "[6] Cloudflare 실행"
 aws s3 cp s3://s3-careerbee-dev-infra/.cloudflared /home/ubuntu/.cloudflared --recursive
-sudo mkdir -p /etc/cloudflared
-sudo cp /home/ubuntu/.cloudflared/* /etc/cloudflared/
-sudo chown root:root /etc/cloudflared/*
+mkdir -p /etc/cloudflared
+cp /home/ubuntu/.cloudflared/* /etc/cloudflared/
 rm -rf /home/ubuntu/.cloudflared
 
-sudo cloudflared service install
-sudo systemctl enable cloudflared
-sudo systemctl start cloudflared
+cloudflared service install
+systemctl enable cloudflared
+systemctl start cloudflared
 
 ####################################################################################################################
 
 echo "[7] 환경변수 파일 및 compose 폴더 다운로드"
 # .env 다운로드 및 실행
 aws s3 cp s3://s3-careerbee-dev-infra/terraform.tfvars.enc ./terraform.tfvars.enc
+openssl version # debug
 openssl aes-256-cbc -d -salt -pbkdf2 -in ./terraform.tfvars.enc -out /home/ubuntu/.env -k ${DEV_TFVARS_ENC_PW}
 chmod 600 /home/ubuntu/.env
-chown ubuntu:ubuntu /home/ubuntu/*
 set -a
 source /home/ubuntu/.env
 set +a
@@ -66,25 +62,24 @@ set +a
 # deploy 폴더 다운로드
 mkdir -p /home/ubuntu/{deploy,log, frontend}
 aws s3 cp s3://s3-careerbee-dev-infra/compose/service /home/ubuntu --recursive
-chown ubuntu:ubuntu /home/ubuntu/*
 
 echo "[5-1] webhook, nginx, fluent-bit 실행"
-su - ubuntu -c "cd /home/ubuntu && sudo docker compose up -d --build"
+cd /home/ubuntu && docker compose up -d --build
 
 ####################################################################################################################
 
 echo "[8] UFW 방화벽 설정"
-sudo ufw allow OpenSSH
-sudo ufw allow 3000
-sudo ufw allow 5000
-sudo ufw allow 6000
-sudo ufw --force enable
+ufw allow OpenSSH
+ufw allow 3000
+ufw allow 5000
+ufw allow 6000
+ufw --force enable
 
 ####################################################################################################################
 
 echo "[9] Scouter 설치 및 설정"
-sudo apt-get update
-sudo apt install -y openjdk-11-jdk
+apt-get update
+apt install -y openjdk-11-jdk
 cd /home/ubuntu
 wget https://github.com/scouter-project/scouter/releases/download/v2.20.0/scouter-all-2.20.0.tar.gz
 tar -xvf scouter-all-2.20.0.tar.gz && rm scouter-all-2.20.0.tar.gz
@@ -120,8 +115,8 @@ docker pull "${ECR_REGISTRY}/frontend:latest"
 docker pull "${ECR_REGISTRY}/backend:latest"
 
 cd /home/ubuntu/deploy
-su - ubuntu -c "sudo docker compose --env-file ../.env up -d"
-
+docker compose --env-file ../.env up -d
+docker ps # debug
 ####################################################################################################################
 
 echo "[11] SSM에 상태 기록"

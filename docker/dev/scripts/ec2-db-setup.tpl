@@ -19,19 +19,19 @@ chmod 600 /home/ubuntu/.ssh/id_rsa
 ####################################################################################################################
 
 echo "[1] APT 업데이트"
-sudo apt update -y && sudo apt upgrade -y
-sudo apt install -y unzip curl wget
+apt update -y && apt upgrade -y
+apt install -y unzip curl wget
 
 echo "[2] Docker 설치"
-curl -fsSL https://get.docker.com | sudo bash
+curl -fsSL https://get.docker.com | bash
 # Docker 유저 권한 부여
-sudo usermod -aG docker ubuntu
+usermod -aG docker ubuntu
 newgrp docker
 
 echo "[4] AWS CLI 설치"
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
-sudo ./aws/install
+./aws/install
 
 ####################################################################################################################
 
@@ -40,8 +40,7 @@ echo "[5] compose 폴더 다운로드"
 # compose 폴더 다운로드
 mkdir -p /home/ubuntu/{log,mysql/data}
 aws s3 cp s3://s3-careerbee-dev-infra/compose/db /home/ubuntu --recursive
-sudo chown -R 999:999 /home/ubuntu/mysql
-sudo chown -R ubuntu:ubuntu /home/ubuntu/log
+chown -R 999:999 /home/ubuntu/mysql
 
 echo "[5-1] Mysql, fluent-bit 실행"
 cd /home/ubuntu
@@ -57,8 +56,8 @@ docker compose up -d
 ####################################################################################################################
 
 echo "[6] UFW 방화벽 설정"
-sudo ufw allow 3306
-sudo ufw --force enable
+ufw allow 3306
+ufw --force enable
 
 echo "[7] SSM에 상태 기록"
 aws ssm put-parameter \
