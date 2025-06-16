@@ -78,7 +78,9 @@ su - ubuntu -c "cd /home/ubuntu && docker compose up -d --build"
 
 echo "[8] UFW 방화벽 설정"
 sudo ufw allow OpenSSH
-sudo ufw allow 80
+sudo ufw allow 3000
+sudo ufw allow 5000
+sudo ufw allow 6000
 sudo ufw --force enable
 
 ####################################################################################################################

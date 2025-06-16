@@ -127,7 +127,7 @@ chown ubuntu:ubuntu /home/ubuntu/*
 
 echo "[6-1] fluent-bit 실행"
 cd /home/ubuntu
-docker compose up -d
+su - ubuntu -c "docker compose up -d"
 
 ####################################################################################################################
 
