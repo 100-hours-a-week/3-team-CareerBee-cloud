@@ -181,6 +181,16 @@ server {
 
 server {
     listen 443 ssl;
+    server_name ${DOMAIN};
+
+    ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+
+    return 301 https://www.${DOMAIN}\$request_uri;
+}
+
+server {
+    listen 443 ssl;
     listen [::]:443 ssl;
 
     server_name www.${DOMAIN};
