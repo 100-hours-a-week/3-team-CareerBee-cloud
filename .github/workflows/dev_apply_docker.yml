@@ -139,8 +139,11 @@ jobs:
             echo "🔁 헬스 체크 시도 $i / 5..."
 
             FRONT_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://www.dev.careerbee.co.kr/health-check")
-            BACK_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://dev-api.careerbee.co.kr/health-check")
-            AI_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://dev-ai.careerbee.co.kr/health-check")
+            echo "EC2 서버 상태: $FRONT_STATUS"
+            BACK_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.dev.careerbee.co.kr/health-check")
+            echo "GCE 서버 상태: $BACK_STATUS"
+            AI_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://ai.dev.careerbee.co.kr/health-check")
+            echo "AI 서버 상태: $AI_STATUS"
 
             if [ "$FRONT_STATUS" = "200" ] && [ "$BACK_STATUS" = "200" ] && [ "$AI_STATUS" = "200" ]; then
               echo "✅ 모든 서버 상태 정상"
@@ -149,11 +152,6 @@ jobs:
 
             sleep 10
           done
-
-          # 5번 시도 후에도 모두 실패
-          echo "EC2 서버 상태: $FRONT_STATUS"
-          echo "GCE 서버 상태: $BACK_STATUS"
-          echo "AI 서버 상태: $AI_STATUS"
 
           exit 1
           

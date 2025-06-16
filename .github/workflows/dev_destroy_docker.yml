@@ -68,7 +68,7 @@ jobs:
         id: db
         run: |
           DB_PRIVATE_IP=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=ec2-c${{ env.PREFIX }}-azone-db" \
+            --filters "Name=tag:Name,Values=ec2-${{ env.PREFIX }}-azone-db" \
                       "Name=instance-state-name,Values=running" \
             --query "Reservations[].Instances[].PrivateIpAddress" \
             --output text)
