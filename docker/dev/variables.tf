@@ -193,6 +193,10 @@ variable "VITE_API_URL" {
   description = "API URL for frontend"
 }
 
+variable "VITE_SHOW_UNRELEASED" {
+  type        = string
+}
+
 # BE
 
 variable "DOMAIN" {
