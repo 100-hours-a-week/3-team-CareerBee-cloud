@@ -11,14 +11,15 @@ services:
             - capabilities: [gpu]
     environment:
       NVIDIA_VISIBLE_DEVICES: all
-    command: >
-      python3 -m vllm.entrypoints.api_server
-      --model /model
-      --tokenizer /model
-      --dtype bfloat16
-      --max-model-len 4096
-      --port 8001
-      --gpu-memory-utilization 0.85
+    command: [
+      "python3", "-m", "vllm.entrypoints.api_server",
+      "--model", "/model",
+      "--tokenizer", "/model",
+      "--dtype", "bfloat16",
+      "--max-model-len", "4096",
+      "--port", "8001",
+      "--gpu-memory-utilization", "0.85"
+    ]
     ports:
       - "8001:8001"
     volumes:
