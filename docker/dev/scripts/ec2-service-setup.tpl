@@ -1,6 +1,9 @@
 #!/bin/bash
 # set -e
 export DEBIAN_FRONTEND=noninteractive # 비대화 모드
+export TAG=latest
+export ECR_REGISTRY=${ECR_REGISTRY}
+export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
 
 echo "[0] SSH 키 추가"
 mkdir -p /home/ubuntu/.ssh
@@ -65,8 +68,6 @@ aws s3 cp s3://s3-careerbee-dev-infra/compose/service /home/ubuntu --recursive
 
 
 echo "[5-1] webhook, fluent-bit 실행"
-export ECR_REGISTRY=${ECR_REGISTRY}
-export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
 cd /home/ubuntu && docker compose up -d --build
 
 ####################################################################################################################
@@ -114,11 +115,7 @@ echo "[10] ECR latest 이미지 기반 프론트/백엔드 실행"
 aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
   | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
-docker pull "${ECR_REGISTRY}/frontend:latest"
-docker pull "${ECR_REGISTRY}/backend:latest"
-
 cd /home/ubuntu/deploy
-export TAG=latest
 docker compose --env-file /home/ubuntu/.env up -d
 docker ps # debug
 ####################################################################################################################

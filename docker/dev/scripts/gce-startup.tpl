@@ -1,6 +1,9 @@
 #!/bin/bash
 # set -e
 export DEBIAN_FRONTEND=noninteractive # 비대화 모드
+export ECR_REGISTRY=${ECR_REGISTRY}
+export TAG=latest
+export MOUNT_DIR=${MOUNT_DIR}
 
 echo "[1] APT 업데이트 및 시간대 설정"
 apt update -y && apt upgrade -y
@@ -118,11 +121,6 @@ echo "[7] ECR 최신 이미지 기반 AI 실행"
 aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
   | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
-docker pull "${ECR_REGISTRY}/ai-server:latest"
-
-export ECR_REGISTRY=${ECR_REGISTRY}
-export TAG=latest
-export MOUNT_DIR=${MOUNT_DIR}
 cd /home/ubuntu/deploy
 docker compose --env-file /home/ubuntu/.env up -d
 docker ps # debug

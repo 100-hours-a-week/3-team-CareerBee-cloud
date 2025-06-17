@@ -1,6 +1,9 @@
 #!/bin/bash
 # set -e
 export DEBIAN_FRONTEND=noninteractive # 비대화 모드
+export DB_NAME=${DB_NAME}
+export DB_USERNAME=${DB_USERNAME}
+export DB_PASSWORD=${DB_PASSWORD}
 
 echo "[0] SSH 키 추가"
 mkdir -p /home/ubuntu/.ssh
@@ -43,9 +46,6 @@ aws s3 cp s3://s3-careerbee-dev-infra/compose/db /home/ubuntu --recursive
 chown -R 999:999 /home/ubuntu/mysql
 
 echo "[5-1] Mysql, fluent-bit 실행"
-export DB_NAME=${DB_NAME}
-export DB_USERNAME=${DB_USERNAME}
-export DB_PASSWORD=${DB_PASSWORD}
 cd /home/ubuntu
 docker compose up -d
 
