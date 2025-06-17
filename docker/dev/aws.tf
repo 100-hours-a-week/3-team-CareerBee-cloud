@@ -100,6 +100,8 @@ resource "aws_instance" "openvpn" {
   user_data = templatefile("${path.module}/scripts/ec2-openvpn-setup.tpl", {
     openvpn_pw   = var.openvpn_pw
   })
+
+  depends_on = [module.aws_vpc]
   
   tags = {
     Name = "ec2-${var.prefix}-azone-openvpn"
@@ -183,7 +185,7 @@ resource "aws_instance" "service_azone" {
     AWS_DEFAULT_REGION        = var.AWS_DEFAULT_REGION
     DEV_TFVARS_ENC_PW         = var.DEV_TFVARS_ENC_PW
   })
-
+  depends_on = [module.aws_vpc]
 
   tags = {
     Name = "ec2-${var.prefix}-azone-service"
@@ -258,7 +260,7 @@ resource "aws_instance" "db_azone" {
     DB_USERNAME               = var.DB_USERNAME
     DB_PASSWORD               = var.DB_PASSWORD
   })    
-
+  depends_on = [module.aws_vpc]
   
   tags = {
     Name = "ec2-${var.prefix}-azone-db"

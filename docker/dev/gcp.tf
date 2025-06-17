@@ -109,7 +109,8 @@ EOT
       DEV_TFVARS_ENC_PW     = var.DEV_TFVARS_ENC_PW
     })
   }
-
+  depends_on = [module.gcp_vpc]
+  
   tags = ["gce-careerbee-dev"]
 }
 ########################################################################
