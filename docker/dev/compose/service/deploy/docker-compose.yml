@@ -2,14 +2,18 @@ services:
   frontend:
     image: ${ECR_REGISTRY}/frontend:${TAG}
     container_name: frontend
+    platform: linux/amd64
     ports:
       - "3000:3000"
     volumes:
-      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - /home/ubuntu/log:/var/log/app
-    entrypoint: ["/bin/sh", "-c"]
-    command: >
-      nginx -g 'daemon off;' 2>&1 | tee /var/log/app/nginx.log
+      - /home/ubunt/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /home/ubunt/log:/var/log/app
+    command: ["nginx", "-g", "daemon off;"]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     restart: always
     env_file:
       - /home/ubuntu/.env
@@ -17,23 +21,29 @@ services:
   backend:
     image: ${ECR_REGISTRY}/backend:${TAG}
     container_name: backend
+    platform: linux/amd64
     ports:
       - "8080:8080"
     volumes:
       - /home/ubuntu/scouter:/scouter
-      - /home/ubuntu/log:/var/log/app
-    environment:
-      - JAVA_TOOL_OPTIONS=-Dspring.profiles.active=dev \
-        -javaagent:/scouter/agent.java/scouter.agent.jar \
-        -Dscouter.config=/scouter/agent.java/conf/scouter.conf \
-        -Dobj_name=careerbee-api \
-        -Duser.timezone=Asia/Seoul \
-        --add-opens java.base/java.lang=ALL-UNNAMED \
-        --add-exports java.base/sun.net=ALL-UNNAMED \
-        -Djdk.attach.allowAttachSelf=true
-    entrypoint: ["/bin/sh", "-c"]
-    command: >
-      "java $JAVA_TOOL_OPTIONS -jar careerbee.jar 2>&1 | tee /var/log/app/backend.log"
+      - /home/ubunt/log:/var/log/app
+    command: [
+      "java",
+      "-Dspring.profiles.active=dev",
+      "-javaagent:/scouter/agent.java/scouter.agent.jar",
+      "-Dscouter.config=/scouter/agent.java/conf/scouter.conf",
+      "-Dobj_name=careerbee-api",
+      "-Duser.timezone=Asia/Seoul",
+      "--add-opens", "java.base/java.lang=ALL-UNNAMED",
+      "--add-exports", "java.base/sun.net=ALL-UNNAMED",
+      "-Djdk.attach.allowAttachSelf=true",
+      "-jar", "careerbee-api.jar"
+    ]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     restart: always
     env_file:
       - /home/ubuntu/.env
