@@ -13,7 +13,6 @@ services:
       - /home/ubuntu/mysql/data:/var/lib/mysql
       - /home/ubuntu/mysql/conf:/etc/mysql/conf.d
       - /home/ubuntu/log:/var/log/mysql
-    command: --default-authentication-plugin=mysql_native_password
     restart: always
 
   fluent-bit:
