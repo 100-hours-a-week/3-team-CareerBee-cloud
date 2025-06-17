@@ -184,7 +184,6 @@ resource "aws_instance" "service_azone" {
     DEV_TFVARS_ENC_PW         = var.DEV_TFVARS_ENC_PW
   })
 
-  depends_on = [module.vpn]
 
   tags = {
     Name = "ec2-${var.prefix}-azone-service"
@@ -260,7 +259,6 @@ resource "aws_instance" "db_azone" {
     DB_PASSWORD               = var.DB_PASSWORD
   })    
 
-  depends_on = [module.vpn]
   
   tags = {
     Name = "ec2-${var.prefix}-azone-db"
