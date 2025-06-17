@@ -4,6 +4,8 @@ export DEBIAN_FRONTEND=noninteractive # 비대화 모드
 export ECR_REGISTRY=${ECR_REGISTRY}
 export TAG=latest
 export MOUNT_DIR=${MOUNT_DIR}
+export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
 
 echo "[1] APT 업데이트 및 시간대 설정"
 apt update -y && apt upgrade -y
@@ -106,12 +108,12 @@ source /home/ubuntu/.env
 set +a
 
 # compose 폴더 다운로드
-mkdir -p /home/ubuntu/compose/gce
-aws s3 cp s3://s3-careerbee-dev-infra/compose/gce /home/ubuntu --recursive
-ls -l /home/ubuntu #debug
+mkdir -p ${MOUNT_DIR}/compose/gce
+aws s3 cp s3://s3-careerbee-dev-infra/compose/gce ${MOUNT_DIR} --recursive
+ls -l ${MOUNT_DIR} #debug
 
 echo "[6-1] fluent-bit 실행"
-cd /home/ubuntu
+cd ${MOUNT_DIR}
 docker compose up -d
 
 ####################################################################################################################
@@ -121,8 +123,8 @@ echo "[7] ECR 최신 이미지 기반 AI 실행"
 aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
   | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
-cd /home/ubuntu/deploy
-docker compose --env-file /home/ubuntu/.env up -d
+cd ${MOUNT_DIR}/deploy
+docker compose up -d
 docker ps # debug
 
 echo "[8] SSM에 상태 기록"
