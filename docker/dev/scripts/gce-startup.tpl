@@ -118,8 +118,11 @@ echo "[7] ECR 최신 이미지 기반 AI 실행"
 aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
   | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
-docker pull "${ECR_REGISTRY}/ai-server:latest" 
+docker pull "${ECR_REGISTRY}/ai-server:latest"
 
+export ECR_REGISTRY=${ECR_REGISTRY}
+export TAG=latest
+export MOUNT_DIR=${MOUNT_DIR}
 cd /home/ubuntu/deploy
 docker compose --env-file /home/ubuntu/.env up -d
 docker ps # debug
