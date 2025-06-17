@@ -126,19 +126,26 @@ resource "aws_security_group" "sg_service" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = [var.aws_vpc_cidr, var.gcp_vpc_cidr]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = [var.aws_vpc_cidr]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
     from_port   = 3000
     to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 3306
+    to_port     = 3306
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -177,6 +184,7 @@ resource "aws_instance" "service_azone" {
   key_name                    = aws_key_pair.key.key_name
   iam_instance_profile        = aws_iam_instance_profile.ec2_instance_profile.name
   security_groups             = [aws_security_group.sg_service.id]
+  private_ip                  = "192.168.110.10"
 
   user_data = templatefile("${path.module}/scripts/ec2-service-setup.tpl", {
     public_nopass_key_base64  = var.public_nopass_key_base64
@@ -224,7 +232,13 @@ resource "aws_security_group" "sg_db" {
   vpc_id      = module.aws_vpc.vpc_id
 
   ingress {
-    description     = "Allow MySQL from EC2 instances"
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  # EC2가 속한 SG
+  }
+
+  ingress {
     from_port       = 3306
     to_port         = 3306
     protocol        = "tcp"
@@ -251,6 +265,7 @@ resource "aws_instance" "db_azone" {
   key_name                    = aws_key_pair.key.key_name
   iam_instance_profile        = aws_iam_instance_profile.ec2_instance_profile.name
   security_groups             = [aws_security_group.sg_db.id]
+  private_ip                  = "192.168.210.10"
 
   user_data = templatefile("${path.module}/scripts/ec2-db-setup.tpl", {
     public_nopass_key_base64  = var.public_nopass_key_base64
