@@ -38,10 +38,10 @@ wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudfla
 dpkg -i cloudflared-linux-amd64.deb
 
 echo "[6] Cloudflare 실행"
-aws s3 cp s3://s3-careerbee-dev-infra/.cloudflared /home/ubuntu/.cloudflared --recursive
+aws s3 cp s3://s3-careerbee-dev-infra/.cloudflared ~/.cloudflared --recursive
 mkdir -p /etc/cloudflared
-cp /home/ubuntu/.cloudflared/* /etc/cloudflared/
-rm -rf /home/ubuntu/.cloudflared
+cp ~/.cloudflared/* /etc/cloudflared/
+rm -rf ~/.cloudflared
 
 cloudflared service install
 systemctl enable cloudflared
