@@ -33,7 +33,7 @@ curl -fsSL https://get.docker.com | bash
 
 echo "[3] AWS CLI 설치"
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip -q awscliv2.zip
+unzip awscliv2.zip
 ./aws/install > /dev/null 2>&1
 
 echo "[5] WEBHOOK 관련 패키지 설치"
