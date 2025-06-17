@@ -126,7 +126,9 @@ resource "aws_acm_certificate" "careerbee_cert" {
   subject_alternative_names = [
     "www.dev.careerbee.co.kr",
     "api.dev.careerbee.co.kr",
-    "ai.dev.careerbee.co.kr"
+    "ai.dev.careerbee.co.kr",
+    "openvpn.dev.careerbee.co.kr",
+    "webhook.dev.careerbee.co.kr"
   ]
   validation_method = "DNS"
 
