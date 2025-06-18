@@ -20,6 +20,8 @@ services:
         max-size: "10m"
         max-file: "5"
     restart: always
+    networks:
+      - app-network
 
   fluent-bit:
     image: fluent/fluent-bit:latest
@@ -34,3 +36,8 @@ services:
         awslogs-group: fluent-bit
         awslogs-stream: service/fluent-bit
     restart: always
+
+networks:
+  app-network:
+    external: true
+    name: shared-network
