@@ -27,7 +27,7 @@ services:
     image: fluent/fluent-bit:latest
     container_name: fluent-bit
     volumes:
-      - ./fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./fluent-bit/fluent-bit.conf:/etc/fluent-bit/fluent-bit.conf:ro
       - /home/ubuntu/log:/var/log/app:ro
     logging:
       driver: awslogs
