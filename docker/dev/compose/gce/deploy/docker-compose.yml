@@ -23,7 +23,9 @@ services:
       - "8001:8001"
     volumes:
       - ${MOUNT_DIR}/aya-expanse-8b:/model
-
+    networks:
+      - app-network
+      
   ai-server:
     image: ${ECR_REGISTRY}/ai-server:${TAG}
     container_name: ai-server
@@ -32,3 +34,10 @@ services:
       - /home/ubuntu/.env
     ports:
       - "8000:8000"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    external: true
+    name: app-network
