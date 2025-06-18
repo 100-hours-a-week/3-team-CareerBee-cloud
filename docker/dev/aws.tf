@@ -94,7 +94,7 @@ resource "aws_security_group" "sg_openvpn" {
 
 resource "aws_instance" "openvpn" {
   ami                         = "ami-0da165fc7156630d7" # OpenVPN Access Server (5 Connected Devices) / Self-Hosted VPN
-  instance_type               = "t2.small"
+  instance_type               = "t2.medium"
   subnet_id                   = module.aws_vpc.public_subnet_ids[0]
   associate_public_ip_address = true
   key_name                    = aws_key_pair.key.key_name
