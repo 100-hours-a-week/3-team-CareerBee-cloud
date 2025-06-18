@@ -69,7 +69,7 @@ aws s3 cp s3://s3-careerbee-dev-infra/compose/service /home/ubuntu --recursive
 
 echo "[5-1] webhook, fluent-bit 실행"
 # shared network 생성
-docker network create shared-network
+docker network create app-network
 cd /home/ubuntu && docker compose up -d --build
 
 ####################################################################################################################

@@ -40,4 +40,4 @@ services:
 networks:
   app-network:
     external: true
-    name: shared-network
+    name: app-network
