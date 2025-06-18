@@ -45,9 +45,6 @@ region = ${AWS_DEFAULT_REGION}
 output = json
 EOF
 
-echo "[2-2] Docker 설치"
-curl -fsSL https://get.docker.com | bash
-
 echo "[3] UFW 방화벽 열기"
 ufw allow OpenSSH
 ufw allow 8000
@@ -70,7 +67,46 @@ fi
 
 ####################################################################################################################
 
-echo "[5] 가상환경 구성"
+echo "[5] Docker 설치 및 설정"
+curl -fsSL https://get.docker.com | bash
+
+# 2. Docker 중지
+sudo systemctl stop docker
+
+# 3. SSD 디렉토리 준비
+sudo mkdir -p ${MOUNT_DIR}/docker
+
+# 4. 기존 도커 데이터가 있으면 이동
+if [ -d "/var/lib/docker" ] && [ ! -L "/var/lib/docker" ]; then
+  sudo mv /var/lib/docker/* ${MOUNT_DIR}/docker/
+fi
+
+# 5. 도커 설정파일 작성 - 도커 저장소 변경
+sudo mkdir -p /etc/docker
+echo "{
+  \"data-root\": \"${MOUNT_DIR}/docker\"
+}" | sudo tee /etc/docker/daemon.json
+
+# nvidia-container-toolkit 설치
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+&& curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+  sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+  sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+sed -i -e '/experimental/ s/^#//g' /etc/apt/sources.list.d/nvidia-container-toolkit.list
+sudo apt-get update
+export NVIDIA_CONTAINER_TOOLKIT_VERSION=1.17.8-1
+sudo apt-get install -y \
+    nvidia-container-toolkit=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
+    nvidia-container-toolkit-base=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
+    libnvidia-container-tools=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
+    libnvidia-container1=${NVIDIA_CONTAINER_TOOLKIT_VERSION}
+sudo nvidia-ctk runtime configure --runtime=docker
+
+# 6. 도커 시작 및 상태 확인
+sudo systemctl enable docker
+sudo systemctl start docker
+
+echo "[6] 가상환경 구성"
 # Python 설치 완료 대기
 until command -v python3.12 >/dev/null 2>&1; do
   sleep 2
@@ -97,7 +133,7 @@ deactivate
 
 ####################################################################################################################
 
-echo "[6] 환경변수 파일 및 compose 폴더 다운로드"
+echo "[7] 환경변수 파일 및 compose 폴더 다운로드"
 # .env 다운로드 및 실행
 aws s3 cp s3://s3-careerbee-dev-infra/terraform.tfvars.enc ./terraform.tfvars.enc
 openssl version # debug
@@ -118,7 +154,7 @@ docker compose up -d
 
 ####################################################################################################################
 
-echo "[7] ECR 최신 이미지 기반 AI 실행"
+echo "[8] ECR 최신 이미지 기반 AI 실행"
 # Docker 로그인 (필요시, AWS CLI v2 기준)
 aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
   | docker login --username AWS --password-stdin ${ECR_REGISTRY}
@@ -127,7 +163,7 @@ cd ${MOUNT_DIR}/deploy
 docker compose up -d
 docker ps # debug
 
-echo "[8] SSM에 상태 기록"
+echo "[9] SSM에 상태 기록"
 aws ssm put-parameter \
   --name "/careerbee/dev/gce" \
   --value "ready" \
