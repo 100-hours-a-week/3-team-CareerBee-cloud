@@ -47,7 +47,7 @@ def deploy():
         if ai_server_tag:
             print(f"  ↪️ AI 서버: {ai_server_tag}")
         
-        args = ["/deploy/deploy.sh"]
+        args = ["/app/deploy/deploy.sh"]
         args.append(frontend_tag if frontend_tag else "")
         args.append(backend_tag if backend_tag else "")
         args.append(ai_server_tag if ai_server_tag else "")
@@ -70,7 +70,7 @@ def deploy():
 @auth_required
 def db_backup():
     try:
-        subprocess.check_call(["/deploy/db_backup.sh"])
+        subprocess.check_call(["/app/deploy/db_backup.sh"])
         return jsonify({"message": "Backup script executed"}), 200
     except subprocess.CalledProcessError as e:
         return jsonify({"error": f"Backup failed: {e}"}), 500
@@ -80,7 +80,7 @@ def db_backup():
 @auth_required
 def db_restore():
     try:
-        subprocess.check_call(["/deploy/db_restore.sh"])
+        subprocess.check_call(["/app/deploy/db_restore.sh"])
         return jsonify({"message": "Restore script executed"}), 200
     except subprocess.CalledProcessError as e:
         return jsonify({"error": f"Restore failed: {e}"}), 500

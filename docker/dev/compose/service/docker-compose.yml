@@ -5,8 +5,7 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./deploy:/deploy
-      - ./webhook:/webhook
+      - .:/app
       - /home/ubuntu/log:/var/log/app
       - /var/run/docker.sock:/var/run/docker.sock  # 컨테이너 내에서 docker 명령 실행 가능
     command: ["python", "webhook.py"]
@@ -18,7 +17,7 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=${DB_NAME}
       - WEBHOOK_TOKEN=${WEBHOOK_TOKEN}
-    working_dir: /webhook
+    working_dir: /app/webhook
     logging:
       driver: json-file
       options:

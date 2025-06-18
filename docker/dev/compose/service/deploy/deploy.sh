@@ -16,21 +16,23 @@ echo "📍 Region: $AWS_DEFAULT_REGION"
 aws ecr get-login-password --region $AWS_DEFAULT_REGION | \
   docker login --username AWS --password-stdin $ECR_REGISTRY
 
+cd /app/deploy
+
 if [[ -n "$FE_TAG" ]]; then
   FE_IMAGE="$ECR_REGISTRY/frontend:$FE_TAG"
   echo "🚀 프론트 배포: $FE_IMAGE"
   export TAG=$FE_TAG
-  docker-compose stop frontend && \
-  docker-compose pull frontend && \
-  docker-compose up -d frontend
+  docker compose stop frontend && \
+  docker compose pull frontend && \
+  docker compose up -d frontend
 fi
 
 if [[ -n "$BE_TAG" ]]; then
   BE_IMAGE="$ECR_REGISTRY/backend:$BE_TAG"
   export TAG=$BE_TAG
-  docker-compose stop backend && \
-  docker-compose pull && \
-  docker-compose up -d backend
+  docker compose stop backend && \
+  docker compose pull && \
+  docker compose up -d backend
 fi
 
 if [[ -n "$AI_TAG" ]]; then
