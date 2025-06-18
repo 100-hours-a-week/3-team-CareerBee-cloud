@@ -1,14 +1,30 @@
 from flask import Flask, request, jsonify
+from functools import wraps
 import subprocess
 import datetime
+import os
+
+WEBHOOK_TOKEN = os.getenv("WEBHOOK_TOKEN")
+
+def auth_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        auth = request.headers.get("Authorization", "")
+        if not auth.startswith("Bearer ") or auth.split(" ")[1] != WEBHOOK_TOKEN:
+            return jsonify({"error": "Unauthorized"}), 401
+        return f(*args, **kwargs)
+    return wrapper
 
 app = Flask(__name__)
 
+# 헬스 체크
 @app.route('/health-check', methods=['GET'])
 def index():
     return "✅ Webhook server is running", 200
 
+# 배포
 @app.route('/deploy', methods=['POST'])
+@auth_required
 def deploy():
     try:
         data = request.get_json(force=True)
@@ -49,5 +65,25 @@ def deploy():
         print(f"❌ 배포 실패: {e}")
         return jsonify({"error": "❌ 배포 실패", "details": str(e)}), 500
 
+# DB 백업
+@app.route("/db_backup", methods=["GET"])
+@auth_required
+def db_backup():
+    try:
+        subprocess.check_call(["/deploy/db_backup.sh"])
+        return jsonify({"message": "Backup script executed"}), 200
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": f"Backup failed: {e}"}), 500
+
+# DB 복원
+@app.route("/db_restore", methods=["GET"])
+@auth_required
+def db_restore():
+    try:
+        subprocess.check_call(["/deploy/db_restore.sh"])
+        return jsonify({"message": "Restore script executed"}), 200
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": f"Restore failed: {e}"}), 500
+    
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
