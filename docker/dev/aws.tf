@@ -246,7 +246,7 @@ resource "aws_security_group" "sg_db" {
     from_port       = 3306
     to_port         = 3306
     protocol        = "tcp"
-    security_groups = [aws_security_group.sg_service.id, aws_security_group.sg_openvpn.id]  # EC2가 속한 SG
+    security_groups = [aws_security_group.sg_service.id]  # EC2가 속한 SG
   }
 
   egress {
