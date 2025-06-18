@@ -24,7 +24,7 @@ chmod 600 /home/ubuntu/.ssh/id_rsa
 echo "[1] APT 업데이트 및 시간대 설정"
 apt update -y && apt upgrade -y
 timedatectl set-timezone Asia/Seoul
-apt install -y unzip curl wget openssl git python3-pip python3-venv jq
+apt install -y unzip curl wget openssl git python3-pip python3-venv jq mysql-client
 
 ####################################################################################################################
 
@@ -68,6 +68,8 @@ aws s3 cp s3://s3-careerbee-dev-infra/compose/service /home/ubuntu --recursive
 
 
 echo "[5-1] webhook, fluent-bit 실행"
+# shared network 생성
+docker network create shared-network
 cd /home/ubuntu && docker compose up -d --build
 
 ####################################################################################################################
