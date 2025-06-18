@@ -39,12 +39,8 @@ jobs:
         run: |
           source ./terraform.tfvars
 
-          echo "::add-mask::$S3_BUCKET_NAME"
-          echo "::add-mask::$DB_PASSWORD"
-
-          echo "S3_BUCKET_NAME=$S3_BUCKET_NAME" >> $GITHUB_ENV
-          echo "DB_PASSWORD=$DB_PASSWORD" >> $GITHUB_ENV
-          echo "PREFIX=$prefix" >> $GITHUB_ENV
+          echo "::add-mask::$WEBHOOK_TOKEN"
+          echo "WEBHOOK_TOKEN=$WEBHOOK_TOKEN" >> $GITHUB_ENV
 
       - name: /compose upload to S3
         working-directory: ${{ env.TERRAFORM_DIR }}
@@ -153,55 +149,15 @@ jobs:
 
           exit 1
           
-      - name: Get EC2 Instance ID from Name
-        id: ec2
-        run: |
-          INSTANCE_ID=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=ec2-${{ env.PREFIX }}-azone-service" \
-                      "Name=instance-state-name,Values=running" \
-            --query "Reservations[].Instances[].InstanceId" \
-            --output text)
-
-          if [ -z "$INSTANCE_ID" ]; then
-            echo "❌ Instance not found!"
-            exit 1
-          fi
-
-          echo "✅ Found EC2 Instance ID: $INSTANCE_ID"
-          echo "instance_id=$INSTANCE_ID" >> "$GITHUB_OUTPUT"
-
-      - name: Get DB Private IP from EC2 Name
-        id: db
-        run: |
-          DB_PRIVATE_IP=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=ec2-${{ env.PREFIX }}-azone-db" \
-                      "Name=instance-state-name,Values=running" \
-            --query "Reservations[].Instances[].PrivateIpAddress" \
-            --output text)
-
-          if [ -z "$DB_PRIVATE_IP" ]; then
-            echo "❌ DB instance not found!"
-            exit 1
-          fi
-
-          echo "DB Private IP: $DB_PRIVATE_IP"
-          echo "db_ip=$DB_PRIVATE_IP" >> "$GITHUB_OUTPUT"
-          
       - name: DB restore
         run: |
-          LATEST_BACKUP=$(aws s3 ls ${{ env.S3_BUCKET_NAME }}/db/ | sort | tail -n 1 | awk '{print $4}')
-
-          aws ssm send-command \
-            --document-name "AWS-RunShellScript" \
-            --comment "Download from S3 and restore MySQL" \
-            --instance-ids "${{ steps.ec2.outputs.instance_id }}" \
-            --parameters '{
-              "commands": [
-                "aws s3 cp s3://${{ env.S3_BUCKET_NAME }}/db/'"$LATEST_BACKUP"' '"$LATEST_BACKUP"'",
-                "mysql -h ${{ steps.db.outputs.db_ip }} -u root -p${{ env.DB_PASSWORD }} careerbee < '"$LATEST_BACKUP"'"
-              ]
-            }' \
-            --region ap-northeast-2
+          set -e
+          if [[ "$(curl --max-time 5 -s -o /dev/null -w "%{http_code}" https://webhook.dev.careerbee.co.kr/health-check)" == "200" ]]; then
+            curl https://webhook.dev.careerbee.co.kr/db_restore \
+              -H "Authorization: Bearer ${{ env.WEBHOOK_TOKEN }}"
+          else
+            exit 1
+          fi
 
       - name: Notify Discord on Success
         if: success()
