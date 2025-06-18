@@ -86,6 +86,10 @@ resource "aws_security_group" "sg_openvpn" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = {
+    Name = "sg-openvpn-${var.prefix}"
+  }
 }
 
 resource "aws_instance" "openvpn" {
@@ -118,7 +122,7 @@ resource "aws_eip_association" "eip_assoc" {
 # service
 
 resource "aws_security_group" "sg_service" {
-  name        = "SG-${var.prefix}-private"
+  name        = "SG-${var.prefix}-service"
   description = "Allow SSH, HTTP, HTTPS, MySQL, Scouter, FE, BE"
   vpc_id      = module.aws_vpc.vpc_id
 
@@ -172,7 +176,7 @@ resource "aws_security_group" "sg_service" {
   }
 
   tags = {
-    Name = "sg-${var.prefix}"
+    Name = "sg-service-${var.prefix}"
   }
 }
 
@@ -242,7 +246,7 @@ resource "aws_security_group" "sg_db" {
     from_port       = 3306
     to_port         = 3306
     protocol        = "tcp"
-    security_groups = [aws_security_group.sg_service.id]  # EC2가 속한 SG
+    security_groups = [aws_security_group.sg_service.id, aws_security_group.sg_openvpn.id]  # EC2가 속한 SG
   }
 
   egress {
