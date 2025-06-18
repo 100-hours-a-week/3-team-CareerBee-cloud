@@ -181,6 +181,11 @@ variable "DEV_TFVARS_ENC_PW" {
   sensitive   = true
 }
 
+variable "WEBHOOK_TOKEN" {
+  type        = string
+  sensitive   = true
+}
+
 # FE
 
 variable "VITE_KAKAOMAP_KEY" {
@@ -194,6 +199,22 @@ variable "VITE_API_URL" {
 }
 
 variable "VITE_SHOW_UNRELEASED" {
+  type        = string
+}
+
+variable "VITE_COMPETITION_START_HOUR" {
+  type        = string
+}
+
+variable "VITE_COMPETITION_START_MINUTE" {
+  type        = string
+}
+
+variable "VITE_COMPETITION_DURATION_MS" {
+  type        = string
+}
+
+variable "VITE_COMPETITION_AGGREGATE_MS" {
   type        = string
 }
 
