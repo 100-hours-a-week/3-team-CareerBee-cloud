@@ -74,3 +74,25 @@ variable "s3_infra_bucket_tags" {
   description = "Tags for the infrastructure S3 bucket"
   type        = map(string)
 }
+
+
+variable "github_token" {
+  description = "GitHub Personal Access Token"
+  type        = string
+  sensitive   = true
+}
+
+variable "github_repo" {
+  description = "GitHub repo in the form owner/repo"
+  type        = string
+}
+
+variable "workflow_1" {
+  type = string
+  description = "첫 번째 워크플로 파일 이름"
+}
+
+variable "workflow_2" {
+  type = string
+  description = "두 번째 워크플로 파일 이름"
+}
