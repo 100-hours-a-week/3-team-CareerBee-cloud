@@ -65,7 +65,9 @@ set +a
 # deploy 폴더 다운로드
 mkdir -p /home/ubuntu/{deploy,log}
 aws s3 cp s3://s3-careerbee-dev-infra/compose/service /home/ubuntu --recursive
-
+chmod +x /home/ubuntu/deploy/deploy.sh \
+  /home/ubuntu/deploy//db_backup.sh \
+  /home/ubuntu/deploy//db_restore.sh
 
 echo "[5-1] webhook, fluent-bit 실행"
 # shared network 생성
