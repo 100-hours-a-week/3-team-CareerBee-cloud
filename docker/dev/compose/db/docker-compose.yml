@@ -25,6 +25,6 @@ services:
       driver: awslogs
       options:
         awslogs-region: ap-northeast-2
-        awslogs-group: fluent-bit
+        awslogs-group: careerbee/fluent-bit
         awslogs-stream: mysql/fluent-bit
     restart: always
