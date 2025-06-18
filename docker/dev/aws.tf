@@ -239,7 +239,7 @@ resource "aws_security_group" "sg_db" {
     from_port       = 22
     to_port         = 22
     protocol        = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  # EC2가 속한 SG
+    security_groups = [aws_security_group.sg_service.id]  # EC2가 속한 SG
   }
 
   ingress {
