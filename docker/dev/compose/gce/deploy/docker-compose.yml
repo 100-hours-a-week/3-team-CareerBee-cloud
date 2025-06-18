@@ -12,7 +12,6 @@ services:
     environment:
       NVIDIA_VISIBLE_DEVICES: all
     command: [
-      "python3", "-m", "vllm.entrypoints.api_server",
       "--model", "/model",
       "--tokenizer", "/model",
       "--dtype", "bfloat16",
