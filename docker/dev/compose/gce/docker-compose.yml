@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   fluent-bit:
     image: fluent/fluent-bit:latest
@@ -12,6 +10,7 @@ services:
       - ./fluent-bit/fluent-bit.conf:/etc/fluent-bit/fluent-bit.conf:ro
       - ./fluent-bit/trim_log.lua:/etc/fluent-bit/trim_log.lua:ro
       - /home/ubuntu/log:/var/log/app:ro
+      - /var/log:/host/log:ro
     logging:
       driver: awslogs
       options:

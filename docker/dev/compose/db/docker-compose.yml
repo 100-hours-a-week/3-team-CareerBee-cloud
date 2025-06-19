@@ -13,6 +13,11 @@ services:
       - /home/ubuntu/mysql/data:/var/lib/mysql
       - /home/ubuntu/mysql/conf:/etc/mysql/conf.d
       - /home/ubuntu/log:/var/log/mysql
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     restart: always
 
   fluent-bit:
