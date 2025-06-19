@@ -41,7 +41,7 @@ if [[ -n "$AI_TAG" ]]; then
   # 3. AI 서버 원격 배포
   echo "🤖 AI 서버에 SSH 접속하여 배포 시작"
 
-  ssh -i "/home/ubuntu/.ssh/id_rsa" -o StrictHostKeyChecking=no ubuntu@10.0.110.2 <<EOF
+  ssh -T -i "/home/ubuntu/.ssh/id_rsa" -o StrictHostKeyChecking=no ubuntu@10.0.110.10 <<EOF
     echo "🔐 SSH 연결됨, AI 배포 진행 중..."
     sudo -i
 
