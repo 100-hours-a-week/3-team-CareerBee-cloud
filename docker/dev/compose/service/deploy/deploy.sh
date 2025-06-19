@@ -24,7 +24,8 @@ if [[ -n "$FE_TAG" ]]; then
   export TAG=$FE_TAG
   docker compose stop frontend && \
   docker compose pull frontend && \
-  docker compose up -d frontend
+  docker compose up -d frontend && \
+  docker image prune -f
 fi
 
 if [[ -n "$BE_TAG" ]]; then
@@ -32,7 +33,8 @@ if [[ -n "$BE_TAG" ]]; then
   export TAG=$BE_TAG
   docker compose stop backend && \
   docker compose pull && \
-  docker compose up -d backend
+  docker compose up -d backend && \
+  docker image prune -f
 fi
 
 if [[ -n "$AI_TAG" ]]; then
@@ -53,7 +55,8 @@ if [[ -n "$AI_TAG" ]]; then
     cd ${MOUNT_DIR}/deploy && \
     docker compose down ai-server && \
     docker compose pull && \
-    docker compose up -d ai-server
+    docker compose up -d ai-server && \
+    docker image prune -f
 EOF
 fi
 echo "✅ 선택된 서비스 배포 완료"

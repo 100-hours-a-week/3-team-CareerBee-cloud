@@ -12,7 +12,7 @@ fi
 
 echo "🗂️ 최신 백업 파일: $LATEST_BACKUP"
 
-aws s3 cp s3://s3-careerbee-dev-infra/db/$LATEST_BACKUP $LATEST_BACKUP
+aws s3 cp s3://s3-careerbee-dev-infra/db/$LATEST_BACKUP $LATEST_BACKUP # /home/ubuntu/webhook
 
 mysql -h 192.168.210.10 -u "${DB_USERNAME}" -p"${DB_PASSWORD}" ${DB_NAME} < "$LATEST_BACKUP"
 

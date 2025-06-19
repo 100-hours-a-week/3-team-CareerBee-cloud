@@ -7,7 +7,7 @@ TIMESTAMP=$(date +v%Y%m%d%H%M%S)
 BACKUP_FILE="backup-${TIMESTAMP}.sql"
 
 # 1. 백업 덤프 생성
-mysqldump -h 192.168.210.10 -u "${DB_USERNAME}" -p"${DB_PASSWORD}" ${DB_NAME} > "$BACKUP_FILE"
+mysqldump -h 192.168.210.10 -u "${DB_USERNAME}" -p"${DB_PASSWORD}" ${DB_NAME} > "$BACKUP_FILE" # /home/ubuntu/webhook
 
 # 2. S3 업로드
 aws s3 cp "$BACKUP_FILE" s3://s3-careerbee-dev-infra/db/"$BACKUP_FILE"
