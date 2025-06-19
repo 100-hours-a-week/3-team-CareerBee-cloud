@@ -5,6 +5,7 @@ ENV TZ=Asia/Seoul
 RUN apt-get update && \
     apt-get install -y \
         curl unzip awscli \
+        openssh-client \
         default-mysql-client \
         ca-certificates gnupg lsb-release && \
     mkdir -p /etc/apt/keyrings && \
