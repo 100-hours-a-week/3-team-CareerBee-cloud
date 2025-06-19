@@ -48,6 +48,7 @@ if [[ -n "$AI_TAG" ]]; then
     export ECR_REGISTRY=$ECR_REGISTRY
     export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
     export TAG=$AI_TAG
+    export MOUNT_DIR=$MOUNT_DIR
 
     aws ecr get-login-password --region \$AWS_DEFAULT_REGION | \
       docker login --username AWS --password-stdin \$ECR_REGISTRY
