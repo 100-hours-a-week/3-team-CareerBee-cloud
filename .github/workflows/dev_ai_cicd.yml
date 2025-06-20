@@ -11,21 +11,21 @@ jobs:
 
     env:
       COMMIT_HASH: ${{ github.event.client_payload.sha }}
-      BUILD_DEPLOY_DIR: docker/dev/build_deploy
+      BUILD_DEPLOY_DIR: docker/dev/build_deploy/ai
       
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: develop
+
       - name: Checkout AI source
         uses: actions/checkout@v3
         with:
           repository: 100-hours-a-week/3-team-CareerBee-ai
           token: ${{ secrets.DEV_GITHUB_TOKEN }}
           ref: develop
-          path: ${{ env.BUILD_DEPLOY_DIR }}/ai
-
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          ref: develop
+          path: ${{ env.BUILD_DEPLOY_DIR }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v3
@@ -65,7 +65,7 @@ jobs:
           use: true
 
       - name: Build Docker image using ai.Dockerfile & Push ECR
-        working-directory: ${{ env.BUILD_DEPLOY_DIR }}/ai
+        working-directory: ${{ env.BUILD_DEPLOY_DIR }}
         run: |
           docker buildx build \
             --cache-from=type=registry,ref=${{ secrets.DEV_ECR_REGISTRY }}/ai-server:cache \
