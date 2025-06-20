@@ -11,7 +11,8 @@ jobs:
 
     env:
       COMMIT_HASH: ${{ github.event.client_payload.sha }}
-
+      BUILD_DEPLOY_DIR: docker/dev/build_deploy
+      
     steps:
       - name: Checkout BE source
         uses: actions/checkout@v3
@@ -19,7 +20,7 @@ jobs:
           repository: 100-hours-a-week/3-team-CareerBee-be
           token: ${{ secrets.DEV_GITHUB_TOKEN }}
           ref: develop
-          path: build_deploy/be
+          path: ${{ env.BUILD_DEPLOY_DIR }}/be
       
       - name: Checkout code
         uses: actions/checkout@v3
@@ -64,7 +65,7 @@ jobs:
           use: true
 
       - name: Build Docker image using be.Dockerfile & Push to ECR
-        working-directory: docker/dev/build_deploy/be
+        working-directory: ${{ env.BUILD_DEPLOY_DIR }}/be
         run: |
           docker buildx build \
             --cache-from=type=registry,ref=${{ secrets.DEV_ECR_REGISTRY }}/backend:cache \

@@ -11,7 +11,8 @@ jobs:
 
     env:
       COMMIT_HASH: ${{ github.event.client_payload.sha }}
-
+      BUILD_DEPLOY_DIR: docker/dev/build_deploy
+      
     steps:
       - name: Checkout FE source
         uses: actions/checkout@v3
@@ -19,7 +20,7 @@ jobs:
           repository: 100-hours-a-week/3-team-CareerBee-fe
           token: ${{ secrets.DEV_GITHUB_TOKEN }}
           ref: develop
-          path: build_deploy/fe
+          path: ${{ env.BUILD_DEPLOY_DIR }}/fe
       
       - name: Checkout code
         uses: actions/checkout@v3
@@ -64,7 +65,7 @@ jobs:
           use: true
 
       - name: Download .env from S3 & Build Docker image using fe.Dockerfile & Push to ECR
-        working-directory: docker/dev/build_deploy/fe
+        working-directory: ${{ env.BUILD_DEPLOY_DIR }}/fe
         run: |
           aws s3 cp s3://${{ secrets.DEV_S3_INFRA_NAME }}/terraform.tfvars.enc terraform.tfvars.enc
           openssl aes-256-cbc -d -salt -pbkdf2 -in terraform.tfvars.enc -out .env -k "${{ secrets.DEV_TFVARS_ENC_PW }}"
