@@ -724,28 +724,28 @@ resource "aws_wafv2_web_acl" "web_acl" {
     }
   }
 
-  # Geo Match 규칙 
-  rule {
-    name     = "AllowOnlyKR"
-    priority = 3
-    action {
-      block {}
-    }
-    statement {
-      not_statement {
-        statement {
-          geo_match_statement {
-            country_codes = ["KR"]
-          }
-        }
-      }
-    }
-    visibility_config {
-      cloudwatch_metrics_enabled = true
-      metric_name                = "AllowOnlyKR"
-      sampled_requests_enabled   = true
-    }
-  }
+  # # Geo Match 규칙 
+  # rule {
+  #   name     = "AllowOnlyKR"
+  #   priority = 3
+  #   action {
+  #     block {}
+  #   }
+  #   statement {
+  #     not_statement {
+  #       statement {
+  #         geo_match_statement {
+  #           country_codes = ["KR"]
+  #         }
+  #       }
+  #     }
+  #   }
+  #   visibility_config {
+  #     cloudwatch_metrics_enabled = true
+  #     metric_name                = "AllowOnlyKR"
+  #     sampled_requests_enabled   = true
+  #   }
+  # }
 
   tags = {
     Name = "waf-${var.prefix}-acl"
