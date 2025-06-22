@@ -573,3 +573,94 @@ resource "aws_route53_record" "openvpn_dev_alb" {
     evaluate_target_health = true
   }
 }
+
+########################################################################
+
+# WAF
+
+resource "aws_wafv2_web_acl" "web_acl" {
+  name        = "waf-${var.prefix}-acl"
+  description = "WafACL for CareerBee"
+  scope       = "REGIONAL"
+  default_action {
+    allow {}
+  }
+  
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "careerbeeWebACL"
+    sampled_requests_enabled   = true
+  }
+
+  # AWS에서 제공하는 보안 규칙 모음
+  rule {
+    name     = "AWSManagedRulesCommonRuleSet"
+    priority = 1
+    override_action {
+      none {}
+    }
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AWSCommon"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Rate Limiting 규칙
+  rule {
+    name     = "RateLimitPerIP"
+    priority = 2
+    action {
+      block {}
+    }
+    statement {
+      rate_based_statement {
+        limit              = 2000
+        aggregate_key_type = "IP"
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "RateLimit"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Geo Match 규칙 
+  rule {
+    name     = "AllowOnlyKR"
+    priority = 3
+    action {
+      block {}
+    }
+    statement {
+      not_statement {
+        statement {
+          geo_match_statement {
+            country_codes = ["KR"]
+          }
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AllowOnlyKR"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  tags = {
+    Name = "waf-${var.prefix}-acl"
+  }
+}
+
+resource "aws_wafv2_web_acl_association" "waf_to_alb" {
+  resource_arn = aws_lb.alb.arn
+  web_acl_arn  = aws_wafv2_web_acl.web_acl.arn
+}
