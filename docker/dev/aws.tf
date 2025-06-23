@@ -309,64 +309,64 @@ resource "aws_instance" "db_azone" {
 
 # AutoScaling
 
-resource "aws_launch_template" "service_lt" {
-  name_prefix   = "lt-${var.prefix}-service"
-  image_id      = "ami-0d5bb3742db8fc264"
-  instance_type = "t3.medium"
-  key_name      = aws_key_pair.key.key_name
+# resource "aws_launch_template" "service_lt" {
+#   name_prefix   = "lt-${var.prefix}-service"
+#   image_id      = "ami-0d5bb3742db8fc264"
+#   instance_type = "t3.medium"
+#   key_name      = aws_key_pair.key.key_name
 
-  iam_instance_profile {
-    name = aws_iam_instance_profile.ec2_instance_profile.name
-  }
+#   iam_instance_profile {
+#     name = aws_iam_instance_profile.ec2_instance_profile.name
+#   }
 
-  vpc_security_group_ids = [aws_security_group.sg_service.id]
+#   vpc_security_group_ids = [aws_security_group.sg_service.id]
 
-  user_data = base64encode(templatefile("${path.module}/scripts/ec2-service-setup.tpl", {
-    public_nopass_key_base64  = var.public_nopass_key_base64
-    SSH_KEY_BASE64_NOPASS     = var.SSH_KEY_BASE64_NOPASS
-    ECR_REGISTRY              = var.ECR_REGISTRY
-    AWS_DEFAULT_REGION        = var.AWS_DEFAULT_REGION
-    DEV_TFVARS_ENC_PW         = var.DEV_TFVARS_ENC_PW
-  }))
+#   user_data = base64encode(templatefile("${path.module}/scripts/ec2-service-setup.tpl", {
+#     public_nopass_key_base64  = var.public_nopass_key_base64
+#     SSH_KEY_BASE64_NOPASS     = var.SSH_KEY_BASE64_NOPASS
+#     ECR_REGISTRY              = var.ECR_REGISTRY
+#     AWS_DEFAULT_REGION        = var.AWS_DEFAULT_REGION
+#     DEV_TFVARS_ENC_PW         = var.DEV_TFVARS_ENC_PW
+#   }))
 
-  lifecycle {
-    create_before_destroy = true
-  }
+#   lifecycle {
+#     create_before_destroy = true
+#   }
 
-  tag_specifications {
-    resource_type = "instance"
+#   tag_specifications {
+#     resource_type = "instance"
 
-    tags = {
-      Name = "ec2-${var.prefix}-service-asg"
-    }
-  }
-}
+#     tags = {
+#       Name = "ec2-${var.prefix}-service-asg"
+#     }
+#   }
+# }
 
-resource "aws_autoscaling_group" "service_asg" {
-  name                      = "asg-${var.prefix}-service"
-  desired_capacity          = 0
-  min_size                  = 0
-  max_size                  = 4
-  vpc_zone_identifier       = [module.aws_vpc.private_subnet_ids[0], module.aws_vpc.private_subnet_ids[1]]
-  health_check_type         = "EC2"
-  health_check_grace_period = 300
-  force_delete              = true
+# resource "aws_autoscaling_group" "service_asg" {
+#   name                      = "asg-${var.prefix}-service"
+#   desired_capacity          = 0
+#   min_size                  = 0
+#   max_size                  = 4
+#   vpc_zone_identifier       = [module.aws_vpc.private_subnet_ids[0], module.aws_vpc.private_subnet_ids[1]]
+#   health_check_type         = "EC2"
+#   health_check_grace_period = 300
+#   force_delete              = true
 
-  launch_template {
-    id      = aws_launch_template.service_lt.id
-    version = "$Latest"
-  }
+#   launch_template {
+#     id      = aws_launch_template.service_lt.id
+#     version = "$Latest"
+#   }
 
-  target_group_arns = [aws_lb_target_group.nginx_target_group.arn]
+#   target_group_arns = [aws_lb_target_group.nginx_target_group.arn]
 
-  tag {
-    key                 = "Name"
-    value               = "asg-${var.prefix}-service"
-    propagate_at_launch = true
-  }
+#   tag {
+#     key                 = "Name"
+#     value               = "asg-${var.prefix}-service"
+#     propagate_at_launch = true
+#   }
 
-  depends_on = [aws_lb_target_group.nginx_target_group]
-}
+#   depends_on = [aws_lb_target_group.nginx_target_group]
+# }
 
 # resource "aws_autoscaling_policy" "scale_on_cpu" {
 #   name                   = "scale-on-cpu-${var.prefix}"
