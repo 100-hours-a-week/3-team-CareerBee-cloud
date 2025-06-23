@@ -3,7 +3,8 @@ set -e
 
 echo "[1] OpenVPN 새로 초기화"
 if [ ! -f /usr/local/openvpn_as/etc/as.conf ]; then
-  yes "yes" | /usr/local/openvpn_as/bin/ovpn-init --force
+  aws s3 cp s3://s3-careerbee-infra/openvpn/ /usr/local/openvpn_as/etc/ --recursive
+  sudo chown -R openvpnas:openvpnas /usr/local/openvpn_as/etc/
 fi
 
 echo "[2] 관리자 계정 설정"
