@@ -10,7 +10,7 @@ unzip awscliv2.zip
 
 echo "[2] OpenVPN 새로 초기화"
 if [ ! -f /usr/local/openvpn_as/etc/as.conf ]; then
-  aws s3 cp s3://s3-careerbee-infra/openvpn/ /usr/local/openvpn_as/etc/ --recursive
+  aws s3 cp s3://s3-careerbee-dev-infra/openvpn/ /usr/local/openvpn_as/etc/ --recursive
   sudo chown -R openvpnas:openvpnas /usr/local/openvpn_as/etc/
 fi
 
