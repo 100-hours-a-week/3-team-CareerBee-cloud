@@ -20,6 +20,21 @@ services:
         max-file: "5"
     restart: always
 
+  redis:
+    image: redis:6.2.14
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - /home/ubuntu/redis/data:/data
+      - /home/ubuntu/log:/var/log/redis
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    restart: always
+
   fluent-bit:
     image: fluent/fluent-bit:latest
     container_name: fluent-bit
