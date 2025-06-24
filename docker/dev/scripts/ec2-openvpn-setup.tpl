@@ -9,8 +9,25 @@ unzip awscliv2.zip
 ./aws/install
 
 echo "[2] OpenVPN 복원"
+rm -rf /usr/local/openvpn_as/etc/as_templ.conf \
+             /usr/local/openvpn_as/etc/as.conf \
+             /usr/local/openvpn_as/etc/cacert.pem \
+             /usr/local/openvpn_as/etc/config-local.json \
+             /usr/local/openvpn_as/etc/config.json \
+             /usr/local/openvpn_as/etc/db \
+             /usr/local/openvpn_as/etc/exe \
+             /usr/local/openvpn_as/etc/licenses \
+             /usr/local/openvpn_as/etc/PLATFORM \
+             /usr/local/openvpn_as/etc/tmp \
+             /usr/local/openvpn_as/etc/upgrade-flags \
+             /usr/local/openvpn_as/etc/VERSION \
+             /usr/local/openvpn_as/etc/web-ssl \
+             /usr/local/openvpn_as/etc/.ldat
+
 aws s3 cp s3://s3-careerbee-dev-infra/openvpn/ /usr/local/openvpn_as/etc/ --recursive
-sudo chown -R openvpnas:openvpnas /usr/local/openvpn_as/etc/
+mkdir -p /usr/local/openvpn_as/etc/sock
+mkdir -p /usr/local/openvpn_as/etc/tmp
+chown -R openvpnas:openvpnas /usr/local/openvpn_as/etc/
 
 echo "[3] 관리자 계정 설정"
 /usr/local/openvpn_as/scripts/sacli --user openvpn --key "type" --value "admin" UserPropPut
