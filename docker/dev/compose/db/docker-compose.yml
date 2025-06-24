@@ -12,14 +12,15 @@ services:
     volumes:
       - /home/ubuntu/mysql/data:/var/lib/mysql
       - /home/ubuntu/mysql/conf:/etc/mysql/conf.d
-      - /home/ubuntu/log:/var/log/mysql
     logging:
-      driver: json-file
+      driver: fluentd
       options:
-        max-size: "10m"
-        max-file: "5"
+        fluentd-address: fluent-bit:24224
+        tag: db/{{.Name}}
     restart: always
-
+    networks:
+      - app-network
+      
   redis:
     image: redis:6.2.14
     container_name: redis
@@ -27,24 +28,25 @@ services:
       - "6379:6379"
     volumes:
       - /home/ubuntu/redis/data:/data
-      - /home/ubuntu/log:/var/log/redis
     logging:
-      driver: json-file
+      driver: fluentd
       options:
-        max-size: "10m"
-        max-file: "5"
+        fluentd-address: fluent-bit:24224
+        tag: db/{{.Name}}
     restart: always
+    networks:
+      - app-network
 
   fluent-bit:
     image: fluent/fluent-bit:latest
     container_name: fluent-bit
     volumes:
       - ./fluent-bit/fluent-bit.conf:/etc/fluent-bit/fluent-bit.conf:ro
-      - /home/ubuntu/log:/var/log/app:ro
-    logging:
-      driver: awslogs
-      options:
-        awslogs-region: ap-northeast-2
-        awslogs-group: careerbee/fluent-bit
-        awslogs-stream: mysql/fluent-bit
+      - /var/log:/var/log:ro
     restart: always
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
