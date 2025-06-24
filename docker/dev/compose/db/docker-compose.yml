@@ -17,6 +17,8 @@ services:
         fluentd-address: localhost:24224
         tag: db/{{.Name}}
     restart: always
+    depends_on:
+      - fluent-bit
       
   redis:
     image: redis:6.2.14
@@ -30,6 +32,8 @@ services:
         fluentd-address: localhost:24224
         tag: db/{{.Name}}
     restart: always
+    depends_on:
+      - fluent-bit
 
   fluent-bit:
     image: fluent/fluent-bit:latest
