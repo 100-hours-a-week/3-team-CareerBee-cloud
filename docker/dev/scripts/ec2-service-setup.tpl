@@ -115,7 +115,8 @@ aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
   | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
 cd /home/ubuntu
-docker compose --env-file /home/ubuntu/.env up -d --build
+docker compose up -d fluent-bit
+docker compose --env-file /home/ubuntu/.env up -d --build frontend backend nginx webhook
 docker ps # debug
 ####################################################################################################################
 

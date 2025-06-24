@@ -45,9 +45,10 @@ mkdir -p /home/ubuntu/{log,mysql/data}
 aws s3 cp s3://s3-careerbee-dev-infra/compose/db /home/ubuntu --recursive
 chown -R 999:999 /home/ubuntu/mysql
 
-echo "[5-1] Mysql, fluent-bit 실행"
+echo "[5-1] Mysql, Redis, fluent-bit 실행"
 cd /home/ubuntu
-docker compose up -d
+docker compose up -d fluent-bit
+docker compose up -d mysql redis
 
 ####################################################################################################################
 
