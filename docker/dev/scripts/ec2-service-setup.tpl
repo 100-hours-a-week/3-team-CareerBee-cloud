@@ -70,8 +70,6 @@ chmod +x /home/ubuntu/deploy/deploy.sh \
   /home/ubuntu/deploy//db_restore.sh
 
 echo "[5-1] webhook, fluent-bit 실행"
-# shared network 생성
-docker network create app-network
 cd /home/ubuntu && docker compose up -d --build
 
 ####################################################################################################################

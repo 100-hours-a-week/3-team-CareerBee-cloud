@@ -150,7 +150,6 @@ ls -l ${MOUNT_DIR} #debug
 
 echo "[6-1] fluent-bit 실행"
 cd ${MOUNT_DIR}
-docker network create app-network
 docker compose up -d
 
 ####################################################################################################################

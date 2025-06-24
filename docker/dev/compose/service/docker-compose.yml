@@ -2,8 +2,7 @@ services:
   webhook:
     build: ./webhook
     container_name: webhook
-    ports:
-      - "5000:5000"
+    network_mode: host
     volumes:
       - .:/app
       - /home/ubuntu/.env:/home/ubuntu/.env:ro
@@ -19,26 +18,20 @@ services:
       - DB_NAME=${DB_NAME}
       - WEBHOOK_TOKEN=${WEBHOOK_TOKEN}
     working_dir: /app/webhook
+    restart: always
+    depends_on:
+      - fluent-bit
     logging:
       driver: fluentd
       options:
-        fluentd-address: fluent-bit:24224
+        fluentd-address: localhost:24224
         tag: service/{{.Name}}
-    restart: always
-    networks:
-      - app-network
 
   fluent-bit:
     image: fluent/fluent-bit:latest
     container_name: fluent-bit
+    network_mode: host
     volumes:
-      - ./fluent-bit/fluent-bit.conf:/etc/fluent-bit/fluent-bit.conf:ro
-      - /var/log:/var/log:ro
+      - ./fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - /var/log/cloud-init-output.log:/var/log/cloud-init-output.log:ro
     restart: always
-    networks:
-      - app-network
-
-networks:
-  app-network:
-    external: true
-    name: app-network

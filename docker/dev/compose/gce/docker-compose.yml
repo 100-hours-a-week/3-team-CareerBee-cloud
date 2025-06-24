@@ -2,19 +2,13 @@ services:
   fluent-bit:
     image: fluent/fluent-bit:latest
     container_name: fluent-bit
+    network_mode: host
     environment:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_DEFAULT_REGION=ap-northeast-2
     volumes:
-      - ./fluent-bit/fluent-bit.conf:/etc/fluent-bit/fluent-bit.conf:ro
-      - ./fluent-bit/trim_log.lua:/etc/fluent-bit/trim_log.lua:ro
-      - /var/log:/var/log:ro
+      - ./fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./fluent-bit/trim_log.lua:/fluent-bit/etc/trim_log.lua:ro
+      - /var/log/syslog:/var/log/syslog:ro
     restart: always
-    networks:
-      - app-network
-
-networks:
-  app-network:
-    external: true
-    name: app-network

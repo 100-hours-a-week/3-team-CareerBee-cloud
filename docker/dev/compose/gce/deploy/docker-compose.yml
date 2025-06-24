@@ -2,6 +2,7 @@ services:
   vllm:
     image: vllm/vllm-openai:latest
     container_name: vllm
+    network_mode: host
     restart: always
     runtime: nvidia
     deploy:
@@ -19,35 +20,23 @@ services:
       "--port", "8001",
       "--gpu-memory-utilization", "0.85"
     ]
-    ports:
-      - "8001:8001"
     volumes:
       - ${MOUNT_DIR}/aya-expanse-8b:${MOUNT_DIR}/aya-expanse-8b
     logging:
       driver: fluentd
       options:
-        fluentd-address: fluent-bit:24224
+        fluentd-address: localhost:24224
         tag: gce/{{.Name}}
-    networks:
-      - app-network
       
   ai-server:
     image: ${ECR_REGISTRY}/ai-server:${TAG}
     container_name: ai-server
+    network_mode: host
     restart: always
     env_file:
       - /home/ubuntu/.env
-    ports:
-      - "8000:8000"
     logging:
       driver: fluentd
       options:
-        fluentd-address: fluent-bit:24224
+        fluentd-address: localhost:24224
         tag: gce/{{.Name}}
-    networks:
-      - app-network
-
-networks:
-  app-network:
-    external: true
-    name: app-network
