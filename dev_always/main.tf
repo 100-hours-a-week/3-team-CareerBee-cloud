@@ -185,14 +185,6 @@ resource "aws_route53_record" "cert_validation_records" {
 
 ##########################################################################################################
 
-# cloudwatch
-resource "aws_cloudwatch_log_group" "fluent-bit" {
-  name              = "careerbee/fluent-bit"
-  retention_in_days = 3
-}
-
-##########################################################################################################
-
 # lambda
 resource "aws_iam_role" "lambda_exec" {
   name = "lambda-github-trigger-role"
