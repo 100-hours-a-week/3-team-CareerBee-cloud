@@ -1,4 +1,13 @@
 services:
+  fluent-bit:
+    image: fluent/fluent-bit:latest
+    container_name: fluent-bit
+    network_mode: host
+    volumes:
+      - ./fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - /var/log/cloud-init-output.log:/var/log/cloud-init-output.log:ro
+    restart: always
+
   webhook:
     build: ./webhook
     container_name: webhook
@@ -27,11 +36,68 @@ services:
         fluentd-address: localhost:24224
         tag: service/{{.Name}}
 
-  fluent-bit:
-    image: fluent/fluent-bit:latest
-    container_name: fluent-bit
+  nginx:
+    image: nginx:latest
+    container_name: nginx
     network_mode: host
     volumes:
-      - ./fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
-      - /var/log/cloud-init-output.log:/var/log/cloud-init-output.log:ro
+      - /home/ubuntu/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: service/{{.Name}}
+    depends_on:
+      - frontend
+      - backend
+
+  frontend:
+    image: ${ECR_REGISTRY}/frontend:${TAG}
+    container_name: frontend
+    network_mode: host
+    platform: linux/amd64
+    expose:
+      - "80"
+    volumes:
+      - /home/ubuntu/nginx/nginx.frontend.conf:/etc/nginx/conf.d/default.conf
+    command: ["nginx", "-g", "daemon off;"]
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: service/{{.Name}}
     restart: always
+    depends_on:
+      - fluent-bit
+
+  backend:
+    image: ${ECR_REGISTRY}/backend:${TAG}
+    container_name: backend
+    network_mode: host
+    platform: linux/amd64
+    expose:
+      - "8080"
+    volumes:
+      - /home/ubuntu/scouter:/scouter
+    command: [
+      "java",
+      "-Dspring.profiles.active=dev",
+      "-javaagent:/scouter/agent.java/scouter.agent.jar",
+      "-Dscouter.config=/scouter/agent.java/conf/scouter.conf",
+      "-Dobj_name=careerbee-api",
+      "-Duser.timezone=Asia/Seoul",
+      "--add-opens", "java.base/java.lang=ALL-UNNAMED",
+      "--add-exports", "java.base/sun.net=ALL-UNNAMED",
+      "-Djdk.attach.allowAttachSelf=true",
+      "-jar", "careerbee-api.jar"
+    ]
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: service/{{.Name}}
+    restart: always
+    env_file:
+      - /home/ubuntu/.env
+    depends_on:
+      - fluent-bit

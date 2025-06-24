@@ -16,7 +16,7 @@ echo "📍 Region: $AWS_DEFAULT_REGION"
 aws ecr get-login-password --region $AWS_DEFAULT_REGION | \
   docker login --username AWS --password-stdin $ECR_REGISTRY
 
-cd /app/deploy
+cd /app
 
 if [[ -n "$FE_TAG" ]]; then
   FE_IMAGE="$ECR_REGISTRY/frontend:$FE_TAG"
@@ -53,7 +53,7 @@ if [[ -n "$AI_TAG" ]]; then
     aws ecr get-login-password --region \$AWS_DEFAULT_REGION | \
       docker login --username AWS --password-stdin \$ECR_REGISTRY
 
-    cd ${MOUNT_DIR}/deploy && \
+    cd ${MOUNT_DIR} && \
     docker compose down ai-server && \
     docker compose pull && \
     docker compose up -d ai-server && \
