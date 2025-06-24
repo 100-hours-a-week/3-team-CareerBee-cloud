@@ -309,6 +309,14 @@ variable "AI_BASE_URL" {
   type        = string
 }
 
+variable "REDIS_HOST" {
+  type        = string
+}
+
+variable "REDIS_PORT" {
+  type        = number
+}
+
 # AI
 
 variable "APP_ENV" {
