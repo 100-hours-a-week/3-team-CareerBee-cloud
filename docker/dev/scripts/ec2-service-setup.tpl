@@ -63,14 +63,10 @@ source /home/ubuntu/.env
 set +a
 
 # deploy 폴더 다운로드
-mkdir -p /home/ubuntu/{deploy,log}
 aws s3 cp s3://s3-careerbee-dev-infra/compose/service /home/ubuntu --recursive
 chmod +x /home/ubuntu/deploy/deploy.sh \
   /home/ubuntu/deploy//db_backup.sh \
   /home/ubuntu/deploy//db_restore.sh
-
-echo "[5-1] webhook, fluent-bit 실행"
-cd /home/ubuntu && docker compose up -d --build
 
 ####################################################################################################################
 
@@ -118,8 +114,8 @@ echo "[10] ECR latest 이미지 기반 프론트/백엔드 실행"
 aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
   | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
-cd /home/ubuntu/deploy
-docker compose --env-file /home/ubuntu/.env up -d
+cd /home/ubuntu
+docker compose --env-file /home/ubuntu/.env up -d --build
 docker ps # debug
 ####################################################################################################################
 

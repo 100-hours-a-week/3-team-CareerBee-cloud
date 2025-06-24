@@ -146,11 +146,6 @@ set +a
 # compose 폴더 다운로드
 mkdir -p ${MOUNT_DIR}/compose/gce
 aws s3 cp s3://s3-careerbee-dev-infra/compose/gce ${MOUNT_DIR} --recursive
-ls -l ${MOUNT_DIR} #debug
-
-echo "[6-1] fluent-bit 실행"
-cd ${MOUNT_DIR}
-docker compose up -d
 
 ####################################################################################################################
 
@@ -159,9 +154,8 @@ echo "[8] ECR 최신 이미지 기반 AI 실행"
 aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
   | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
-cd ${MOUNT_DIR}/deploy
+cd ${MOUNT_DIR}
 docker compose up -d
-docker ps # debug
 
 echo "[9] SSM에 상태 기록"
 aws ssm put-parameter \
