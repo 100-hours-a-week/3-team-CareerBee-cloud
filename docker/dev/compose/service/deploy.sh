@@ -23,7 +23,7 @@ if [[ -n "$FE_TAG" ]]; then
   echo "🚀 프론트 배포: $FE_IMAGE"
   export TAG=$FE_TAG
   docker rm -f frontend && \
-  docker compose -f docker-compose.fe.yml up -d && \
+  docker compose -f docker-compose.fe.yml up -d --pull always && \
   docker image prune -f
 fi
 
@@ -31,7 +31,7 @@ if [[ -n "$BE_TAG" ]]; then
   BE_IMAGE="$ECR_REGISTRY/backend:$BE_TAG"
   export TAG=$BE_TAG
   docker rm -f backend && \
-  docker compose -f docker-compose.be.yml up -d && \
+  docker compose -f docker-compose.be.yml up -d --pull always && \
   docker image prune -f
 fi
 
@@ -53,7 +53,7 @@ if [[ -n "$AI_TAG" ]]; then
 
     cd ${MOUNT_DIR} && \
     docker rm -f ai-server && \
-    docker compose -f docker-compose.ai.yml up -d && \
+    docker compose -f docker-compose.ai.yml up -d --pull always && \
     docker image prune -f
 EOF
 fi
