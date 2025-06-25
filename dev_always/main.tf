@@ -212,9 +212,9 @@ data "archive_file" "lambda_zip" {
   output_path = "${path.module}/lambda/trigger_github.zip"
 }
 
-# Lambda 1 - 오후 1시 워크플로
-resource "aws_lambda_function" "github_trigger_1pm" {
-  function_name = "github-workflow-1pm"
+# Lambda 1 - 오전 10시 워크플로
+resource "aws_lambda_function" "github_trigger_10am" {
+  function_name = "github-workflow-10am"
   handler       = "trigger_github.lambda_handler"
   runtime       = "python3.9"
   role          = aws_iam_role.lambda_exec.arn
@@ -229,9 +229,9 @@ resource "aws_lambda_function" "github_trigger_1pm" {
   }
 }
 
-# Lambda 2 - 오후 9시 워크플로
-resource "aws_lambda_function" "github_trigger_9pm" {
-  function_name = "github-workflow-9pm"
+# Lambda 2 - 오후 6시 워크플로
+resource "aws_lambda_function" "github_trigger_6pm" {
+  function_name = "github-workflow-6pm"
   handler       = "trigger_github.lambda_handler"
   runtime       = "python3.9"
   role          = aws_iam_role.lambda_exec.arn
@@ -246,44 +246,44 @@ resource "aws_lambda_function" "github_trigger_9pm" {
   }
 }
 
-# Schedule Rule 1 - 1PM KST = 04:00 UTC
-resource "aws_cloudwatch_event_rule" "trigger_1pm" {
-  name                = "trigger-github-1pm"
-  schedule_expression = "cron(50 3 ? * MON-FRI *)"
+# Schedule Rule 1 - 10AM KST = 01:00 UTC
+resource "aws_cloudwatch_event_rule" "trigger_10am" {
+  name                = "trigger-github-10am"
+  schedule_expression = "cron(50 0 ? * MON-FRI *)"
 }
 
-# Schedule Rule 2 - 9PM KST = 12:00 UTC
-resource "aws_cloudwatch_event_rule" "trigger_9pm" {
-  name                = "trigger-github-9pm"
-  schedule_expression = "cron(0 12 ? * MON-FRI *)"
+# Schedule Rule 2 - 6PM KST = 09:00 UTC
+resource "aws_cloudwatch_event_rule" "trigger_6pm" {
+  name                = "trigger-github-6pm"
+  schedule_expression = "cron(0 9 ? * MON-FRI *)"
 }
 
 # Event Targets
-resource "aws_cloudwatch_event_target" "target_1pm" {
-  rule      = aws_cloudwatch_event_rule.trigger_1pm.name
-  target_id = "Lambda1PM"
-  arn       = aws_lambda_function.github_trigger_1pm.arn
+resource "aws_cloudwatch_event_target" "target_10am" {
+  rule      = aws_cloudwatch_event_rule.trigger_10am.name
+  target_id = "Lambda10AM"
+  arn       = aws_lambda_function.github_trigger_10am.arn
 }
 
-resource "aws_cloudwatch_event_target" "target_9pm" {
-  rule      = aws_cloudwatch_event_rule.trigger_9pm.name
-  target_id = "Lambda9PM"
-  arn       = aws_lambda_function.github_trigger_9pm.arn
+resource "aws_cloudwatch_event_target" "target_6pm" {
+  rule      = aws_cloudwatch_event_rule.trigger_6pm.name
+  target_id = "Lambda6PM"
+  arn       = aws_lambda_function.github_trigger_6pm.arn
 }
 
 # Lambda Permissions
-resource "aws_lambda_permission" "allow_event_1pm" {
-  statement_id  = "AllowExecution1PM"
+resource "aws_lambda_permission" "allow_event_10am" {
+  statement_id  = "AllowExecution10AM"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.github_trigger_1pm.function_name
+  function_name = aws_lambda_function.github_trigger_10am.function_name
   principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.trigger_1pm.arn
+  source_arn    = aws_cloudwatch_event_rule.trigger_10am.arn
 }
 
-resource "aws_lambda_permission" "allow_event_9pm" {
-  statement_id  = "AllowExecution9PM"
+resource "aws_lambda_permission" "allow_event_6pm" {
+  statement_id  = "AllowExecution6PM"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.github_trigger_9pm.function_name
+  function_name = aws_lambda_function.github_trigger_6pm.function_name
   principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.trigger_9pm.arn
+  source_arn    = aws_cloudwatch_event_rule.trigger_6pm.arn
 }
