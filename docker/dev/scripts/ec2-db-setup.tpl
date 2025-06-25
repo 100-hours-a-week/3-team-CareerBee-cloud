@@ -47,8 +47,13 @@ chown -R 999:999 /home/ubuntu/mysql
 
 echo "[5-1] Mysql, Redis, fluent-bit 실행"
 cd /home/ubuntu
-docker compose up -d fluent-bit
-docker compose up -d mysql redis
+docker compose \
+  -f docker-compose.fluent-bit.yml \
+  up -d
+docker compose \
+  -f docker-compose.mysql.yml \
+  -f docker-compose.redis.yml \
+  up -d
 
 ####################################################################################################################
 

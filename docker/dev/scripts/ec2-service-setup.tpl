@@ -115,9 +115,16 @@ aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
   | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
 cd /home/ubuntu
-docker compose up -d fluent-bit
-docker compose --env-file /home/ubuntu/.env up -d --build frontend backend nginx webhook
-docker ps # debug
+docker compose \
+  -f docker-compose.fluent-bit.yml \
+  up -d
+docker compose \
+  -f docker-compose.nginx.yml \
+  -f docker-compose.fe.yml \
+  -f docker-compose.be.yml \
+  -f docker-compose.webhook.yml \
+  --env-file /home/ubuntu/.env \
+  up -d --build
 ####################################################################################################################
 
 echo "[11] SSM에 상태 기록"

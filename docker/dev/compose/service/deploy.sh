@@ -22,18 +22,18 @@ if [[ -n "$FE_TAG" ]]; then
   FE_IMAGE="$ECR_REGISTRY/frontend:$FE_TAG"
   echo "🚀 프론트 배포: $FE_IMAGE"
   export TAG=$FE_TAG
-  docker compose stop frontend && \
-  docker compose pull frontend && \
-  docker compose up -d frontend && \
+  docker compose -f docker-compose.fe.yml stop && \
+  docker compose -f docker-compose.fe.yml pull && \
+  docker compose -f docker-compose.fe.yml up -d && \
   docker image prune -f
 fi
 
 if [[ -n "$BE_TAG" ]]; then
   BE_IMAGE="$ECR_REGISTRY/backend:$BE_TAG"
   export TAG=$BE_TAG
-  docker compose stop backend && \
-  docker compose pull && \
-  docker compose up -d backend && \
+  docker compose -f docker-compose.be.yml stop && \
+  docker compose -f docker-compose.be.yml pull && \
+  docker compose -f docker-compose.be.yml up -d && \
   docker image prune -f
 fi
 
@@ -54,9 +54,9 @@ if [[ -n "$AI_TAG" ]]; then
       docker login --username AWS --password-stdin \$ECR_REGISTRY
 
     cd ${MOUNT_DIR} && \
-    docker compose down ai-server && \
-    docker compose pull && \
-    docker compose up -d ai-server && \
+    docker compose -f docker-compose.ai.yml down && \
+    docker compose -f docker-compose.ai.yml pull && \
+    docker compose -f docker-compose.ai.yml up -d && \
     docker image prune -f
 EOF
 fi

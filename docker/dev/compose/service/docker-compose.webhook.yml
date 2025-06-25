@@ -1,0 +1,26 @@
+services:
+  webhook:
+    build: ./webhook
+    container_name: webhook
+    network_mode: host
+    volumes:
+      - .:/app
+      - /home/ubuntu/.env:/home/ubuntu/.env:ro
+      - /home/ubuntu/.ssh/id_rsa:/home/ubuntu/.ssh/id_rsa:ro
+      - /var/run/docker.sock:/var/run/docker.sock  # 컨테이너 내에서 docker 명령 실행 가능
+    command: ["python", "webhook.py"]
+    environment:
+      - ECR_REGISTRY=${ECR_REGISTRY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+      - MOUNT_DIR=${MOUNT_DIR}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - WEBHOOK_TOKEN=${WEBHOOK_TOKEN}
+    working_dir: /app/webhook
+    restart: always
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: service/{{.Name}}

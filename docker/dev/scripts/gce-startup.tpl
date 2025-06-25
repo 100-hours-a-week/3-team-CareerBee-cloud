@@ -155,8 +155,13 @@ aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
   | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
 cd ${MOUNT_DIR}
-docker compose up -d fluent-bit
-docker compose up -d ai-server vllm
+docker compose \
+  -f docker-compose.fluent-bit.yml \
+  up -d
+docker compose \
+  -f docker-compose.ai.yml \
+  -f docker-compose.vllm.yml \
+  up -d
 
 echo "[9] SSM에 상태 기록"
 aws ssm put-parameter \

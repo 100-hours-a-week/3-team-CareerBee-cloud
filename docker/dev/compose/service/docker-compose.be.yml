@@ -1,0 +1,30 @@
+services:
+  backend:
+    image: ${ECR_REGISTRY}/backend:${TAG}
+    container_name: backend
+    network_mode: host
+    platform: linux/amd64
+    expose:
+      - "8080"
+    volumes:
+      - /home/ubuntu/scouter:/scouter
+    command: [
+      "java",
+      "-Dspring.profiles.active=dev",
+      "-javaagent:/scouter/agent.java/scouter.agent.jar",
+      "-Dscouter.config=/scouter/agent.java/conf/scouter.conf",
+      "-Dobj_name=careerbee-api",
+      "-Duser.timezone=Asia/Seoul",
+      "--add-opens", "java.base/java.lang=ALL-UNNAMED",
+      "--add-exports", "java.base/sun.net=ALL-UNNAMED",
+      "-Djdk.attach.allowAttachSelf=true",
+      "-jar", "careerbee-api.jar"
+    ]
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: service/{{.Name}}
+    restart: always
+    env_file:
+      - /home/ubuntu/.env

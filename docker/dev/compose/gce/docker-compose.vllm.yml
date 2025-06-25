@@ -1,0 +1,29 @@
+services:
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: vllm
+    network_mode: host
+    restart: always
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+    command: [
+      "--model", "/mnt/ssd/aya-expanse-8b",
+      "--tokenizer", "/mnt/ssd/aya-expanse-8b",
+      "--dtype", "bfloat16",
+      "--max-model-len", "4096",
+      "--port", "8001",
+      "--gpu-memory-utilization", "0.85"
+    ]
+    volumes:
+      - ${MOUNT_DIR}/aya-expanse-8b:${MOUNT_DIR}/aya-expanse-8b
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: gce/{{.Name}}
