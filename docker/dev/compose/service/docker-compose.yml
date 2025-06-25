@@ -28,8 +28,6 @@ services:
       - WEBHOOK_TOKEN=${WEBHOOK_TOKEN}
     working_dir: /app/webhook
     restart: always
-    depends_on:
-      - fluent-bit
     logging:
       driver: fluentd
       options:
@@ -67,8 +65,6 @@ services:
         fluentd-address: localhost:24224
         tag: service/{{.Name}}
     restart: always
-    depends_on:
-      - fluent-bit
 
   backend:
     image: ${ECR_REGISTRY}/backend:${TAG}
@@ -99,5 +95,3 @@ services:
     restart: always
     env_file:
       - /home/ubuntu/.env
-    depends_on:
-      - fluent-bit

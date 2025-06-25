@@ -41,8 +41,6 @@ services:
       options:
         fluentd-address: localhost:24224
         tag: gce/{{.Name}}
-    depends_on:
-      - fluent-bit
       
   ai-server:
     image: ${ECR_REGISTRY}/ai-server:${TAG}
@@ -56,5 +54,3 @@ services:
       options:
         fluentd-address: localhost:24224
         tag: gce/{{.Name}}
-    depends_on:
-      - fluent-bit
