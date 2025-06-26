@@ -209,6 +209,7 @@ resource "aws_instance" "service_azone" {
 # Wait for service to be ready
 resource "null_resource" "wait_for_service_ready" {
   provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
     command = <<EOT
       for i in {1..60}; do
         VALUE=$(aws ssm get-parameter --name "/careerbee/dev/service" --region ap-northeast-2 --query "Parameter.Value" --output text 2>/dev/null || echo "notyet")
@@ -221,7 +222,7 @@ resource "null_resource" "wait_for_service_ready" {
       done
       echo "Timeout waiting for Service readiness"
       exit 1
-    EOT
+  EOT
   }
 }
 
