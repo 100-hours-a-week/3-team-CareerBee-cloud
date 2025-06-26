@@ -54,24 +54,6 @@ jobs:
         working-directory: ${{ env.TERRAFORM_DIR }}
         run: terraform plan
 
-      - name: Reset parameter
-        run: |
-          PARAMS=(
-            "/careerbee/dev/db"
-            "/careerbee/dev/service"
-            "/careerbee/dev/openvpn"
-            "/careerbee/dev/gce"
-          )
-
-          for PARAM in "${PARAMS[@]}"; do
-            aws ssm put-parameter \
-              --name "$PARAM" \
-              --value "unready" \
-              --type "String" \
-              --overwrite \
-              --region ap-northeast-2
-          done
-
       - name: Terraform Apply
         working-directory: ${{ env.TERRAFORM_DIR }}
         run: terraform apply -auto-approve
@@ -86,6 +68,7 @@ jobs:
 
           PARAMS=(
             "/careerbee/dev/db"
+            "/careerbee/dev/replica"
             "/careerbee/dev/service"
             "/careerbee/dev/openvpn"
             "/careerbee/dev/gce"
@@ -124,9 +107,19 @@ jobs:
             echo "❌ 제한 시간 초과. 모든 서비스가 준비되지 않았습니다."
             exit 1
           fi
+      
+          for PARAM in "${PARAMS[@]}"; do
+            aws ssm put-parameter \
+              --name "$PARAM" \
+              --value "unready" \
+              --type "String" \
+              --overwrite \
+              --region ap-northeast-2
+          done
+          echo "모든 서비스 상태를 unready로 초기화했습니다."
 
           set -e
-
+          
       - name: Check Application Health
         run: |
           for i in $(seq 1 5); do
