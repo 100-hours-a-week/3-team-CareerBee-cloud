@@ -29,17 +29,17 @@ mkdir -p /usr/local/openvpn_as/etc/sock
 mkdir -p /usr/local/openvpn_as/etc/tmp
 chown -R openvpnas:openvpnas /usr/local/openvpn_as/etc/
 
-echo "[3] 관리자 계정 설정"
-/usr/local/openvpn_as/scripts/sacli --user openvpn --key "type" --value "admin" UserPropPut
-/usr/local/openvpn_as/scripts/sacli --user openvpn --new_pass "${openvpn_pw}" SetLocalPassword
-/usr/local/openvpn_as/scripts/sacli --user mumu --key "type" --value "user_connect" UserPropPut
-/usr/local/openvpn_as/scripts/sacli --user mumu --new_pass "${openvpn_pw}" SetLocalPassword
-/usr/local/openvpn_as/scripts/sacli --user emily --key "type" --value "user_connect" UserPropPut
-/usr/local/openvpn_as/scripts/sacli --user emily --new_pass "${openvpn_pw}" SetLocalPassword
-/usr/local/openvpn_as/scripts/sacli --user dain --key "type" --value "user_connect" UserPropPut
-/usr/local/openvpn_as/scripts/sacli --user dain --new_pass "${openvpn_pw}" SetLocalPassword
-/usr/local/openvpn_as/scripts/sacli --user ellina --key "type" --value "user_connect" UserPropPut
-/usr/local/openvpn_as/scripts/sacli --user ellina --new_pass "${openvpn_pw}" SetLocalPassword
+# echo "[3] 관리자 계정 설정"
+# /usr/local/openvpn_as/scripts/sacli --user openvpn --key "type" --value "admin" UserPropPut
+# /usr/local/openvpn_as/scripts/sacli --user openvpn --new_pass "${openvpn_pw}" SetLocalPassword
+# /usr/local/openvpn_as/scripts/sacli --user mumu --key "type" --value "user_connect" UserPropPut
+# /usr/local/openvpn_as/scripts/sacli --user mumu --new_pass "${openvpn_pw}" SetLocalPassword
+# /usr/local/openvpn_as/scripts/sacli --user emily --key "type" --value "user_connect" UserPropPut
+# /usr/local/openvpn_as/scripts/sacli --user emily --new_pass "${openvpn_pw}" SetLocalPassword
+# /usr/local/openvpn_as/scripts/sacli --user dain --key "type" --value "user_connect" UserPropPut
+# /usr/local/openvpn_as/scripts/sacli --user dain --new_pass "${openvpn_pw}" SetLocalPassword
+# /usr/local/openvpn_as/scripts/sacli --user ellina --key "type" --value "user_connect" UserPropPut
+# /usr/local/openvpn_as/scripts/sacli --user ellina --new_pass "${openvpn_pw}" SetLocalPassword
 
 # 서비스 시작
 echo "[4] OpenVPN 서비스 시작"
