@@ -207,108 +207,108 @@ resource "aws_instance" "service_azone" {
 ########################################################################
 
 # Wait for service to be ready
-resource "null_resource" "wait_for_service_ready" {
-  provisioner "local-exec" {
-    interpreter = ["/bin/bash", "-c"]
-    command = <<EOT
-      for i in {1..60}; do
-        VALUE=$(aws ssm get-parameter --name "/careerbee/dev/service" --region ap-northeast-2 --query "Parameter.Value" --output text 2>/dev/null || echo "notyet")
-        if [ "$VALUE" == "ready" ]; then
-          echo "Service is ready"
-          exit 0
-        fi
-        echo "Waiting for Service to be ready..."
-        sleep 10
-      done
-      echo "Timeout waiting for Service readiness"
-      exit 1
-  EOT
-  }
-}
+# resource "null_resource" "wait_for_service_ready" {
+#   provisioner "local-exec" {
+#     interpreter = ["/bin/bash", "-c"]
+#     command = <<EOT
+#       for i in {1..60}; do
+#         VALUE=$(aws ssm get-parameter --name "/careerbee/dev/service" --region ap-northeast-2 --query "Parameter.Value" --output text 2>/dev/null || echo "notyet")
+#         if [ "$VALUE" == "ready" ]; then
+#           echo "Service is ready"
+#           exit 0
+#         fi
+#         echo "Waiting for Service to be ready..."
+#         sleep 10
+#       done
+#       echo "Timeout waiting for Service readiness"
+#       exit 1
+#   EOT
+#   }
+# }
 
 # AMI 생성
-resource "aws_ami_from_instance" "service_ami" {
-  name               = "ami-${var.prefix}-${formatdate("2025-06-25-150723", timestamp())}"
-  source_instance_id = aws_instance.service_azone.id
-  description        = "AMI created from existing instance"
-  lifecycle {
-    create_before_destroy = true
-  }
-  depends_on = [null_resource.wait_for_service_ready]
-}
+# resource "aws_ami_from_instance" "service_ami" {
+#   name               = "ami-${var.prefix}-${formatdate("2025-06-25-150723", timestamp())}"
+#   source_instance_id = aws_instance.service_azone.id
+#   description        = "AMI created from existing instance"
+#   lifecycle {
+#     create_before_destroy = true
+#   }
+#   depends_on = [null_resource.wait_for_service_ready]
+# }
 
 ########################################################################
 
 # AutoScaling
 
-resource "aws_launch_template" "service_lt" {
-  name_prefix   = "lt-${var.prefix}-service"
-  image_id      = aws_ami_from_instance.service_ami.id
-  instance_type = "t3.medium"
-  key_name      = aws_key_pair.key.key_name
+# resource "aws_launch_template" "service_lt" {
+#   name_prefix   = "lt-${var.prefix}-service"
+#   image_id      = aws_ami_from_instance.service_ami.id
+#   instance_type = "t3.medium"
+#   key_name      = aws_key_pair.key.key_name
 
-  iam_instance_profile {
-    name = aws_iam_instance_profile.ec2_instance_profile.name
-  }
+#   iam_instance_profile {
+#     name = aws_iam_instance_profile.ec2_instance_profile.name
+#   }
 
-  vpc_security_group_ids = [aws_security_group.sg_service.id]
+#   vpc_security_group_ids = [aws_security_group.sg_service.id]
 
-  user_data = base64encode(templatefile("${path.module}/scripts/ec2-service-lt-setup.tpl", {
-    ECR_REGISTRY              = var.ECR_REGISTRY
-    AWS_DEFAULT_REGION        = var.AWS_DEFAULT_REGION
-  }))
+#   user_data = base64encode(templatefile("${path.module}/scripts/ec2-service-lt-setup.tpl", {
+#     ECR_REGISTRY              = var.ECR_REGISTRY
+#     AWS_DEFAULT_REGION        = var.AWS_DEFAULT_REGION
+#   }))
 
-  lifecycle {
-    create_before_destroy = true
-  }
+#   lifecycle {
+#     create_before_destroy = true
+#   }
 
-  tag_specifications {
-    resource_type = "instance"
-    tags = {
-      Name = "ec2-${var.prefix}-service-asg"
-    }
-  }
-}
+#   tag_specifications {
+#     resource_type = "instance"
+#     tags = {
+#       Name = "ec2-${var.prefix}-service-asg"
+#     }
+#   }
+# }
 
-resource "aws_autoscaling_group" "service_asg" {
-  name                      = "asg-${var.prefix}-service"
-  desired_capacity          = 0
-  min_size                  = 0
-  max_size                  = 4
-  vpc_zone_identifier       = [module.aws_vpc.private_subnet_ids[0]]
-  health_check_type         = "EC2"
-  health_check_grace_period = 180
-  force_delete              = true
+# resource "aws_autoscaling_group" "service_asg" {
+#   name                      = "asg-${var.prefix}-service"
+#   desired_capacity          = 0
+#   min_size                  = 0
+#   max_size                  = 4
+#   vpc_zone_identifier       = [module.aws_vpc.private_subnet_ids[0]]
+#   health_check_type         = "EC2"
+#   health_check_grace_period = 180
+#   force_delete              = true
 
-  launch_template {
-    id      = aws_launch_template.service_lt.id
-    version = "$Latest"
-  }
+#   launch_template {
+#     id      = aws_launch_template.service_lt.id
+#     version = "$Latest"
+#   }
 
-  target_group_arns = [aws_lb_target_group.nginx_target_group.arn]
+#   target_group_arns = [aws_lb_target_group.nginx_target_group.arn]
 
-  tag {
-    key                 = "Name"
-    value               = "asg-${var.prefix}-service"
-    propagate_at_launch = true
-  }
+#   tag {
+#     key                 = "Name"
+#     value               = "asg-${var.prefix}-service"
+#     propagate_at_launch = true
+#   }
 
-  depends_on = [aws_lb_target_group.nginx_target_group]
-}
+#   depends_on = [aws_lb_target_group.nginx_target_group]
+# }
 
-resource "aws_autoscaling_policy" "scale_on_cpu" {
-  name                   = "scale-on-cpu-${var.prefix}"
-  policy_type            = "TargetTrackingScaling"
-  autoscaling_group_name = aws_autoscaling_group.service_asg.name
+# resource "aws_autoscaling_policy" "scale_on_cpu" {
+#   name                   = "scale-on-cpu-${var.prefix}"
+#   policy_type            = "TargetTrackingScaling"
+#   autoscaling_group_name = aws_autoscaling_group.service_asg.name
 
-  target_tracking_configuration {
-    predefined_metric_specification {
-      predefined_metric_type = "ASGAverageCPUUtilization"
-    }
+#   target_tracking_configuration {
+#     predefined_metric_specification {
+#       predefined_metric_type = "ASGAverageCPUUtilization"
+#     }
 
-    target_value = 50.0
-  }
-}
+#     target_value = 50.0
+#   }
+# }
 
 ########################################################################
 
