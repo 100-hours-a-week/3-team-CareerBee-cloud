@@ -369,3 +369,19 @@ variable "GCP_CREDENTIALS_BASE64" {
 variable "GCP_PROJECT_ID" {
   type        = string
 }
+
+variable "LLM_TYPE" {
+  type = string
+}
+
+variable "MODEL_NAME" {
+  type = string
+}
+
+variable "USE_S3" {
+  type = bool
+}
+
+variable "LOG_LEVEL" {
+  type = string
+}
