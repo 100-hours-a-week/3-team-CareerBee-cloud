@@ -539,35 +539,6 @@ resource "aws_lb_target_group_attachment" "openvpn_attach" {
   port             = 943
 }
 
-resource "aws_lb_target_group" "gcp_ingress_tg" {
-  name        = "tg-${var.prefix}-gcp-ingress"
-  port        = 30443
-  protocol    = "HTTPS"
-  target_type = "ip"
-  vpc_id      = module.aws_vpc.vpc_id
-
-  health_check {
-    protocol            = "HTTPS"
-    port                = "30443"
-    path                = "/"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 3
-    unhealthy_threshold = 2
-    matcher             = "200"
-  }
-
-  tags = {
-    Name = "tg-${var.prefix}-gcp-ingress"
-  }
-}
-
-resource "aws_lb_target_group_attachment" "gcp_ingress_attach" {
-  target_group_arn = aws_lb_target_group.gcp_ingress_tg.arn
-  target_id        = var.gcp_gce_private_ip
-  port             = 30443
-}
-
 ###################################################################
 
 #  Listener Rule
@@ -583,22 +554,6 @@ resource "aws_lb_listener_rule" "openvpn_https_rule" {
   condition {
     host_header {
       values = ["openvpn.${data.aws_route53_zone.dev.name}"]
-    }
-  }
-}
-
-resource "aws_lb_listener_rule" "gcp_ingress_https_rule" {
-  listener_arn = aws_lb_listener.https.arn
-  priority     = 20
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.gcp_ingress_tg.arn
-  }
-
-  condition {
-    host_header {
-      values = ["ai.${data.aws_route53_zone.dev.name}"]
     }
   }
 }
@@ -666,11 +621,8 @@ resource "aws_route53_record" "ai_record" {
   zone_id = data.aws_route53_zone.dev.zone_id
   name    = "ai.${data.aws_route53_zone.dev.name}"
   type    = "A"
-  alias {
-    name                   = aws_lb.alb.dns_name
-    zone_id                = aws_lb.alb.zone_id
-    evaluate_target_health = true
-  }
+  ttl     = "300"
+  records = [var.gcp_gce_private_ip]
 }
 
 resource "aws_route53_record" "prometheus_record" {
