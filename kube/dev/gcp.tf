@@ -26,7 +26,7 @@ module "gcp_vpc" {
     {
       name          = "vpn-tcp"
       protocol      = "tcp"
-      ports         = ["22","179","10250","8000","8001","30443"]
+      ports         = ["22","179","10250","30443"]
       source_ranges = [var.aws_vpc_cidr]
       direction     = "INGRESS"
       priority      = 1000

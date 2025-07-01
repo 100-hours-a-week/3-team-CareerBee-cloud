@@ -112,14 +112,14 @@ resource "aws_security_group" "sg_master" {
     from_port   = 179
     to_port     = 179
     protocol    = "tcp"
-    security_groups = [aws_security_group.sg_service.id, aws_security_group.sg_db.id, aws_security_group.sg_argocd.id]
+    cidr_blocks = [module.aws_vpc.private_subnet_cidrs[0], module.aws_vpc.private_subnet_cidrs[2]]
   }
 
   ingress {
     from_port   = 6443
     to_port     = 6443
     protocol    = "tcp"
-    security_groups = [aws_security_group.sg_service.id, aws_security_group.sg_db.id, aws_security_group.sg_argocd.id]
+    cidr_blocks = [module.aws_vpc.private_subnet_cidrs[0], module.aws_vpc.private_subnet_cidrs[2]]
   }
 
   egress {

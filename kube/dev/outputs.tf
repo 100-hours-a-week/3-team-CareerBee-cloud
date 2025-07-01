@@ -8,4 +8,5 @@ output "alb_name" {
 
 output "argocd_admin_password_hash" {
   value = var.argocd_admin_password_hash
+  sensitive = true
 }
