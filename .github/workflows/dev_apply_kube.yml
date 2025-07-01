@@ -1,0 +1,58 @@
+name: Terraform Apply - Kube (Dev)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  terraform-apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    env:
+      TERRAFORM_DIR: kube/dev
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: terraform plan
+
+      - name: Terraform Apply
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: terraform apply -auto-approve
+
+      - name: Terraform Output
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          terraform output -json > ../ansible/tf_output.json
+
+  ansible:
+    name: Ansible Playbook Execution
+    runs-on: self-hosted
+    needs: terraform-apply
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Install Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
+
+      - name: Run Ansible Playbook
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          cd ansible
+          ansible-playbook -i inventory.ini playbook.yml

@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fe
+  labels:
+    app: fe
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fe
+  template:
+    metadata:
+      labels:
+        app: fe
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/service: service
+      containers:
+        - name: fe
+          image: 474668404452.dkr.ecr.ap-northeast-2.amazonaws.com/frontend:latest
+          ports:
+            - containerPort: 80

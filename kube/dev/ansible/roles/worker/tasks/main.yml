@@ -1,0 +1,8 @@
+- name: Copy join.sh to worker
+  copy:
+    src: /tmp/join.sh
+    dest: /tmp/join.sh
+    mode: 0755
+
+- name: Run kubeadm join
+  shell: /tmp/join.sh

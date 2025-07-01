@@ -1,0 +1,7 @@
+- name: Label each node with its role
+  command: >
+    kubectl label node {{ item.inventory_hostname }}
+    node-role.kubernetes.io/{{ item.role }}={{ item.role }}
+  loop: "{{ groups['worker'] | map('extract', hostvars) | list }}"
+  when: item.role is defined
+  ignore_errors: yes

@@ -1,0 +1,25 @@
+- name: Create ingress-nginx namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: ingress-nginx
+
+- name: Install ingress-nginx via Helm
+  community.kubernetes.helm:
+    name: ingress-nginx
+    chart_repo_url: https://kubernetes.github.io/ingress-nginx
+    chart_ref: ingress-nginx
+    release_namespace: ingress-nginx
+    values:
+      controller:
+        service:
+          type: NodePort
+          nodePorts:
+            https: 30443
+        nodeSelector:
+          node-role.kubernetes.io/ai: ai
+    create_namespace: true
+    wait: true

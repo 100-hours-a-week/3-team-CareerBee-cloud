@@ -1,0 +1,88 @@
+- name: Create namespace for ArgoCD
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: argocd
+
+- name: Install ArgoCD via upstream manifests
+  shell: kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+- name: Patch ArgoCD server Deployment to target node with argocd role
+  shell: |
+    kubectl -n argocd patch deployment argocd-server \
+      -p '{"spec":{"template":{"spec":{"nodeSelector":{"node-role.kubernetes.io/argocd":"argocd"}}}}}'
+
+- name: Patch ArgoCD repo-server Deployment
+  shell: |
+    kubectl -n argocd patch deployment argocd-repo-server \
+      -p '{"spec":{"template":{"spec":{"nodeSelector":{"node-role.kubernetes.io/argocd":"argocd"}}}}}'
+
+- name: Patch ArgoCD application controller Deployment
+  shell: |
+    kubectl -n argocd patch statefulset argocd-application-controller \
+      -p '{"spec":{"template":{"spec":{"nodeSelector":{"node-role.kubernetes.io/argocd":"argocd"}}}}}'
+
+- name: Load Terraform output from JSON
+  set_fact:
+    tf_output: "{{ lookup('file', 'tf_output.json') | from_json }}"
+
+- name: Set ArgoCD admin password
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: argocd-secret
+        namespace: argocd
+      type: Opaque
+      stringData:
+        admin.password: "{{ tf_output.argocd_admin_password_hash.value }}"
+        admin.passwordMtime: "{{ lookup('pipe', 'date +%FT%T%Z') }}"
+
+- name: Ensure ArgoCD service is ClusterIP
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: argocd-server
+        namespace: argocd
+      spec:
+        type: ClusterIP
+  ignore_errors: true
+
+- name: Deploy ArgoCD ingress for ALB
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: argocd-ingress
+        namespace: argocd
+        annotations:
+          kubernetes.io/ingress.class: alb
+          alb.ingress.kubernetes.io/scheme: internet-facing
+          alb.ingress.kubernetes.io/target-type: ip
+          alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+          alb.ingress.kubernetes.io/certificate-arn: "{{ tf_output.argocd_acm_arn.value }}"
+          alb.ingress.kubernetes.io/load-balancer-name: "{{ tf_output.argocd_alb_name.value }}"
+          alb.ingress.kubernetes.io/group.name: argocd
+          alb.ingress.kubernetes.io/ssl-redirect: '443'
+      spec:
+        rules:
+          - host: argocd.dev.careerbee.co.kr
+            http:
+              paths:
+                - path: /
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: argocd-server
+                      port:
+                        number: 80

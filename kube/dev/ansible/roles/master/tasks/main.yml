@@ -1,0 +1,20 @@
+- name: Initialize kubeadm
+  shell: kubeadm init --pod-network-cidr=192.168.0.0/16
+  register: kubeadm_output
+  args:
+    creates: /etc/kubernetes/admin.conf
+
+- name: Create join.sh
+  shell: |
+    kubeadm token create --print-join-command > /tmp/join.sh
+    chmod +x /tmp/join.sh
+
+- name: Set up kubeconfig for root user
+  shell: |
+    mkdir -p /root/.kube
+    cp /etc/kubernetes/admin.conf /root/.kube/config
+
+- name: Install Calico CNI
+  shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf

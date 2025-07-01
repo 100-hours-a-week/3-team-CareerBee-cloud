@@ -1,0 +1,95 @@
+- name: Apt update and upgrade
+  apt:
+    upgrade: yes
+    update_cache: yes
+
+- name: Set timezone to Asia/Seoul
+  timezone:
+    name: Asia/Seoul
+    
+- name: Disable swap
+  shell: swapoff -a
+
+- name: Comment swap in fstab
+  replace:
+    path: /etc/fstab
+    regexp: '^([^#].* swap .*)$'
+    replace: '# \1'
+
+- name: Load kernel modules
+  shell: |
+    modprobe overlay
+    modprobe br_netfilter
+
+- name: Add kernel modules config
+  copy:
+    dest: /etc/modules-load.d/k8s.conf
+    content: |
+      overlay
+      br_netfilter
+
+- name: Set sysctl for Kubernetes networking
+  copy:
+    dest: /etc/sysctl.d/k8s.conf
+    content: |
+      net.bridge.bridge-nf-call-iptables  = 1
+      net.bridge.bridge-nf-call-ip6tables = 1
+      net.ipv4.ip_forward                 = 1
+
+- name: Apply sysctl
+  command: sysctl --system
+
+- name: Install containerd
+  apt:
+    name: containerd
+    state: present
+    update_cache: yes
+
+- name: Generate containerd config
+  shell: |
+    mkdir -p /etc/containerd
+    containerd config default | tee /etc/containerd/config.toml
+
+- name: Set SystemdCgroup = true
+  replace:
+    path: /etc/containerd/config.toml
+    regexp: 'SystemdCgroup = false'
+    replace: 'SystemdCgroup = true'
+
+- name: Restart and enable containerd
+  systemd:
+    name: containerd
+    state: restarted
+    enabled: yes
+
+- name: Install Kubernetes dependencies
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gpg
+    state: present
+
+- name: Add Kubernetes APT key and repo
+  shell: |
+    mkdir -p /etc/apt/keyrings
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | \
+      gpg --dearmor | tee /etc/apt/keyrings/kubernetes-apt-keyring.gpg > /dev/null
+    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /" | \
+      tee /etc/apt/sources.list.d/kubernetes.list
+
+- name: Update apt again
+  apt:
+    update_cache: yes
+
+- name: Install Kubernetes packages
+  apt:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+    state: present
+
+- name: Hold Kubernetes package versions
+  shell: apt-mark hold kubelet kubeadm kubectl

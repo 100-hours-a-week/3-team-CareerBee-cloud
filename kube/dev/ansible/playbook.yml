@@ -1,0 +1,37 @@
+- name: "Install Kubernetes"
+  hosts: master
+  become: yes
+  roles:
+    - common
+    - master
+    
+- name: "Install Kubernetes Worker"
+  hosts: worker
+  become: yes
+  roles:
+    - common
+    - worker
+
+- name: "Label nodes"
+  hosts: master
+  become: yes
+  roles:
+    - label
+
+- name: "Install ArgoCD"
+  hosts: master
+  become: yes
+  roles:
+    - argocd
+
+- name: Install Nginx Ingress
+  hosts: master
+  become: yes
+  roles:
+    - nginx_ingress
+
+- name: "Deploy Kubernetes Applications"
+  hosts: master
+  become: yes
+  roles:
+    - apps
