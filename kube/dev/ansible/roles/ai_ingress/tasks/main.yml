@@ -1,0 +1,58 @@
+- name: Create proxy namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: proxy
+
+- name: Load Terraform output
+  set_fact:
+    tf_output: "{{ lookup('file', 'tf_output.json') | from_json }}"
+
+- name: Apply NGINX configmap
+  kubernetes.core.k8s:
+    state: present
+    src: ../../files/proxy/configmap.yml
+
+- name: Deploy NGINX proxy pod
+  kubernetes.core.k8s:
+    state: present
+    src: ../../files/proxy/deployment.yml
+
+- name: Create NGINX proxy service
+  kubernetes.core.k8s:
+    state: present
+    src: ../../files/proxy/service.yml
+
+- name: Create ALB ingress for NGINX proxy
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('file', 'files/proxy/ingress.yml') | from_yaml }}"
+    
+- name: Create ingress-nginx namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: ingress-nginx
+
+- name: Install ingress-nginx via Helm
+  community.kubernetes.helm:
+    name: ingress-nginx
+    chart_repo_url: https://kubernetes.github.io/ingress-nginx
+    chart_ref: ingress-nginx
+    release_namespace: ingress-nginx
+    values:
+      controller:
+        service:
+          type: NodePort
+          nodePorts:
+            https: 30443
+        nodeSelector:
+          node-role.kubernetes.io/ai: ai
+    create_namespace: true
+    wait: true

@@ -1,10 +1,23 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: fe-ingress
+  name: be-ingress
   annotations:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: "{{ tf_output.acm_arn.value }}"
+    alb.ingress.kubernetes.io/load-balancer-name: "{{ tf_output.alb_name.value }}"
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/group.name: be
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/healthcheck-path: /health-check
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '30'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+    alb.ingress.kubernetes.io/healthcheck-healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/healthcheck-unhealthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/healthcheck-port: 'traffic-port'
 spec:
   rules:
     - host: api.dev.careerbee.co.kr
@@ -14,6 +27,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: fe
+                name: be
                 port:
                   number: 80

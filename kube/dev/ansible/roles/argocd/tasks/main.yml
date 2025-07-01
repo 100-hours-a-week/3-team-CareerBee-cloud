@@ -70,8 +70,9 @@
           alb.ingress.kubernetes.io/scheme: internet-facing
           alb.ingress.kubernetes.io/target-type: ip
           alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
-          alb.ingress.kubernetes.io/certificate-arn: "{{ tf_output.argocd_acm_arn.value }}"
-          alb.ingress.kubernetes.io/load-balancer-name: "{{ tf_output.argocd_alb_name.value }}"
+          alb.ingress.kubernetes.io/certificate-arn: "{{ tf_output.acm_arn.value }}"
+          alb.ingress.kubernetes.io/load-balancer-name: "{{ tf_output.alb_name.value }}"
+          alb.ingress.kubernetes.io/backend-protocol: HTTP
           alb.ingress.kubernetes.io/group.name: argocd
           alb.ingress.kubernetes.io/ssl-redirect: '443'
       spec:

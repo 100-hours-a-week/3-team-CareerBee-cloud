@@ -1,4 +1,4 @@
-output "argocd_acm_arn" {
+output "acm_arn" {
   value = data.aws_acm_certificate.careerbee_cert.arn
 }
 

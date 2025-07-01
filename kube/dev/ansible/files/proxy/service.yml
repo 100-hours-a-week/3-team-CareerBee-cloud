@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-proxy
+  namespace: proxy
+spec:
+  selector:
+    app: nginx-proxy
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+  type: ClusterIP

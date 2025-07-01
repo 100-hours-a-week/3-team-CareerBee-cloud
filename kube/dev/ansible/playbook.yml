@@ -28,7 +28,7 @@
   hosts: master
   become: yes
   roles:
-    - nginx_ingress
+    - ai_ingress
 
 - name: "Deploy Kubernetes Applications"
   hosts: master

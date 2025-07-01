@@ -150,27 +150,6 @@ resource "aws_security_group" "sg_service" {
   }
 
   ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    security_groups = [aws_security_group.sg_alb.id]
-  }
-
-  ingress {
-    from_port   = 8000
-    to_port     = 8000
-    protocol    = "tcp"
-    security_groups = [aws_security_group.sg_alb.id]
-  }
-
-  ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    security_groups = [aws_security_group.sg_alb.id]
-  }
-
-  ingress {
     from_port   = 179
     to_port     = 179
     protocol    = "tcp"
@@ -182,13 +161,6 @@ resource "aws_security_group" "sg_service" {
     to_port     = 10250
     protocol    = "tcp"
     security_groups = [aws_security_group.sg_master.id]
-  }
-  
-  ingress {
-    from_port   = 30080
-    to_port     = 30080
-    protocol    = "tcp"
-    security_groups = [aws_security_group.sg_alb.id]
   }
 
   egress {
@@ -264,13 +236,6 @@ resource "aws_security_group" "sg_argocd" {
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = var.ssmu_access_cidr_blocks
-  }
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    security_groups = [aws_security_group.sg_alb.id]
   }
 
   ingress {
@@ -621,8 +586,11 @@ resource "aws_route53_record" "ai_record" {
   zone_id = data.aws_route53_zone.dev.zone_id
   name    = "ai.${data.aws_route53_zone.dev.name}"
   type    = "A"
-  ttl     = "300"
-  records = [var.gcp_gce_private_ip]
+  alias {
+    name                   = aws_lb.alb.dns_name
+    zone_id                = aws_lb.alb.zone_id
+    evaluate_target_health = true
+  }
 }
 
 resource "aws_route53_record" "prometheus_record" {
