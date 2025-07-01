@@ -49,7 +49,8 @@ jobs:
       - name: Terraform Output
         working-directory: ${{ env.TERRAFORM_DIR }}
         run: |
-          terraform output -json > ../ansible/tf_output.json
+          terraform output -json > tf_output.json
+          aws s3 cp tf_output.json s3://${{ secrets.DEV_S3_INFRA_NAME }}/tf_kube_output.json
 
   ansible:
     name: Ansible Playbook Execution
@@ -60,6 +61,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: develop
+
+      - name: Download tf_output.json from S3
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          aws s3 cp s3://${{ secrets.DEV_S3_INFRA_NAME }}/tf_kube_output.json ansible/tf_output.json
 
       - name: Install Ansible
         run: |
