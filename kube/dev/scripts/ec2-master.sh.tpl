@@ -1,30 +1,35 @@
 #!/bin/bash
 set -e
 
+echo "[1] apt 패키지 업데이트 및 필수 패키지 설치"
 apt update && apt upgrade -y && \
-apt install -y curl tar sudo python3-pip python3-venv && \
+apt install -y curl tar sudo unzip python3-pip python3-venv && \
 python3 -m venv /home/ubuntu/venv && \
 /home/ubuntu/venv/bin/pip install --upgrade pip && \
 /home/ubuntu/venv/bin/pip install kubernetes openshift pyyaml
 
-# Runner 설치 디렉토리 생성
-mkdir actions-runner && cd actions-runner
+echo "[2] AWS CLI 설치"
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+./aws/install
 
-# GitHub에서 Actions Runner 파일 다운로드 및 설치
+echo "[3] GitHub Actions Runner 설치"
+mkdir /home/ubuntu/actions-runner && cd /home/ubuntu/actions-runner
 curl -o actions-runner-linux-x64-2.317.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.317.0/actions-runner-linux-x64-2.317.0.tar.gz
 tar xzf ./actions-runner-linux-x64-2.317.0.tar.gz
+chown -R ubuntu:ubuntu /home/ubuntu/actions-runner
 
-# GitHub에서 받은 토큰으로 등록
-./config.sh --url ${dev_github_url} --token ${dev_github_token}
+sudo -u ubuntu /home/ubuntu/actions-runner/config.sh --unattended --replace \
+  --url ${dev_github_url} \
+  --token ${dev_github_token} \
+  --name self-hosted \
+  --labels self-hosted
 
-# 백그라운드 실행
-./svc.sh install
-./svc.sh start
+/home/ubuntu/actions-runner/svc.sh install && \
+/home/ubuntu/actions-runner/svc.sh start
 
-# 비공개키 저장
+echo "[4] ssh 비공개키 설정"
 echo "${ssh_key_base64_nopass}" | base64 -d > /home/ubuntu/.ssh/id_rsa
-
-# 권한 및 소유자 설정
 chown -R ubuntu:ubuntu /home/ubuntu/.ssh
 chmod 700 /home/ubuntu/.ssh
 chmod 600 /home/ubuntu/.ssh/id_rsa
