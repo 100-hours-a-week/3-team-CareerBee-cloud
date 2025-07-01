@@ -146,7 +146,10 @@ resource "aws_acm_certificate" "careerbee_cert" {
     "api.dev.careerbee.co.kr",
     "ai.dev.careerbee.co.kr",
     "openvpn.dev.careerbee.co.kr",
-    "webhook.dev.careerbee.co.kr"
+    "webhook.dev.careerbee.co.kr",
+    "argocd.dev.careerbee.co.kr",
+    "grafana.dev.careerbee.co.kr",
+    "prometheus.dev.careerbee.co.kr"
   ]
   validation_method = "DNS"
 
