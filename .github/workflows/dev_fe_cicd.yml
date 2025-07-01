@@ -178,7 +178,7 @@ jobs:
           BRANCH="${{ github.event.client_payload.branch }}"
           COMMIT_MSG="${{ github.event.client_payload.commit_msg }}"
           TIMESTAMP="${{ github.event.client_payload.timestamp }}"
-          RUN_URL="https://github.com/$REPO/commit/${{ github.event.client_payload.sha }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
           DESCRIPTION="**Repository:** \`${REPO}\`
           **Branch:** \`${BRANCH}\`
