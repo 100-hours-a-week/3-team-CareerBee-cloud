@@ -265,8 +265,9 @@ resource "aws_instance" "k8s_master_azone" {
     private_ip                  = var.aws_master_azone_private_ip
 
     user_data = templatefile("${path.module}/scripts/master.sh.tpl", {
-      dev_github_url = var.github_url,
-      dev_github_token = var.github_token
+      github_org = var.github_org
+      github_repo = var.github_repo
+      github_token = var.github_token
       ssh_key_base64_nopass = var.ssh_key_base64_nopass
     })
 

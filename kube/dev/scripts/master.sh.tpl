@@ -20,8 +20,12 @@ tar xzf ./actions-runner-linux-x64-2.317.0.tar.gz
 chown -R ubuntu:ubuntu /home/ubuntu/actions-runner
 
 sudo -u ubuntu /home/ubuntu/actions-runner/config.sh --unattended --replace \
-  --url ${dev_github_url} \
-  --token ${dev_github_token} \
+  --url "https://github.com/${github_org}/${github_repo}" \
+  --token "$(curl -X POST \
+    -H "Authorization: Bearer ${github_token}" \
+    -H "Accept: application/vnd.github+json" \
+    https://api.github.com/repos/${github_org}/${github_repo}/actions/runners/registration-token \
+    | jq -r .token)" \
   --name self-hosted \
   --labels self-hosted
 

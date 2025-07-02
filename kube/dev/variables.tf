@@ -17,7 +17,11 @@ variable "ssmu_access_cidr_blocks" {
   type = list(string)
 }
 
-variable "github_url" {
+variable "github_org" {
+  type = string
+}
+
+variable "github_repo" {
   type = string
 }
 
