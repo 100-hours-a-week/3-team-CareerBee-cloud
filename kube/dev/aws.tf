@@ -318,8 +318,9 @@ resource "aws_launch_template" "k8s_worker_azone" {
     name = aws_iam_instance_profile.ec2_instance_profile.name
   }
   
-  user_data = file("${path.module}/scripts/worker.sh.tpl")
-
+  user_data = base64encode(templatefile("${path.module}/scripts/worker.sh.tpl", {}
+  ))
+  
   tags = {
     Name = "ec2-${var.prefix}-worker-azone"
   }
