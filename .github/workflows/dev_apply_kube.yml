@@ -4,58 +4,58 @@ on:
   workflow_dispatch:
 
 jobs:
-  # terraform-apply:
-  #   name: Terraform Apply
-  #   runs-on: ubuntu-latest
-  #   env:
-  #     TERRAFORM_DIR: kube/dev
+  terraform-apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    env:
+      TERRAFORM_DIR: kube/dev
 
-  #   steps:
-  #     - name: Checkout Repo
-  #       uses: actions/checkout@v4
-  #       with:
-  #         ref: develop
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          ref: develop
 
-  #     - name: Setup Terraform
-  #       uses: hashicorp/setup-terraform@v3
-  #       with:
-  #         terraform_version: 1.6.6
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
 
-  #     - name: Configure AWS credentials
-  #       uses: aws-actions/configure-aws-credentials@v3
-  #       with:
-  #         aws-access-key-id: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
-  #         aws-secret-access-key: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
-  #         aws-region: ap-northeast-2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
 
-  #     - name: Download terraform.tfvars from S3
-  #       working-directory: ${{ env.TERRAFORM_DIR }}
-  #       run: |
-  #         aws s3 cp s3://${{ secrets.DEV_S3_INFRA_NAME }}/terraform.tfvars.enc terraform.tfvars.enc
-  #         openssl aes-256-cbc -d -salt -pbkdf2 -in terraform.tfvars.enc -out terraform.tfvars -k "${{ secrets.DEV_TFVARS_ENC_PW }}"
+      - name: Download terraform.tfvars from S3
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          aws s3 cp s3://${{ secrets.DEV_S3_INFRA_NAME }}/terraform.tfvars.enc terraform.tfvars.enc
+          openssl aes-256-cbc -d -salt -pbkdf2 -in terraform.tfvars.enc -out terraform.tfvars -k "${{ secrets.DEV_TFVARS_ENC_PW }}"
 
-  #     - name: Terraform Init
-  #       working-directory: ${{ env.TERRAFORM_DIR }}
-  #       run: terraform init
+      - name: Terraform Init
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: terraform init
 
-  #     - name: Terraform Plan
-  #       working-directory: ${{ env.TERRAFORM_DIR }}
-  #       run: terraform plan
+      - name: Terraform Plan
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: terraform plan
 
-  #     - name: Terraform Apply
-  #       working-directory: ${{ env.TERRAFORM_DIR }}
-  #       run: terraform apply -auto-approve
+      - name: Terraform Apply
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: terraform apply -auto-approve
 
-  #     - name: Terraform Output
-  #       working-directory: ${{ env.TERRAFORM_DIR }}
-  #       run: |
-  #         terraform output -json > tf_output.json
-  #         aws s3 cp tf_output.json s3://${{ secrets.DEV_S3_INFRA_NAME }}/tf_kube_output.json
+      - name: Terraform Output
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          terraform output -json > tf_output.json
+          aws s3 cp tf_output.json s3://${{ secrets.DEV_S3_INFRA_NAME }}/tf_kube_output.json
 
   ansible:
     name: Ansible Playbook Execution
     runs-on: self-hosted
-    # needs: terraform-apply
+    needs: terraform-apply
     env:
       ANSIBLE_DIR: kube/dev/ansible
     steps:
@@ -82,5 +82,4 @@ jobs:
       - name: Run Ansible Playbook
         working-directory: ${{ env.ANSIBLE_DIR }}
         run: |
-          ls -al
           ansible-playbook -i inventory.ini playbook.yml
