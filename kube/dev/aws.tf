@@ -194,7 +194,7 @@ resource "aws_security_group" "sg_db" {
       from_port   = 3306
       to_port     = 3306
       protocol    = "tcp"
-      security_groups = [aws_security_group.sg_service.id]
+      security_groups = [aws_security_group.sg_worker.id]
     }
 
     ingress {
@@ -318,7 +318,7 @@ resource "aws_launch_template" "k8s_worker_azone" {
     name = aws_iam_instance_profile.ec2_instance_profile.name
   }
   
-  user_data = templatefile("${path.module}/scripts/worker.sh.tpl")
+  user_data = file("${path.module}/scripts/worker.sh.tpl")
 
   tags = {
     Name = "ec2-${var.prefix}-worker-azone"
