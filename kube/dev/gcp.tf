@@ -97,6 +97,10 @@ resource "google_compute_instance" "gce" {
     ssh-keys = <<EOT
       ubuntu:${base64decode(var.public_nopass_key_base64)}
 EOT
+    startup-script = templatefile("${path.module}/scripts/gce.sh.tpl", {
+      device_id = var.device_id
+      mount_dir = var.mount_dir
+    })
   }
   depends_on = [module.gcp_vpc]
   

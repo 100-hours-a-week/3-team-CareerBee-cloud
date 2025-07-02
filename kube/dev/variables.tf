@@ -147,3 +147,9 @@ variable "gcp_service_account_email" {
   type = string
 }
 
+variable "device_id" {
+  type = string
+}
+variable "mount_dir" {
+  type = string
+}
