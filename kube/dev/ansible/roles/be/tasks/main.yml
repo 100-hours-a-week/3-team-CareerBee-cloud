@@ -1,0 +1,13 @@
+- name: Create namespace for Backend
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: be
+
+- name: Apply ArgoCD Application for Backend
+  kubernetes.core.k8s:
+    state: present
+    src: files/apps/be.yml

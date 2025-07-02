@@ -137,8 +137,8 @@ resource "aws_security_group" "sg_master" {
 ###################################################################
 
 # service
-resource "aws_security_group" "sg_service" {
-  name        = "SG-${var.prefix}-service"
+resource "aws_security_group" "sg_worker" {
+  name        = "SG-${var.prefix}-worker"
   description = "Allow Service traffic"
   vpc_id      = module.aws_vpc.vpc_id
 
@@ -171,7 +171,7 @@ resource "aws_security_group" "sg_service" {
   }
 
   tags = {
-    Name = "sg-${var.prefix}-service"
+    Name = "sg-${var.prefix}-worker"
   }
 }
 
@@ -223,47 +223,6 @@ resource "aws_security_group" "sg_db" {
     }
 }
 
-###################################################################
-
-# ArgoCD
-resource "aws_security_group" "sg_argocd" {
-  name        = "SG-${var.prefix}-argocd"
-  description = "Allow ArgoCD traffic"
-  vpc_id      = module.aws_vpc.vpc_id
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = var.ssmu_access_cidr_blocks
-  }
-
-  ingress {
-    from_port   = 179
-    to_port     = 179
-    protocol    = "tcp"
-    security_groups = [aws_security_group.sg_master.id]
-    }
-
-  ingress {
-    from_port   = 10250
-    to_port     = 10250
-    protocol    = "tcp"
-    security_groups = [aws_security_group.sg_master.id]
-  }
-  
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "sg-${var.prefix}-argocd"
-  }
-}
-
 ###########################################################################################################################################
 
 # EC2
@@ -278,7 +237,7 @@ resource "aws_instance" "openvpn" {
   iam_instance_profile        = aws_iam_instance_profile.ec2_instance_profile.name
   security_groups             = [aws_security_group.sg_openvpn.id]
   
-  user_data = templatefile("${path.module}/scripts/ec2-openvpn.sh.tpl", {
+  user_data = templatefile("${path.module}/scripts/openvpn.sh.tpl", {
     openvpn_pw = var.openvpn_pw
   }
   )
@@ -294,6 +253,7 @@ resource "aws_eip_association" "eip_assoc" {
 
 ###################################################################
 
+# master
 resource "aws_instance" "k8s_master_azone" {
     ami                         = "ami-0d5bb3742db8fc264"
     instance_type               = "t3.medium"
@@ -304,7 +264,7 @@ resource "aws_instance" "k8s_master_azone" {
     security_groups             = [aws_security_group.sg_master.id]
     private_ip                  = var.aws_master_azone_private_ip
 
-    user_data = templatefile("${path.module}/scripts/ec2-master.sh.tpl", {
+    user_data = templatefile("${path.module}/scripts/master.sh.tpl", {
       dev_github_url = var.github_url,
       dev_github_token = var.github_token
       ssh_key_base64_nopass = var.ssh_key_base64_nopass
@@ -313,30 +273,6 @@ resource "aws_instance" "k8s_master_azone" {
     tags = {
         Name = "ec2-${var.prefix}-master-azone"
     }
-}
-
-###################################################################
-
-# service
-resource "aws_instance" "k8s_worker_service_azone" {
-  ami                         = "ami-0d5bb3742db8fc264"
-  instance_type               = "t3.medium"
-  subnet_id                   = module.aws_vpc.private_subnet_ids[0]
-  associate_public_ip_address = false
-  key_name                    = aws_key_pair.key.key_name
-  iam_instance_profile        = aws_iam_instance_profile.ec2_instance_profile.name
-  security_groups             = [aws_security_group.sg_service.id]
-  private_ip                  = var.aws_worker_service_azone_private_ip
-  user_data = <<-EOF
-  #!/bin/bash
-  hostnamectl set-hostname service
-  echo "127.0.1.1 service" >> /etc/hosts
-  echo "preserve_hostname: true" >> /etc/cloud/cloud.cfg
-  EOF
-
-  tags = {
-      Name = "ec2-${var.prefix}-worker-service-azone"
-  }
 }
 
 ###################################################################
@@ -363,27 +299,47 @@ resource "aws_instance" "k8s_worker_db_azone" {
   }
 }
 
-###################################################################
+###########################################################################################################################################
 
-# ArgoCD
-resource "aws_instance" "argocd" {
-  ami                         = "ami-0d5bb3742db8fc264"
-  instance_type               = "t3.medium"
-  subnet_id                   = module.aws_vpc.private_subnet_ids[0]
-  associate_public_ip_address = false
-  key_name                    = aws_key_pair.key.key_name
-  iam_instance_profile        = aws_iam_instance_profile.ec2_instance_profile.name
-  security_groups             = [aws_security_group.sg_argocd.id]
-  private_ip                  = var.aws_argocd_azone_private_ip
-  user_data = <<-EOF
-  #!/bin/bash
-  hostnamectl set-hostname argocd
-  echo "127.0.1.1 argocd" >> /etc/hosts
-  echo "preserve_hostname: true" >> /etc/cloud/cloud.cfg
-  EOF
+# ASG
+
+# worker
+resource "aws_launch_template" "k8s_worker_azone" {
+  name_prefix   = "lt-${var.prefix}-worker-"
+  image_id      = "ami-0d5bb3742db8fc264"
+  instance_type = "t3.medium"
+  key_name = aws_key_pair.key.key_name
+  network_interfaces {
+    associate_public_ip_address = false
+    subnet_id                   = module.aws_vpc.private_subnet_ids[0]
+    security_groups             = [aws_security_group.sg_worker.id]
+  }
+  iam_instance_profile {
+    name = aws_iam_instance_profile.ec2_instance_profile.name
+  }
+  
+  user_data = templatefile("${path.module}/scripts/worker.sh.tpl")
 
   tags = {
-    Name = "ec2-${var.prefix}-argocd-azone"
+    Name = "ec2-${var.prefix}-worker-azone"
+  }
+}
+
+resource "aws_autoscaling_group" "k8s_worker_azone" {
+  name      = "asg-${var.prefix}-worker-azone"
+  launch_template {
+    id      = aws_launch_template.k8s_worker_azone.id
+    version = "$Latest"
+  }
+  vpc_zone_identifier = module.aws_vpc.private_subnet_ids
+  min_size            = 1
+  max_size            = 5
+  desired_capacity    = 1
+
+  tag {
+    key                 = "kubernetes.io/cluster/${var.prefix}"
+    value               = "owned"
+    propagate_at_launch = true
   }
 }
 

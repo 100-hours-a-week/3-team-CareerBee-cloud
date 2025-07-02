@@ -18,6 +18,7 @@ metadata:
     alb.ingress.kubernetes.io/healthcheck-healthy-threshold-count: '2'
     alb.ingress.kubernetes.io/healthcheck-unhealthy-threshold-count: '2'
     alb.ingress.kubernetes.io/healthcheck-port: 'traffic-port'
+    alb.ingress.kubernetes.io/load-balancer-connection-idle-timeout: "86400"
 spec:
   rules:
     - host: api.dev.careerbee.co.kr

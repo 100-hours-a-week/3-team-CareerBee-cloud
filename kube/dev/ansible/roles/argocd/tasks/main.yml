@@ -1,3 +1,8 @@
+- name: Label ArgoCD node for fixed scheduling
+  ansible.builtin.command: >
+    kubectl label node {{ item }} dedicated=argocd --overwrite
+  loop: "{{ groups['argocd_nodes'] }}"
+
 - name: Create namespace for ArgoCD
   kubernetes.core.k8s:
     state: present
@@ -10,20 +15,23 @@
 - name: Install ArgoCD via upstream manifests
   shell: kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-- name: Patch ArgoCD server Deployment to target node with argocd role
+- name: Wait for ArgoCD server rollout
+  shell: kubectl -n argocd rollout status deployment argocd-server
+  
+- name: Patch ArgoCD server Deployment to target node with argocd label
   shell: |
     kubectl -n argocd patch deployment argocd-server \
-      -p '{"spec":{"template":{"spec":{"nodeSelector":{"node-role.kubernetes.io/argocd":"argocd"}}}}}'
+      -p '{"spec":{"template":{"spec":{"nodeSelector":{"dedicated":"argocd"}}}}}'
 
 - name: Patch ArgoCD repo-server Deployment
   shell: |
     kubectl -n argocd patch deployment argocd-repo-server \
-      -p '{"spec":{"template":{"spec":{"nodeSelector":{"node-role.kubernetes.io/argocd":"argocd"}}}}}'
+      -p '{"spec":{"template":{"spec":{"nodeSelector":{"dedicated":"argocd"}}}}}'
 
-- name: Patch ArgoCD application controller Deployment
+- name: Patch ArgoCD application controller StatefulSet
   shell: |
     kubectl -n argocd patch statefulset argocd-application-controller \
-      -p '{"spec":{"template":{"spec":{"nodeSelector":{"node-role.kubernetes.io/argocd":"argocd"}}}}}'
+      -p '{"spec":{"template":{"spec":{"nodeSelector":{"dedicated":"argocd"}}}}}'
 
 - name: Load Terraform output from JSON
   set_fact:

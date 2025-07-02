@@ -1,0 +1,13 @@
+- name: Create namespace for Frontend
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: fe
+
+- name: Apply ArgoCD Application for Frontend
+  kubernetes.core.k8s:
+    state: present
+    src: files/apps/fe.yml

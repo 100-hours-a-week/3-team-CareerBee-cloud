@@ -1,37 +1,32 @@
-- name: "Install Kubernetes"
-  hosts: master
+- name: "All Kubernetes Nodes Setup"
+  hosts: all
   become: yes
   roles:
     - common
+
+- name: "Install Kubernetes Master"
+  hosts: master
+  become: yes
+  roles:
     - master
-    
-- name: "Install Kubernetes Worker"
-  hosts: worker
-  become: yes
-  roles:
-    - common
-    - worker
 
-- name: "Label nodes"
-  hosts: master
-  become: yes
-  roles:
-    - label
-
-- name: "Install ArgoCD"
+- name: "Setup ArgoCD"
   hosts: master
   become: yes
   roles:
     - argocd
 
-- name: Install Nginx Ingress
+- name: "Setup Database Nodes"
   hosts: master
   become: yes
   roles:
-    - ai_ingress
+    - db
 
-- name: "Deploy Kubernetes Applications"
+- name: "Setup Kubernetes Workers"
   hosts: master
   become: yes
   roles:
-    - apps
+    - ai
+    - ai_ingress
+    - fe
+    - be

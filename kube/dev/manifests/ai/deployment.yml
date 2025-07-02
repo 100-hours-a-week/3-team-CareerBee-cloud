@@ -2,10 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ai
-  labels:
-    app: ai
+  namespace: ai
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: ai
@@ -14,10 +13,13 @@ spec:
       labels:
         app: ai
     spec:
-      nodeSelector:
-        node-role.kubernetes.io/service: ai
       containers:
         - name: ai
           image: 474668404452.dkr.ecr.ap-northeast-2.amazonaws.com/ai-server:latest
           ports:
             - containerPort: 80
+      tolerations:
+      - key: "node-role"
+        operator: "Equal"
+        value: "ai"
+        effect: "NoSchedule"

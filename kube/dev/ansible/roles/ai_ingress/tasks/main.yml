@@ -14,17 +14,17 @@
 - name: Apply NGINX configmap
   kubernetes.core.k8s:
     state: present
-    src: ../../files/proxy/configmap.yml
+    src: files/proxy/configmap.yml
 
 - name: Deploy NGINX proxy pod
   kubernetes.core.k8s:
     state: present
-    src: ../../files/proxy/deployment.yml
+    src: files/proxy/deployment.yml
 
 - name: Create NGINX proxy service
   kubernetes.core.k8s:
     state: present
-    src: ../../files/proxy/service.yml
+    src: files/proxy/service.yml
 
 - name: Create ALB ingress for NGINX proxy
   kubernetes.core.k8s:
@@ -46,13 +46,16 @@
     chart_repo_url: https://kubernetes.github.io/ingress-nginx
     chart_ref: ingress-nginx
     release_namespace: ingress-nginx
+    create_namespace: true
+    wait: true
     values:
       controller:
         service:
           type: NodePort
           nodePorts:
             https: 30443
-        nodeSelector:
-          node-role.kubernetes.io/ai: ai
-    create_namespace: true
-    wait: true
+        tolerations:
+          - key: "node-role"
+            operator: "Equal"
+            value: "ai"
+            effect: "NoSchedule"

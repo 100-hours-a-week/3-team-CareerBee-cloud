@@ -5,7 +5,7 @@ metadata:
   labels:
     app: fe
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: fe
@@ -14,8 +14,6 @@ spec:
       labels:
         app: fe
     spec:
-      nodeSelector:
-        node-role.kubernetes.io/service: service
       containers:
         - name: fe
           image: 474668404452.dkr.ecr.ap-northeast-2.amazonaws.com/frontend:latest
