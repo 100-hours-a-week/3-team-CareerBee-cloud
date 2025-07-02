@@ -1,8 +1,3 @@
-- name: Label ArgoCD node for fixed scheduling
-  ansible.builtin.command: >
-    kubectl label node {{ item }} dedicated=argocd --overwrite
-  loop: "{{ groups['argocd_nodes'] }}"
-
 - name: Create namespace for ArgoCD
   kubernetes.core.k8s:
     state: present
@@ -17,21 +12,24 @@
 
 - name: Wait for ArgoCD server rollout
   shell: kubectl -n argocd rollout status deployment argocd-server
-  
-- name: Patch ArgoCD server Deployment to target node with argocd label
+
+- name: Add nodeSelector to ArgoCD server Deployment
   shell: |
     kubectl -n argocd patch deployment argocd-server \
-      -p '{"spec":{"template":{"spec":{"nodeSelector":{"dedicated":"argocd"}}}}}'
+      --type='merge' \
+      -p '{"spec":{"template":{"spec":{"nodeSelector":{"dedicated":"service"}}}}}'
 
-- name: Patch ArgoCD repo-server Deployment
+- name: Add nodeSelector to ArgoCD repo-server Deployment
   shell: |
     kubectl -n argocd patch deployment argocd-repo-server \
-      -p '{"spec":{"template":{"spec":{"nodeSelector":{"dedicated":"argocd"}}}}}'
+      --type='merge' \
+      -p '{"spec":{"template":{"spec":{"nodeSelector":{"dedicated":"service"}}}}}'
 
-- name: Patch ArgoCD application controller StatefulSet
+- name: Add nodeSelector to ArgoCD application controller StatefulSet
   shell: |
     kubectl -n argocd patch statefulset argocd-application-controller \
-      -p '{"spec":{"template":{"spec":{"nodeSelector":{"dedicated":"argocd"}}}}}'
+      --type='merge' \
+      -p '{"spec":{"template":{"spec":{"nodeSelector":{"dedicated":"service"}}}}}'
 
 - name: Load Terraform output from JSON
   set_fact:

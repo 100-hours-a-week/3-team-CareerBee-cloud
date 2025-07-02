@@ -67,3 +67,7 @@ done
 hostnamectl set-hostname worker-$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
 chmod +x /tmp/join.sh
 /tmp/join.sh
+
+echo 'KUBELET_EXTRA_ARGS=--node-labels=dedicated=service' >> /etc/default/kubelet
+systemctl daemon-reload
+systemctl restart kubelet
