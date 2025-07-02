@@ -56,7 +56,7 @@ jobs:
   ansible:
     name: Ansible Playbook Execution
     runs-on: self-hosted
-    needs: terraform-apply
+    # needs: terraform-apply
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
