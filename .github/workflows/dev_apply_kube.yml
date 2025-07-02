@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TERRAFORM_DIR: kube/dev
+      ANSIBLE_DIR: kube/dev/ansible
 
     steps:
       - name: Checkout Repo
@@ -63,9 +64,9 @@ jobs:
           ref: develop
 
       - name: Download tf_output.json from S3
-        working-directory: ${{ env.TERRAFORM_DIR }}
+        working-directory: ${{ env.ANSIBLE_DIR }}
         run: |
-          aws s3 cp s3://${{ secrets.DEV_S3_INFRA_NAME }}/tf_kube_output.json ansible/tf_output.json
+          aws s3 cp s3://${{ secrets.DEV_S3_INFRA_NAME }}/tf_kube_output.json tf_output.json
 
       - name: Install Ansible
         run: |
@@ -73,7 +74,6 @@ jobs:
           sudo apt install -y ansible
 
       - name: Run Ansible Playbook
-        working-directory: ${{ env.TERRAFORM_DIR }}
+        working-directory: ${{ env.ANSIBLE_DIR }}
         run: |
-          cd ansible
           ansible-playbook -i inventory.ini playbook.yml
