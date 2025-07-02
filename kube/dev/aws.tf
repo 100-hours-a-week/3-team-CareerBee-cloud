@@ -263,6 +263,12 @@ resource "aws_instance" "k8s_master_azone" {
     iam_instance_profile        = aws_iam_instance_profile.ec2_instance_profile.name
     security_groups             = [aws_security_group.sg_master.id]
     private_ip                  = var.aws_master_azone_private_ip
+    
+    root_block_device {
+      volume_size = 30
+      volume_type = "gp3"
+      delete_on_termination = true
+    }
 
     user_data = templatefile("${path.module}/scripts/master.sh.tpl", {
       github_org = var.github_org
