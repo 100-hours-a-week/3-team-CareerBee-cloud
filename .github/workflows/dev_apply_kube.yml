@@ -73,6 +73,11 @@ jobs:
           sudo apt update
           sudo apt install -y ansible
 
+      - name: Install Ansible Collections
+        run: |
+          ansible-galaxy collection install kubernetes.core
+          ansible-galaxy collection install community.kubernetes
+          
       - name: Run Ansible Playbook
         working-directory: ${{ env.ANSIBLE_DIR }}
         run: |
