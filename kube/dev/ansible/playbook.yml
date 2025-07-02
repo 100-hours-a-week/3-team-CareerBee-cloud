@@ -7,24 +7,32 @@
 - name: "Install Kubernetes Master"
   hosts: master
   become: yes
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
   roles:
     - master
 
 - name: "Setup ArgoCD"
   hosts: master
   become: yes
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
   roles:
     - argocd
 
 - name: "Setup Database Nodes"
   hosts: master
   become: yes
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
   roles:
     - db
 
 - name: "Setup Kubernetes Workers"
   hosts: master
   become: yes
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
   roles:
     - ai
     - ai_ingress

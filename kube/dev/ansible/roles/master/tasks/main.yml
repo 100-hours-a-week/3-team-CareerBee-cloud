@@ -17,5 +17,3 @@
 
 - name: Install Calico CNI
   shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
-  environment:
-    KUBECONFIG: /etc/kubernetes/admin.conf
