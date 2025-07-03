@@ -10,9 +10,6 @@
 - name: Install ArgoCD via upstream manifests
   shell: kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-- name: Wait for ArgoCD server rollout
-  shell: kubectl -n argocd rollout status deployment argocd-server
-
 - name: Add nodeSelector to ArgoCD server Deployment
   shell: |
     kubectl -n argocd patch deployment argocd-server \
@@ -30,6 +27,18 @@
     kubectl -n argocd patch statefulset argocd-application-controller \
       --type='merge' \
       -p '{"spec":{"template":{"spec":{"nodeSelector":{"dedicated":"service"}}}}}'
+
+- name: Restart ArgoCD server Deployment
+  shell: kubectl -n argocd rollout restart deployment argocd-server
+
+- name: Restart ArgoCD repo-server Deployment
+  shell: kubectl -n argocd rollout restart deployment argocd-repo-server
+
+- name: Restart ArgoCD application controller StatefulSet
+  shell: kubectl -n argocd rollout restart statefulset argocd-application-controller
+
+- name: Wait for ArgoCD server rollout
+  shell: kubectl -n argocd rollout status deployment argocd-server
 
 - name: Load Terraform output from JSON
   set_fact:
