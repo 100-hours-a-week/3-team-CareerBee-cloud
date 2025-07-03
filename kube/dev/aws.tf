@@ -347,7 +347,7 @@ resource "aws_autoscaling_group" "k8s_worker_azone" {
     id      = aws_launch_template.k8s_worker_azone.id
     version = "$Latest"
   }
-  vpc_zone_identifier = module.aws_vpc.private_subnet_ids
+  vpc_zone_identifier = [module.aws_vpc.private_subnet_ids[0]]
   min_size            = 1
   max_size            = 5
   desired_capacity    = 1
