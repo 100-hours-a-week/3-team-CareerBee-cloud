@@ -68,6 +68,16 @@ hostnamectl set-hostname worker-$(curl -s http://169.254.169.254/latest/meta-dat
 chmod +x /tmp/join.sh
 /tmp/join.sh
 
-echo 'KUBELET_EXTRA_ARGS=--node-labels=dedicated=service' >> /etc/default/kubelet
-systemctl daemon-reload
-systemctl restart kubelet
+echo "[4] ssh 비공개키 설정"
+echo "${ssh_key_base64_nopass}" | base64 -d > /home/ubuntu/.ssh/id_rsa
+chown -R ubuntu:ubuntu /home/ubuntu/.ssh
+chmod 700 /home/ubuntu/.ssh
+chmod 600 /home/ubuntu/.ssh/id_rsa
+
+echo "[5] SSH 접속을 통한 워커 노드 레이블 추가"
+ssh -o StrictHostKeyChecking=no -i /home/ubuntu/.ssh/id_rsa ubuntu@192.168.110.100 <<EOF
+echo "[5] 마스터 노드에 워커 노드 레이블 추가"
+kubectl label node \$(hostname) dedicated=service --overwrite
+echo "[6] 워커 노드 상태 확인"
+kubectl get nodes --show-labels
+EOF
