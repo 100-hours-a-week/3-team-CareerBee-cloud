@@ -239,8 +239,10 @@ resource "aws_instance" "openvpn" {
   
   user_data = templatefile("${path.module}/scripts/openvpn.sh.tpl", {
     openvpn_pw = var.openvpn_pw
-  }
-  )
+  })
+  
+  depends_on = [module.aws_vpc]
+
   tags = {
     Name = "ec2-${var.prefix}-openvpn-azone"
   }
@@ -277,6 +279,8 @@ resource "aws_instance" "k8s_master_azone" {
       ssh_key_base64_nopass = var.ssh_key_base64_nopass
     })
 
+    depends_on = [module.aws_vpc]
+
     tags = {
         Name = "ec2-${var.prefix}-master-azone"
     }
@@ -301,6 +305,8 @@ resource "aws_instance" "k8s_worker_db_azone" {
   echo "preserve_hostname: true" >> /etc/cloud/cloud.cfg
   EOF
 
+  depends_on = [module.aws_vpc]
+  
   tags = {
       Name = "ec2-${var.prefix}-worker-db-azone"
   }
