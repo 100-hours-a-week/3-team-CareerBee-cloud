@@ -328,6 +328,8 @@ resource "aws_launch_template" "k8s_worker_azone" {
   user_data = base64encode(templatefile("${path.module}/scripts/worker.sh.tpl", {}
   ))
   
+  depends_on = [module.aws_vpc]
+
   tags = {
     Name = "ec2-${var.prefix}-worker-azone"
   }
@@ -344,6 +346,8 @@ resource "aws_autoscaling_group" "k8s_worker_azone" {
   max_size            = 5
   desired_capacity    = 1
 
+  depends_on = [module.aws_vpc]
+  
   tag {
     key                 = "kubernetes.io/cluster/${var.prefix}"
     value               = "owned"
