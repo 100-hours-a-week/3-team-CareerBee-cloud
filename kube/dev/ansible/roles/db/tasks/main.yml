@@ -2,3 +2,24 @@
   ansible.builtin.command: >
     kubectl taint nodes {{ item }} node-role=db:NoSchedule --overwrite
   loop: "{{ groups['db_nodes'] }}"
+
+- name: Install MySQL via Helm with tf_output
+  ansible.builtin.command: >
+    helm install my-mysql bitnami/mysql
+    --namespace db --create-namespace
+    --set auth.username={{ tf_output.mysql_username }}
+    --set auth.password={{ tf_output.mysql_password }}
+    --set auth.database={{ tf_output.mysql_database }}
+    --set auth.rootPassword={{ tf_output.mysql_password }}
+    --set primary.extraFlags[0]="--bind-address=0.0.0.0"
+  args:
+    creates: /tmp/mysql_helm_installed
+
+- name: Install Redis via Helm
+  ansible.builtin.command: >
+    helm install my-redis bitnami/redis
+    --namespace db --create-namespace
+    --set architecture=standalone
+    --set auth.enabled=false
+  args:
+    creates: /tmp/redis_helm_installed

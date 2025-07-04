@@ -40,6 +40,17 @@ variable "argocd_admin_password_hash" {
   sensitive = true
 }
 
+variable "mysql_username" {
+  type = string 
+}
+variable "mysql_password" {
+  type      = string
+  sensitive = true
+}
+variable "mysql_database" {
+  type = string
+}
+
 ###########################################################################################################################################
 
 # AWS
