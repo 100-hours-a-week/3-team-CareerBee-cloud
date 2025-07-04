@@ -1,3 +1,8 @@
+- name: Add ArgoCD Helm repository
+  community.kubernetes.helm_repository:
+    name: argo
+    repo_url: https://argoproj.github.io/argo-helm
+
 - name: Create namespace for ArgoCD
   kubernetes.core.k8s:
     state: present
@@ -7,42 +12,27 @@
       metadata:
         name: argocd
 
-- name: Install ArgoCD via upstream manifests
-  shell: kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-
-- name: Add nodeSelector to ArgoCD server Deployment
-  shell: |
-    kubectl -n argocd patch deployment argocd-server \
-      --type='merge' \
-      -p '{"spec":{"template":{"spec":{"nodeSelector":{"dedicated":"service"}}}}}'
-
-- name: Add nodeSelector to ArgoCD repo-server Deployment
-  shell: |
-    kubectl -n argocd patch deployment argocd-repo-server \
-      --type='merge' \
-      -p '{"spec":{"template":{"spec":{"nodeSelector":{"dedicated":"service"}}}}}'
-
-- name: Add nodeSelector to ArgoCD application controller StatefulSet
-  shell: |
-    kubectl -n argocd patch statefulset argocd-application-controller \
-      --type='merge' \
-      -p '{"spec":{"template":{"spec":{"nodeSelector":{"dedicated":"service"}}}}}'
-
-- name: Restart ArgoCD server Deployment
-  shell: kubectl -n argocd rollout restart deployment argocd-server
-
-- name: Restart ArgoCD repo-server Deployment
-  shell: kubectl -n argocd rollout restart deployment argocd-repo-server
-
-- name: Restart ArgoCD application controller StatefulSet
-  shell: kubectl -n argocd rollout restart statefulset argocd-application-controller
-
-- name: Wait for ArgoCD server rollout
-  shell: kubectl -n argocd rollout status deployment argocd-server
-
 - name: Load Terraform output from JSON
   set_fact:
     tf_output: "{{ lookup('file', 'tf_output.json') | from_json }}"
+
+- name: Install or upgrade ArgoCD via Helm
+  community.kubernetes.helm:
+    name: argocd
+    chart_ref: argo/argo-cd
+    release_namespace: argocd
+    values_files:
+      - "{{ playbook_dir }}/files/argocd/values.yml"
+    create_namespace: false
+    wait: true
+    atomic: true
+
+- name: Wait for ArgoCD server rollout
+  shell: kubectl -n argocd rollout status deployment argocd-server
+  register: rollout_status
+  until: rollout_status.rc == 0
+  retries: 10
+  delay: 10
 
 - name: Set ArgoCD admin password
   kubernetes.core.k8s:
@@ -57,48 +47,3 @@
       stringData:
         admin.password: "{{ tf_output.argocd_admin_password_hash.value }}"
         admin.passwordMtime: "{{ lookup('pipe', 'date +%FT%T%Z') }}"
-
-- name: Ensure ArgoCD service is ClusterIP
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: v1
-      kind: Service
-      metadata:
-        name: argocd-server
-        namespace: argocd
-      spec:
-        type: ClusterIP
-  ignore_errors: true
-
-- name: Deploy ArgoCD ingress for ALB
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: networking.k8s.io/v1
-      kind: Ingress
-      metadata:
-        name: argocd-ingress
-        namespace: argocd
-        annotations:
-          kubernetes.io/ingress.class: alb
-          alb.ingress.kubernetes.io/scheme: internet-facing
-          alb.ingress.kubernetes.io/target-type: ip
-          alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
-          alb.ingress.kubernetes.io/certificate-arn: "{{ tf_output.acm_arn.value }}"
-          alb.ingress.kubernetes.io/load-balancer-name: "{{ tf_output.alb_name.value }}"
-          alb.ingress.kubernetes.io/backend-protocol: HTTP
-          alb.ingress.kubernetes.io/group.name: argocd
-          alb.ingress.kubernetes.io/ssl-redirect: '443'
-      spec:
-        rules:
-          - host: argocd.dev.careerbee.co.kr
-            http:
-              paths:
-                - path: /
-                  pathType: Prefix
-                  backend:
-                    service:
-                      name: argocd-server
-                      port:
-                        number: 80
