@@ -14,11 +14,6 @@ provider "aws" {
 ##########################################################################################################
 
 # static ip
-resource "google_compute_address" "static_ip" {
-  name   = var.gcp_static_ip_name
-  region = var.gcp_region
-}
-
 resource "aws_eip" "static_ip" {
 }
 
@@ -289,4 +284,77 @@ resource "aws_lambda_permission" "allow_event_6pm" {
   function_name = aws_lambda_function.github_trigger_6pm.function_name
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.trigger_6pm.arn
+}
+
+##########################################################################################################
+##########################################################################################################
+
+# test
+
+# static ip
+resource "aws_eip" "static_ip_test" {
+}
+
+
+resource "google_compute_disk" "ssmu_disk_test" {
+  name  = var.gcp_disk_test_name
+  type  = var.gcp_disk_type
+  zone  = var.gcp_zone
+  size  = 30
+}
+
+# route53
+resource "aws_route53_zone" "test" {
+  name = "test.dev.careerbee.co.kr"
+}
+
+resource "aws_route53_record" "test_ns" {
+  zone_id = aws_route53_zone.dev.zone_id
+  name    = "test"
+  type    = "NS"
+  ttl     = 300
+  records = aws_route53_zone.test.name_servers
+}
+
+# acm
+resource "aws_acm_certificate" "careerbee_cert_test" {
+  domain_name       = "test.dev.careerbee.co.kr"
+  subject_alternative_names = [
+    "www.test.dev.careerbee.co.kr",
+    "api.test.dev.careerbee.co.kr",
+    "ai.test.dev.careerbee.co.kr",
+    "openvpn.test.dev.careerbee.co.kr",
+    "argocd.test.dev.careerbee.co.kr",
+    "grafana.test.dev.careerbee.co.kr",
+    "prometheus.test.dev.careerbee.co.kr"
+  ]
+  validation_method = "DNS"
+  tags = {
+    Name = "test-careerbee-acm-cert"
+  }
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+resource "aws_acm_certificate_validation" "careerbee_cert_validation_test" {
+  certificate_arn         = aws_acm_certificate.careerbee_cert_test.arn
+
+  validation_record_fqdns = [
+    for record in aws_route53_record.cert_validation_records_test : record.fqdn
+  ]
+}
+resource "aws_route53_record" "cert_validation_records_test" {
+  for_each = {
+    for dvo in aws_acm_certificate.careerbee_cert_test.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      type   = dvo.resource_record_type
+      record = dvo.resource_record_value
+    }
+  }
+
+  zone_id = aws_route53_zone.test.zone_id
+  name    = each.value.name
+  type    = each.value.type
+  records = [each.value.record]
+  ttl     = 300
 }

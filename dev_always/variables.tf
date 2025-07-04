@@ -19,13 +19,13 @@ variable "gcp_zone" {
   type        = string
 }
 
-variable "gcp_static_ip_name" {
-  description = "Name of the static IP address"
+variable "gcp_disk_name" {
+  description = "Name of the compute disk"
   type        = string
 }
 
-variable "gcp_disk_name" {
-  description = "Name of the compute disk"
+variable "gcp_disk_test_name" {
+  description = "Name of the compute disk for test"
   type        = string
 }
 
