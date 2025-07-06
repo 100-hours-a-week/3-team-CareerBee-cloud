@@ -11,15 +11,16 @@ output "argocd_admin_password_hash" {
   sensitive = true
 }
 
-# output "mysql_username" {
-#   value = var.mysql_username
-# }
+output "mysql_username" {
+  value = var.mysql_username
+}
 
-# output "mysql_password" {
-#   value = var.mysql_password
-#   sensitive = true
-# }
+output "mysql_password" {
+  value = var.mysql_password
+  sensitive = true
+}
 
-# output "mysql_database" {
-#   value = var.mysql_database
-# }
+output "mysql_database" {
+  value = var.mysql_database
+}
+

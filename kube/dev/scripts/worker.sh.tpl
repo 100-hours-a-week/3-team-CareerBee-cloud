@@ -63,8 +63,9 @@ for i in {1..40}; do
   aws s3 cp s3://s3-careerbee-dev-infra/join.sh /tmp/join.sh && break
   sleep 30
 done
-
-hostnamectl set-hostname worker-$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+TOKEN=$(curl -sX PUT "http://169.254.169.254/latest/api/token" \
+  -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+hostnamectl set-hostname worker-$(curl -sH "X-aws-ec2-metadata-token: \$TOKEN" http://169.254.169.254/latest/meta-data/local-ipv4)
 chmod +x /tmp/join.sh
 /tmp/join.sh
 
@@ -81,3 +82,7 @@ kubectl label node \$(hostname) dedicated=service --overwrite
 echo "[6] 워커 노드 상태 확인"
 kubectl get nodes --show-labels
 EOF
+
+echo "[6] UFW 방화벽 설정"
+ufw allow 22/tcp
+ufw --force enable

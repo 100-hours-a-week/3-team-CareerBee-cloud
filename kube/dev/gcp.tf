@@ -61,49 +61,50 @@ module "gcp_vpc" {
 
 ###########################################################################################################################################
 
-resource "google_compute_instance" "gce" {
-  name         = "gce-${var.prefix}-azone"
-  machine_type = "g2-standard-4"
-  zone         = var.gcp_az
+# resource "google_compute_instance" "gce" {
+#   name         = "gce-${var.prefix}-azone"
+#   machine_type = "g2-standard-4"
+#   zone         = var.gcp_az
 
-  scheduling {
-  on_host_maintenance = "TERMINATE"
-  }
+#   scheduling {
+#   on_host_maintenance = "TERMINATE"
+#   }
 
-  boot_disk {
-    initialize_params {
-      image = "ubuntu-os-cloud/ubuntu-2404-lts-amd64"
-    }
-  }
+#   boot_disk {
+#     initialize_params {
+#       image = "ubuntu-os-cloud/ubuntu-2404-lts-amd64"
+#     }
+#   }
 
-  attached_disk {
-    source      = data.google_compute_disk.boot_disk.id
-    device_name = "careerbee-dev-data"
-    mode        = "READ_WRITE"
-  }
+#   attached_disk {
+#     source      = data.google_compute_disk.boot_disk.id
+#     device_name = "careerbee-dev-data"
+#     mode        = "READ_WRITE"
+#   }
 
-  network_interface {
-    network    = module.gcp_vpc.network_id
-    subnetwork = module.gcp_vpc.private_subnet_ids[0]
-    network_ip = var.gcp_gce_private_ip
-  }
+#   network_interface {
+#     network    = module.gcp_vpc.network_id
+#     subnetwork = module.gcp_vpc.private_subnet_ids[0]
+#     network_ip = var.gcp_gce_private_ip
+#   }
 
-  service_account {
-    email  = var.gcp_service_account_email
-    scopes = ["https://www.googleapis.com/auth/cloud-platform"]
-  }
+#   service_account {
+#     email  = var.gcp_service_account_email
+#     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+#   }
 
-  metadata = {
-    ssh-keys = <<EOT
-      ubuntu:${base64decode(var.public_nopass_key_base64)}
-EOT
-    startup-script = templatefile("${path.module}/scripts/gce.sh.tpl", {
-      device_id = var.device_id
-      mount_dir = var.mount_dir
-    })
-  }
-  depends_on = [module.gcp_vpc]
+#   metadata = {
+#     ssh-keys = <<EOT
+#       ubuntu:${base64decode(var.public_nopass_key_base64)}
+# EOT
+#     startup-script = templatefile("${path.module}/scripts/gce.sh.tpl", {
+#       device_id = var.device_id
+#       mount_dir = var.mount_dir
+#       tailscale_key = var.tailscale_key
+#     })
+#   }
+#   depends_on = [module.gcp_vpc]
   
-  tags = ["gce-careerbee-dev"]
-}
+#   tags = ["gce-${var.prefix}-azone"]
+# }
 ###########################################################################################################################################

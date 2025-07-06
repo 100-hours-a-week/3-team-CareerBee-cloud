@@ -6,7 +6,7 @@ apt update && apt upgrade -y
 
 echo "[2] NVIDIA 드라이버 설치"
 apt-get update
-apt-get install -y nvidia-driver-570
+apt-get install -y nvidia-driver-570 curl
 
 echo "[3] 디스크 마운트"
 if ls "${device_id}" > /dev/null 2>&1; then
@@ -22,6 +22,9 @@ if ls "${device_id}" > /dev/null 2>&1; then
   fi
 fi
 
-echo "[4] UFW 방화벽 설정"
+echo "[4] Hostname 변경"
+hostnamectl set-hostname ai
+
+echo "[5] UFW 방화벽 설정"
 ufw allow 22/tcp
 ufw --force enable

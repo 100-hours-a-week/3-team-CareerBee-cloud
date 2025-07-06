@@ -40,6 +40,11 @@ variable "argocd_admin_password_hash" {
   sensitive = true
 }
 
+variable "tailscale_key" {
+  type      = string
+  sensitive = true
+}
+
 variable "mysql_username" {
   type = string 
 }
@@ -73,10 +78,6 @@ variable "aws_access_key_id" {
 variable "aws_secret_access_key" {
   type        = string
   sensitive   = true
-}
-
-variable "aws_static_ip" {
-  type = string
 }
 
 variable "aws_vpc_cidr" {
@@ -115,9 +116,8 @@ variable "aws_argocd_azone_private_ip" {
   type = string
 }
 
-variable "openvpn_pw" {
-  type      = string
-  sensitive = true
+variable "aws_domain" {
+  type = string
 }
 
 ###########################################################################################################################################
@@ -162,5 +162,8 @@ variable "device_id" {
   type = string
 }
 variable "mount_dir" {
+  type = string
+}
+variable "gcp_disk_name" {
   type = string
 }

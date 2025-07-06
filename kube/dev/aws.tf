@@ -47,54 +47,6 @@ resource "aws_iam_instance_profile" "ec2_instance_profile" {
 
 # SG
 
-# openvpn
-resource "aws_security_group" "sg_openvpn" {
-  name        = "SG-${var.prefix}-openvpn"
-  description = "Allow OpenVPN traffic"
-  vpc_id      = module.aws_vpc.vpc_id
-
-  ingress {
-    from_port   = 1194
-    to_port     = 1194
-    protocol    = "udp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 943
-    to_port     = 943
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = var.ssmu_access_cidr_blocks
-  }
-  
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "sg-${var.prefix}-openvpn"
-  }
-}
-
-###################################################################
-
 # master
 resource "aws_security_group" "sg_master" {
   name = "SG-${var.prefix}-master"
@@ -146,7 +98,7 @@ resource "aws_security_group" "sg_worker" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = var.ssmu_access_cidr_blocks
+    security_groups = [aws_security_group.sg_master.id]
   }
 
   ingress {
@@ -187,7 +139,7 @@ resource "aws_security_group" "sg_db" {
       from_port   = 22
       to_port     = 22
       protocol    = "tcp"
-      cidr_blocks = var.ssmu_access_cidr_blocks
+      security_groups = [aws_security_group.sg_master.id]
     }
 
     ingress {
@@ -227,35 +179,6 @@ resource "aws_security_group" "sg_db" {
 
 # EC2
 
-# openvpn
-resource "aws_instance" "openvpn" {
-  ami                         = "ami-00b7e4eaa0fd205f9" # 미리 만들어 놓은 openvpn ami
-  instance_type               = "t2.medium"
-  subnet_id                   = module.aws_vpc.public_subnet_ids[0]
-  associate_public_ip_address = false
-  key_name                    = aws_key_pair.key.key_name
-  iam_instance_profile        = aws_iam_instance_profile.ec2_instance_profile.name
-  security_groups             = [aws_security_group.sg_openvpn.id]
-  
-  user_data = templatefile("${path.module}/scripts/openvpn.sh.tpl", {
-    openvpn_pw = var.openvpn_pw
-    aws_static_ip = var.aws_static_ip
-  })
-  
-  depends_on = [module.aws_vpc]
-
-  tags = {
-    Name = "ec2-${var.prefix}-openvpn-azone"
-  }
-}
-
-resource "aws_eip_association" "eip_assoc" {
-  allocation_id = data.aws_eip.existing_eip.id
-  instance_id   = aws_instance.openvpn.id
-}
-
-###################################################################
-
 # master
 resource "aws_instance" "k8s_master_azone" {
     ami                         = "ami-0d5bb3742db8fc264"
@@ -278,6 +201,7 @@ resource "aws_instance" "k8s_master_azone" {
       github_repo = var.github_repo
       github_token = var.github_token
       ssh_key_base64_nopass = var.ssh_key_base64_nopass
+      tailscale_key = var.tailscale_key
     })
 
     depends_on = [module.aws_vpc]
@@ -299,12 +223,9 @@ resource "aws_instance" "k8s_worker_db_azone" {
   iam_instance_profile        = aws_iam_instance_profile.ec2_instance_profile.name
   security_groups             = [aws_security_group.sg_db.id]
   private_ip                  = var.aws_worker_db_azone_private_ip
-  user_data = <<-EOF
-  #!/bin/bash
-  hostnamectl set-hostname db
-  echo "127.0.1.1 db" >> /etc/hosts
-  echo "preserve_hostname: true" >> /etc/cloud/cloud.cfg
-  EOF
+  user_data = templatefile("${path.module}/scripts/db.sh.tpl", {
+      tailscale_key = var.tailscale_key
+    })
 
   depends_on = [module.aws_vpc]
   
@@ -334,6 +255,7 @@ resource "aws_launch_template" "k8s_worker_azone" {
   
   user_data = base64encode(templatefile("${path.module}/scripts/worker.sh.tpl", {
     ssh_key_base64_nopass = var.ssh_key_base64_nopass
+    tailscale_key = var.tailscale_key
   }))
   
   depends_on = [module.aws_vpc]
@@ -448,57 +370,6 @@ resource "aws_lb_listener" "https" {
   }
 }
 
-###################################################################
-
-# ALB Target Group
-resource "aws_lb_target_group" "openvpn_tg" {
-  name        = "tg-${var.prefix}-openvpn"
-  port        = 943
-  protocol    = "HTTPS"
-  target_type = "instance"
-  vpc_id      = module.aws_vpc.vpc_id
-
-  health_check {
-    protocol            = "HTTPS"
-    port                = "traffic-port"
-    path                = "/"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 3
-    unhealthy_threshold = 2
-    matcher             = "200"
-  }
-
-  tags = {
-    Name = "tg-${var.prefix}-openvpn"
-  }
-}
-
-resource "aws_lb_target_group_attachment" "openvpn_attach" {
-  target_group_arn = aws_lb_target_group.openvpn_tg.arn
-  target_id        = aws_instance.openvpn.id
-  port             = 943
-}
-
-###################################################################
-
-#  Listener Rule
-resource "aws_lb_listener_rule" "openvpn_https_rule" {
-  listener_arn = aws_lb_listener.https.arn
-  priority     = 10
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.openvpn_tg.arn
-  }
-
-  condition {
-    host_header {
-      values = ["openvpn.${data.aws_route53_zone.dev.name}"]
-    }
-  }
-}
-
 ###########################################################################################################################################
 
 # Route53
@@ -506,17 +377,6 @@ resource "aws_lb_listener_rule" "openvpn_https_rule" {
 resource "aws_route53_record" "alb_record" {
   zone_id = data.aws_route53_zone.dev.zone_id
   name    = "${data.aws_route53_zone.dev.name}"
-  type    = "A"
-  alias {
-    name                   = aws_lb.alb.dns_name
-    zone_id                = aws_lb.alb.zone_id
-    evaluate_target_health = true
-  }
-}
-
-resource "aws_route53_record" "openvpn_record" {
-  zone_id = data.aws_route53_zone.dev.zone_id
-  name    = "openvpn.${data.aws_route53_zone.dev.name}"
   type    = "A"
   alias {
     name                   = aws_lb.alb.dns_name

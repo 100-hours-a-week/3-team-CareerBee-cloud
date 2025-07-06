@@ -1,19 +1,15 @@
-data "aws_eip" "existing_eip" {
-  public_ip = var.aws_static_ip
-}
-
 data "aws_acm_certificate" "careerbee_cert" {
-  domain   = "dev.careerbee.co.kr"
+  domain   = var.aws_domain
   statuses = ["ISSUED"]
   most_recent = true
 }
 
 data "aws_route53_zone" "dev" {
-  name         = "dev.careerbee.co.kr"
+  name         = var.aws_domain
   private_zone = false
 }
 
 data "google_compute_disk" "boot_disk" {
-  name = "disk-careerbee-dev"
+  name = var.gcp_disk_name
   zone = var.gcp_az
 }
