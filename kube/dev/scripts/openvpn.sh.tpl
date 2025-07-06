@@ -1,35 +1,10 @@
 #!/bin/bash
 set -e
 
-echo "[1] AWS CLI 설치"
-apt update -y
-apt install -y unzip curl
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-./aws/install
-
-echo "[2] OpenVPN 복원"
-rm -rf /usr/local/openvpn_as/etc/as_templ.conf \
-             /usr/local/openvpn_as/etc/as.conf \
-             /usr/local/openvpn_as/etc/cacert.pem \
-             /usr/local/openvpn_as/etc/config-local.json \
-             /usr/local/openvpn_as/etc/config.json \
-             /usr/local/openvpn_as/etc/db \
-             /usr/local/openvpn_as/etc/exe \
-             /usr/local/openvpn_as/etc/licenses \
-             /usr/local/openvpn_as/etc/PLATFORM \
-             /usr/local/openvpn_as/etc/tmp \
-             /usr/local/openvpn_as/etc/upgrade-flags \
-             /usr/local/openvpn_as/etc/VERSION \
-             /usr/local/openvpn_as/etc/web-ssl \
-             /usr/local/openvpn_as/etc/.ldat
-
-aws s3 cp s3://s3-careerbee-dev-infra/openvpn/ /usr/local/openvpn_as/etc/ --recursive
-mkdir -p /usr/local/openvpn_as/etc/sock
-mkdir -p /usr/local/openvpn_as/etc/tmp
-chown -R openvpnas:openvpnas /usr/local/openvpn_as/etc/
-
-# echo "[3] 관리자 계정 설정"
+# echo "[1] OpenVPN 설치 및 실행"
+# bash <(curl -fsS https://packages.openvpn.net/as/install.sh) --yes
+# /usr/local/openvpn_as/scripts/sacli --key "host.name" --value "${aws_static_ip}" ConfigPut
+# /usr/local/openvpn_as/scripts/sacli start
 # /usr/local/openvpn_as/scripts/sacli --user openvpn --key "type" --value "admin" UserPropPut
 # /usr/local/openvpn_as/scripts/sacli --user openvpn --new_pass "${openvpn_pw}" SetLocalPassword
 # /usr/local/openvpn_as/scripts/sacli --user mumu --key "type" --value "user_connect" UserPropPut
@@ -41,12 +16,9 @@ chown -R openvpnas:openvpnas /usr/local/openvpn_as/etc/
 # /usr/local/openvpn_as/scripts/sacli --user ellina --key "type" --value "user_connect" UserPropPut
 # /usr/local/openvpn_as/scripts/sacli --user ellina --new_pass "${openvpn_pw}" SetLocalPassword
 
-# 서비스 시작
-echo "[4] OpenVPN 서비스 시작"
-systemctl enable openvpnas
-systemctl restart openvpnas
+systemctl start openvpnas
 
-echo "[5] SSM에 상태 기록"
+echo "[2] SSM에 상태 기록"
 aws ssm put-parameter \
   --name "/careerbee/dev/openvpn" \
   --value "ready" \

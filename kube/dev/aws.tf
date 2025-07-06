@@ -229,7 +229,7 @@ resource "aws_security_group" "sg_db" {
 
 # openvpn
 resource "aws_instance" "openvpn" {
-  ami                         = "ami-0da165fc7156630d7" # OpenVPN Access Server (5 Connected Devices) / Self-Hosted VPN
+  ami                         = "ami-00b7e4eaa0fd205f9" # 미리 만들어 놓은 openvpn ami
   instance_type               = "t2.medium"
   subnet_id                   = module.aws_vpc.public_subnet_ids[0]
   associate_public_ip_address = false
@@ -239,6 +239,7 @@ resource "aws_instance" "openvpn" {
   
   user_data = templatefile("${path.module}/scripts/openvpn.sh.tpl", {
     openvpn_pw = var.openvpn_pw
+    aws_static_ip = var.aws_static_ip
   })
   
   depends_on = [module.aws_vpc]
