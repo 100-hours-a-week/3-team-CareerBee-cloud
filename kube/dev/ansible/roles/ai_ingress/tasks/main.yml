@@ -11,6 +11,11 @@
   set_fact:
     tf_output: "{{ lookup('file', 'tf_output.json') | from_json }}"
 
+- name: Render Helm ingress file from template
+  template:
+    src: files/argocd/ingress.yml.j2
+    dest: files/argocd/ingress.yml
+
 - name: Apply NGINX configmap
   kubernetes.core.k8s:
     state: present
@@ -29,7 +34,7 @@
 - name: Create ALB ingress for NGINX proxy
   kubernetes.core.k8s:
     state: present
-    definition: "{{ lookup('file', 'files/proxy/ingress.yml') | from_yaml }}"
+    src: files/proxy/ingress.yml
     
 - name: Create ingress-nginx namespace
   kubernetes.core.k8s:

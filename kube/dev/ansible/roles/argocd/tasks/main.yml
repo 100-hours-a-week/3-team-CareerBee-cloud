@@ -32,13 +32,18 @@
   set_fact:
     tf_output: "{{ lookup('file', 'tf_output.json') | from_json }}"
 
+- name: Render Helm values file from template
+  template:
+    src: files/argocd/values.yml.j2
+    dest: files/argocd/values.yml
+    
 - name: Install or upgrade ArgoCD via Helm
   community.kubernetes.helm:
     name: argocd
     chart_ref: argo/argo-cd
     release_namespace: argocd
     values_files:
-      - "{{ playbook_dir }}/files/argocd/values.yml"
+      - "files/argocd/values.yml"
     create_namespace: false
     wait: true
     atomic: true
