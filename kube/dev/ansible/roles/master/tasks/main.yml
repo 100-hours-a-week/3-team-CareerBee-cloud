@@ -33,3 +33,7 @@
 - name: Install Helm
   command: /tmp/get_helm.sh
   when: helm_check.rc != 0
+
+- name: Load Terraform output from JSON
+  set_fact:
+    tf_output: "{{ lookup('file', 'tf_output.json') | from_json }}"
