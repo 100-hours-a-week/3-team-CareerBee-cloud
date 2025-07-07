@@ -18,6 +18,14 @@
   roles:
     - worker
 
+- name: Install AWS ALB Ingress Controller
+  hosts: master
+  become: yes
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  roles:
+    - alb_ingress_controller
+
 - name: "Setup ArgoCD"
   hosts: master
   become: yes

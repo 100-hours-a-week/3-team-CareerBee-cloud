@@ -1,0 +1,29 @@
+- name: Add EKS Helm repo
+  community.kubernetes.helm_repository:
+    name: eks
+    repo_url: https://aws.github.io/eks-charts
+
+- name: Create namespace for kube-system
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: kube-system
+
+- name: Install ALB Ingress Controller via Helm
+  community.kubernetes.helm:
+    name: aws-load-balancer-controller
+    chart_ref: eks/aws-load-balancer-controller
+    release_namespace: kube-system
+    create_namespace: false
+    values:
+      clusterName: careerbee-test
+      region: ap-northeast-2
+      vpcId: vpc-07f2f37392424c0ee
+      serviceAccount:
+        create: true
+        name: aws-load-balancer-controller
+    wait: true
+    timeout: 300
