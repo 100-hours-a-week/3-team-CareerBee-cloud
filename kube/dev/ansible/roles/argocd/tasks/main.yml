@@ -12,10 +12,6 @@
       metadata:
         name: argocd
 
-- name: Load Terraform output from JSON
-  set_fact:
-    tf_output: "{{ lookup('file', 'tf_output.json') | from_json }}"
-
 - name: Render Helm ingress file from template
   template:
     src: files/argocd/ingress.yml.j2
