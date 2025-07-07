@@ -24,3 +24,12 @@ output "mysql_database" {
   value = var.mysql_database
 }
 
+output "prefix" {
+  value = var.prefix
+}
+output "aws_region" {
+  value = var.aws_region
+}
+output "aws_vpc_id" {
+  value = module.aws_vpc.vpc_id
+}

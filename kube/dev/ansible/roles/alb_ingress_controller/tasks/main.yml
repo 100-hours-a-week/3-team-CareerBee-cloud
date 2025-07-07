@@ -23,9 +23,9 @@
     release_namespace: kube-system
     create_namespace: false
     values:
-      clusterName: careerbee-test
-      region: ap-northeast-2
-      vpcId: vpc-07f2f37392424c0ee
+      clusterName: "{{ tf_output.prefix.value }}"
+      region: "{{ tf_output.aws_region.value }}"
+      vpcId: "{{ tf_output.aws_vpc_id.value }}"
       serviceAccount:
         create: true
         name: aws-load-balancer-controller
