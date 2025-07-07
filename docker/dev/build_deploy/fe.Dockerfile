@@ -13,13 +13,13 @@ ARG VITE_COMPETITION_START_MINUTE
 ARG VITE_COMPETITION_DURATION_MS
 ARG VITE_COMPETITION_AGGREGATE_MS
 
-RUN echo "VITE_KAKAO_APP_KEY=${VITE_KAKAO_APP_KEY}" >> .env && \
-    echo "VITE_API_URL=${VITE_API_URL}" >> .env && \
-    echo "VITE_SHOW_UNRELEASED=${VITE_SHOW_UNRELEASED}" >> .env && \
-    echo "VITE_COMPETITION_START_HOUR=${VITE_COMPETITION_START_HOUR}" >> .env && \
-    echo "VITE_COMPETITION_START_MINUTE=${VITE_COMPETITION_START_MINUTE}" >> .env && \
-    echo "VITE_COMPETITION_DURATION_MS=${VITE_COMPETITION_DURATION_MS}" >> .env && \
-    echo "VITE_COMPETITION_AGGREGATE_MS=${VITE_COMPETITION_AGGREGATE_MS}" >> .env
+RUN echo "NEXT_PUBLIC_KAKAO_APP_KEY=${VITE_KAKAO_APP_KEY}" >> .env && \
+    echo "NEXT_PUBLIC_API_URL=${VITE_API_URL}" >> .env && \
+    echo "NEXT_PUBLIC_SHOW_UNRELEASED=${VITE_SHOW_UNRELEASED}" >> .env && \
+    echo "NEXT_PUBLIC_COMPETITION_START_HOUR=${VITE_COMPETITION_START_HOUR}" >> .env && \
+    echo "NEXT_PUBLIC_COMPETITION_START_MINUTE=${VITE_COMPETITION_START_MINUTE}" >> .env && \
+    echo "NEXT_PUBLIC_COMPETITION_DURATION_MS=${VITE_COMPETITION_DURATION_MS}" >> .env && \
+    echo "NEXT_PUBLIC_COMPETITION_AGGREGATE_MS=${VITE_COMPETITION_AGGREGATE_MS}" >> .env
     
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install
@@ -28,12 +28,16 @@ COPY . .
 
 RUN pnpm build
 
-# 2. Serve Stage
-FROM nginx:1.28.0-alpine-slim
+# 2. Runner Stage
+FROM node:22-alpine AS runner
 
-RUN rm -rf /usr/share/nginx/html/*
+WORKDIR /frontend
 
-COPY --from=builder /frontend/dist /usr/share/nginx/html
+COPY --from=builder /frontend/.next ./.next
+COPY --from=builder /frontend/public ./public
+COPY --from=builder /frontend/package.json ./
+COPY --from=builder /frontend/node_modules ./node_modules
 
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+
+CMD ["pnpm", "start"]
