@@ -12,6 +12,12 @@
   roles:
     - master
 
+- name: "Run join.sh on worker nodes"
+  hosts: ai_nodes,db_nodes
+  become: yes
+  roles:
+    - worker
+
 - name: "Setup ArgoCD"
   hosts: master
   become: yes
