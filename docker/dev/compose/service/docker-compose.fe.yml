@@ -5,7 +5,7 @@ services:
     network_mode: host
     platform: linux/amd64
     ports:
-      - "80:80"
+      - "5173:5173"
     logging:
       driver: fluentd
       options:

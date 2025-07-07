@@ -38,6 +38,6 @@ COPY --from=builder /frontend/public ./public
 COPY --from=builder /frontend/package.json ./
 COPY --from=builder /frontend/node_modules ./node_modules
 
-EXPOSE 80
+EXPOSE 5173
 
 CMD ["pnpm", "start"]
