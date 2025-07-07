@@ -1,0 +1,19 @@
+global:
+  nodeSelector:
+    dedicated: service
+
+server:
+  service:
+    type: ClusterIP
+  nodeSelector:
+    dedicated: service
+  ingress:
+    enabled: false
+
+repoServer:
+  nodeSelector:
+    dedicated: service
+
+controller:
+  nodeSelector:
+    dedicated: service

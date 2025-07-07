@@ -32,10 +32,10 @@
   set_fact:
     tf_output: "{{ lookup('file', 'tf_output.json') | from_json }}"
 
-- name: Render Helm values file from template
+- name: Render Helm ingress file from template
   template:
-    src: files/argocd/values.yml.j2
-    dest: files/argocd/values.yml
+    src: files/argocd/ingress.yml.j2
+    dest: files/argocd/ingress.yml
     
 - name: Install or upgrade ArgoCD via Helm
   community.kubernetes.helm:
@@ -47,6 +47,11 @@
     create_namespace: false
     wait: true
     timeout: 300s
+
+- name: Apply ArgoCD Ingress
+  kubernetes.core.k8s:
+    state: present
+    src: files/argocd/ingress.yml
 
 - name: Wait for ArgoCD server rollout
   shell: kubectl -n argocd rollout status deployment argocd-server
