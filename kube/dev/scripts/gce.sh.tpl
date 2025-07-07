@@ -27,4 +27,7 @@ hostnamectl set-hostname ai
 
 echo "[5] UFW 방화벽 설정"
 ufw allow 22/tcp
+ufw allow 179/tcp
+ufw allow 10250/tcp
+ufw allow 30443/tcp
 ufw --force enable
