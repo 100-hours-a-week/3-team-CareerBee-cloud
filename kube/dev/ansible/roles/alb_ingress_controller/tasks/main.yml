@@ -7,6 +7,10 @@
   shell: |
     kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
 
+- name: Apply ALB Controller CRDs
+  shell: |
+    kubectl apply -k "github.com/aws/eks-charts/stable/aws-load-balancer-controller//crds?ref=master"
+
 - name: Create namespace for kube-system
   kubernetes.core.k8s:
     state: present
