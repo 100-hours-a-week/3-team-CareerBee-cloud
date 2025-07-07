@@ -300,7 +300,7 @@ resource "google_compute_disk" "ssmu_disk_test" {
   name  = var.gcp_disk_test_name
   type  = var.gcp_disk_type
   zone  = var.gcp_zone
-  size  = 30
+  size  = 80
 }
 
 # route53
