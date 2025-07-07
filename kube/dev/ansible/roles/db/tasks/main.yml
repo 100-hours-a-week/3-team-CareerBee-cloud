@@ -7,10 +7,10 @@
   ansible.builtin.command: >
     helm install my-mysql bitnami/mysql
     --namespace db --create-namespace
-    --set auth.username={{ tf_output.mysql_username }}
-    --set auth.password={{ tf_output.mysql_password }}
-    --set auth.database={{ tf_output.mysql_database }}
-    --set auth.rootPassword={{ tf_output.mysql_password }}
+    --set auth.username={{ tf_output.mysql_username.value }}
+    --set auth.password={{ tf_output.mysql_password.value }}
+    --set auth.database={{ tf_output.mysql_database.value }}
+    --set auth.rootPassword={{ tf_output.mysql_password.value }}
     --set primary.extraFlags[0]="--bind-address=0.0.0.0"
   args:
     creates: /tmp/mysql_helm_installed
