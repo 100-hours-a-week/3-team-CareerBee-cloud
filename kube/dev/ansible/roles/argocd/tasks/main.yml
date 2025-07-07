@@ -46,7 +46,7 @@
       - "files/argocd/values.yml"
     create_namespace: false
     wait: true
-    atomic: true
+    timeout: 300
 
 - name: Wait for ArgoCD server rollout
   shell: kubectl -n argocd rollout status deployment argocd-server
