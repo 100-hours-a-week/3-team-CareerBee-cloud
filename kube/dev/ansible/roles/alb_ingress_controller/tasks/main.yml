@@ -26,4 +26,4 @@
         create: true
         name: aws-load-balancer-controller
     wait: true
-    timeout: 300
+    timeout: 300s
