@@ -9,7 +9,7 @@
 
 - name: Apply ALB Controller CRDs
   shell: |
-    kubectl apply -k "github.com/aws/eks-charts/stable/aws-load-balancer-controller//crds?ref=master"
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/config/crd/bases/elbv2.k8s.aws_targetgroupbindings.yaml
 
 - name: Create namespace for kube-system
   kubernetes.core.k8s:
