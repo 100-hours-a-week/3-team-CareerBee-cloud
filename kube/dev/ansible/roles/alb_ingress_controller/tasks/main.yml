@@ -3,6 +3,10 @@
     name: eks
     repo_url: https://aws.github.io/eks-charts
 
+- name: Install cert-manager
+  shell: |
+    kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+
 - name: Create namespace for kube-system
   kubernetes.core.k8s:
     state: present
