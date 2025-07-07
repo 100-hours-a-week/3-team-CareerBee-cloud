@@ -21,7 +21,7 @@ metadata:
     alb.ingress.kubernetes.io/load-balancer-connection-idle-timeout: "86400"
 spec:
   rules:
-    - host: api.dev.careerbee.co.kr
+    - host: api.test.dev.careerbee.co.kr
       http:
         paths:
           - path: /

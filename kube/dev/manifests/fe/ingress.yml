@@ -20,7 +20,7 @@ metadata:
     alb.ingress.kubernetes.io/healthcheck-port: 'traffic-port'
 spec:
   rules:
-    - host: www.dev.careerbee.co.kr
+    - host: www.test.dev.careerbee.co.kr
       http:
         paths:
           - path: /
