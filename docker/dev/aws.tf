@@ -190,6 +190,11 @@ resource "aws_instance" "service_azone" {
   security_groups             = [aws_security_group.sg_service.id]
   private_ip                  = "192.168.110.10"
 
+  root_block_device {
+    volume_size = 20
+    volume_type = "gp3"
+  }
+  
   user_data = templatefile("${path.module}/scripts/ec2-service-setup.tpl", {
     public_nopass_key_base64  = var.public_nopass_key_base64
     SSH_KEY_BASE64_NOPASS     = var.SSH_KEY_BASE64_NOPASS
