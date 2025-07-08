@@ -1,8 +1,3 @@
-- name: Add ArgoCD Helm repository
-  community.kubernetes.helm_repository:
-    name: argo
-    repo_url: https://argoproj.github.io/argo-helm
-
 - name: Create namespace for ArgoCD
   kubernetes.core.k8s:
     state: present
@@ -17,13 +12,13 @@
     src: files/argocd/ingress.yml.j2
     dest: files/argocd/ingress.yml
     
-- name: Install or upgrade ArgoCD via Helm
+- name: Install ArgoCD from local chart
   community.kubernetes.helm:
     name: argocd
-    chart_ref: argo/argo-cd
+    chart_ref: "files/argocd"
     release_namespace: argocd
     values_files:
-      - "files/argocd/values.yml"
+      - "files/argocd/values.yaml"
     create_namespace: false
     wait: true
     timeout: 300s
@@ -31,7 +26,7 @@
 - name: Apply ArgoCD Ingress
   kubernetes.core.k8s:
     state: present
-    src: files/argocd/ingress.yml
+    definition: "{{ lookup('file', 'files/argocd/ingress.yml') | from_yaml }}"
 
 - name: Wait for ArgoCD server rollout
   shell: kubectl -n argocd rollout status deployment argocd-server
