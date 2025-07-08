@@ -1,8 +1,3 @@
-- name: Taint DB nodes
-  ansible.builtin.command: >
-    kubectl taint nodes {{ item }} node-role=db:NoSchedule --overwrite
-  loop: "{{ groups['db_nodes'] }}"
-
 - name: Install MySQL via Helm with tf_output
   ansible.builtin.command: >
     helm install my-mysql bitnami/mysql

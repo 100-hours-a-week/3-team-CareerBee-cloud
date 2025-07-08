@@ -7,11 +7,6 @@
       metadata:
         name: ai
 
-- name: Taint AI nodes
-  ansible.builtin.command: >
-    kubectl taint nodes {{ item }} node-role=ai:NoSchedule --overwrite
-  loop: "{{ groups['ai_nodes'] }}"
-
 - name: Apply ArgoCD Application for AI
   kubernetes.core.k8s:
     state: present

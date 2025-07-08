@@ -1,0 +1,9 @@
+- name: Taint DB nodes
+  ansible.builtin.command: >
+    kubectl taint nodes {{ item }} node-role=db:NoSchedule --overwrite
+  loop: "{{ groups['db_nodes'] }}"
+
+- name: Taint AI nodes
+  ansible.builtin.command: >
+    kubectl taint nodes {{ item }} node-role=ai:NoSchedule --overwrite
+  loop: "{{ groups['ai_nodes'] }}"

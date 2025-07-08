@@ -18,6 +18,14 @@
   roles:
     - worker
 
+- name: "Taint"
+  hosts: master
+  become: yes
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  roles:
+    - taint
+
 - name: Install AWS ALB Ingress Controller
   hosts: master
   become: yes
