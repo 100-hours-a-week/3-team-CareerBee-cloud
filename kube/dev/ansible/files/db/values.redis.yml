@@ -1,0 +1,14 @@
+auth:
+  enabled: false
+
+image:
+  tag: "6.2.14"
+  
+master:
+  persistence:
+    enabled: true
+  tolerations:
+    - key: "node-role"
+      operator: "Equal"
+      value: "db"
+      effect: "NoSchedule"

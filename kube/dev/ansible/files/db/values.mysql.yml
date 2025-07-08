@@ -1,0 +1,19 @@
+auth:
+  rootPassword: "{{ tf_output.mysql_password.value }}"
+  username: "{{ tf_output.mysql_username.value }}"
+  password: "{{ tf_output.mysql_password.value }}"
+  database: "{{ tf_output.mysql_database.value }}"
+
+image:
+  tag: "8.4.0"
+  
+primary:
+  extraFlags:
+    - "--bind-address=0.0.0.0"
+  persistence:
+    enabled: true
+  tolerations:
+    - key: "node-role"
+      operator: "Equal"
+      value: "db"
+      effect: "NoSchedule"

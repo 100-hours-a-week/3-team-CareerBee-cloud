@@ -1,20 +1,45 @@
-- name: Install MySQL via Helm with tf_output
-  ansible.builtin.command: >
-    helm install my-mysql bitnami/mysql
-    --namespace db --create-namespace
-    --set auth.username={{ tf_output.mysql_username.value }}
-    --set auth.password={{ tf_output.mysql_password.value }}
-    --set auth.database={{ tf_output.mysql_database.value }}
-    --set auth.rootPassword={{ tf_output.mysql_password.value }}
-    --set primary.extraFlags[0]="--bind-address=0.0.0.0"
-  args:
-    creates: /tmp/mysql_helm_installed
+#######################
+# MySQL 설치
+#######################
+- name: Create MySQL namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: mysql
+
+- name: Install MySQL via Helm
+  community.kubernetes.helm:
+    name: mysql
+    chart_ref: bitnami/mysql
+    release_namespace: mysql
+    create_namespace: false
+    values_files:
+      - files/db/values.mysql.yml
+    wait: true
+    timeout: 300s
+
+#######################
+# Redis 설치
+#######################
+- name: Create Redis namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: redis
 
 - name: Install Redis via Helm
-  ansible.builtin.command: >
-    helm install my-redis bitnami/redis
-    --namespace db --create-namespace
-    --set architecture=standalone
-    --set auth.enabled=false
-  args:
-    creates: /tmp/redis_helm_installed
+  community.kubernetes.helm:
+    name: redis
+    chart_ref: bitnami/redis
+    release_namespace: redis
+    create_namespace: false
+    values_files:
+      - files/db/values.redis.yml
+    wait: true
+    timeout: 300s
