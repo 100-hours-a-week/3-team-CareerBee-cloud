@@ -76,17 +76,7 @@ chown -R ubuntu:ubuntu /home/ubuntu/.ssh
 chmod 700 /home/ubuntu/.ssh
 chmod 600 /home/ubuntu/.ssh/id_rsa
 
-echo "[5] SSH 접속을 통한 워커 노드 레이블 추가"
-ssh -o StrictHostKeyChecking=no -i /home/ubuntu/.ssh/id_rsa ubuntu@172.16.110.100 <<EOF
-echo "[5] 마스터 노드에 워커 노드 레이블 추가"
-sudo -i
-echo "debug hostname: $$(hostname)"
-kubectl label node $$(hostname) dedicated=service --overwrite
-echo "[6] 워커 노드 상태 확인"
-kubectl get nodes --show-labels
-EOF
-
-echo "[6] UFW 방화벽 설정"
+echo "[5] UFW 방화벽 설정"
 ufw allow 22/tcp
 ufw allow 179/tcp
 ufw allow 10250/tcp
