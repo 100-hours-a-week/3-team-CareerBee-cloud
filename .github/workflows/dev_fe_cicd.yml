@@ -75,13 +75,13 @@ jobs:
           set +a
 
           docker buildx build \
-            --build-arg VITE_KAKAO_APP_KEY=${VITE_KAKAO_APP_KEY} \
-            --build-arg VITE_API_URL=${VITE_API_URL} \
-            --build-arg VITE_SHOW_UNRELEASED=${VITE_SHOW_UNRELEASED} \
-            --build-arg VITE_COMPETITION_START_HOUR=${VITE_COMPETITION_START_HOUR} \
-            --build-arg VITE_COMPETITION_START_MINUTE=${VITE_COMPETITION_START_MINUTE} \
-            --build-arg VITE_COMPETITION_DURATION_MS=${VITE_COMPETITION_DURATION_MS} \
-            --build-arg VITE_COMPETITION_AGGREGATE_MS=${VITE_COMPETITION_AGGREGATE_MS} \
+            --build-arg NEXT_PUBLIC_KAKAO_APP_KEY=${NEXT_PUBLIC_KAKAO_APP_KEY} \
+            --build-arg NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
+            --build-arg NEXT_PUBLIC_SHOW_UNRELEASED=${NEXT_PUBLIC_SHOW_UNRELEASED} \
+            --build-arg NEXT_PUBLIC_COMPETITION_START_HOUR=${NEXT_PUBLIC_COMPETITION_START_HOUR} \
+            --build-arg NEXT_PUBLIC_COMPETITION_START_MINUTE=${NEXT_PUBLIC_COMPETITION_START_MINUTE} \
+            --build-arg NEXT_PUBLIC_COMPETITION_DURATION_MS=${NEXT_PUBLIC_COMPETITION_DURATION_MS} \
+            --build-arg NEXT_PUBLIC_COMPETITION_AGGREGATE_MS=${NEXT_PUBLIC_COMPETITION_AGGREGATE_MS} \
             --cache-from=type=registry,ref=${{ secrets.DEV_ECR_REGISTRY }}/frontend:cache \
             --cache-to=type=registry,ref=${{ secrets.DEV_ECR_REGISTRY }}/frontend:cache,mode=max \
             --push \

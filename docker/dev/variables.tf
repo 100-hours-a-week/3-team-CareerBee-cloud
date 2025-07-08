@@ -184,6 +184,36 @@ variable "WEBHOOK_TOKEN" {
 
 # FE
 
+variable "NEXT_PUBLIC_KAKAOMAP_KEY" {
+  type        = string
+  description = "Kakao map key for Vite frontend"
+}
+
+variable "NEXT_PUBLIC_API_URL" {
+  type        = string
+  description = "API URL for frontend"
+}
+
+variable "NEXT_PUBLIC_SHOW_UNRELEASED" {
+  type        = string
+}
+
+variable "NEXT_PUBLIC_COMPETITION_START_HOUR" {
+  type        = string
+}
+
+variable "NEXT_PUBLIC_COMPETITION_START_MINUTE" {
+  type        = string
+}
+
+variable "NEXT_PUBLIC_COMPETITION_DURATION_MS" {
+  type        = string
+}
+
+variable "NEXT_PUBLIC_COMPETITION_AGGREGATE_MS" {
+  type        = string
+}
+
 variable "VITE_KAKAOMAP_KEY" {
   type        = string
   description = "Kakao map key for Vite frontend"
