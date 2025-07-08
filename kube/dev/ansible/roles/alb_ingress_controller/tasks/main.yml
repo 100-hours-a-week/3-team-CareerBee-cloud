@@ -33,5 +33,7 @@
       serviceAccount:
         create: true
         name: aws-load-balancer-controller
+      enableCertManager: true
+      enableAdmissionWebhook: true
     wait: true
     timeout: 300s
