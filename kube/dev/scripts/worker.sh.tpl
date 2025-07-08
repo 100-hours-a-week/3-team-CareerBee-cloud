@@ -65,7 +65,8 @@ for i in {1..40}; do
 done
 TOKEN=$(curl -sX PUT "http://169.254.169.254/latest/api/token" \
   -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
-hostnamectl set-hostname worker-$(curl -sH "X-aws-ec2-metadata-token: \$TOKEN" http://169.254.169.254/latest/meta-data/local-ipv4)
+echo "debug TOKEN: $${TOKEN}"
+hostnamectl set-hostname worker-$(curl -sH "X-aws-ec2-metadata-token: $${TOKEN}" http://169.254.169.254/latest/meta-data/local-ipv4)
 chmod +x /tmp/join.sh
 /tmp/join.sh
 
@@ -79,7 +80,8 @@ echo "[5] SSH 접속을 통한 워커 노드 레이블 추가"
 ssh -o StrictHostKeyChecking=no -i /home/ubuntu/.ssh/id_rsa ubuntu@172.16.110.100 <<EOF
 echo "[5] 마스터 노드에 워커 노드 레이블 추가"
 sudo -i
-kubectl label node \$(hostname) dedicated=service --overwrite
+echo "debug hostname: $$(hostname)"
+kubectl label node $$(hostname) dedicated=service --overwrite
 echo "[6] 워커 노드 상태 확인"
 kubectl get nodes --show-labels
 EOF
