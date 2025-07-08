@@ -28,10 +28,10 @@ COPY . .
 
 RUN pnpm build
 
-RUN corepack enable && corepack prepare pnpm@10.7.1 --activate
-
 # 2. Runner Stage
 FROM node:22-alpine AS runner
+
+RUN corepack enable && corepack prepare pnpm@10.7.1 --activate
 
 WORKDIR /frontend
 
