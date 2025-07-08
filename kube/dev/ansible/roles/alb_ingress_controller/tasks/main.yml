@@ -3,23 +3,28 @@
     name: eks
     repo_url: https://aws.github.io/eks-charts
 
-- name: Install cert-manager
-  shell: |
-    kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+- name: Add Jetstack (cert-manager) Helm repo
+  community.kubernetes.helm_repository:
+    name: jetstack
+    repo_url: https://charts.jetstack.io
+
+- name: Install cert-manager via Helm
+  community.kubernetes.helm:
+    name: cert-manager
+    chart_ref: jetstack/cert-manager
+    release_namespace: cert-manager
+    create_namespace: true
+    values:
+      installCRDs: true
+    wait: true
+    timeout: 180s
 
 - name: Apply ALB Controller CRDs
   shell: |
     kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/config/crd/bases/elbv2.k8s.aws_targetgroupbindings.yaml
-
-- name: Create namespace for kube-system
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: v1
-      kind: Namespace
-      metadata:
-        name: kube-system
-
+  args:
+    warn: false
+    
 - name: Install ALB Ingress Controller via Helm
   community.kubernetes.helm:
     name: aws-load-balancer-controller
