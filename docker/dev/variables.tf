@@ -411,3 +411,13 @@ variable "USE_S3" {
 variable "LOG_LEVEL" {
   type = string
 }
+
+variable "REDIS_URL" {
+  type = string
+}
+variable "REDIS_STATE_TTL" {
+  type        = number
+}
+variable "REDIS_LOCK_TTL" {
+  type        = number
+}
