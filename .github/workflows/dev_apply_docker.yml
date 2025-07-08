@@ -125,7 +125,7 @@ jobs:
           for i in $(seq 1 5); do
             echo "🔁 헬스 체크 시도 $i / 5..."
 
-            FRONT_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://www.dev.careerbee.co.kr/health-check")
+            FRONT_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://www.dev.careerbee.co.kr/")
             echo "EC2 서버 상태: $FRONT_STATUS"
             BACK_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.dev.careerbee.co.kr/health-check")
             echo "GCE 서버 상태: $BACK_STATUS"

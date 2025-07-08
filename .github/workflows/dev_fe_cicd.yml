@@ -112,7 +112,7 @@ jobs:
         run: |
           set -e
           for i in $(seq 1 10); do
-            STATUS=$(curl --max-time 5 -s -o /dev/null -w "%{http_code}" "https://www.dev.careerbee.co.kr/health-check")
+            STATUS=$(curl --max-time 5 -s -o /dev/null -w "%{http_code}" "https://www.dev.careerbee.co.kr/")
             echo "Status: $STATUS"
             if [ "$STATUS" == "200" ]; then
               echo "✅ Health check passed"
