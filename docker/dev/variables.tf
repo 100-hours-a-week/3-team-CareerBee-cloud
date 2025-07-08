@@ -117,10 +117,6 @@ variable "gcp_private_subnet_cidr" {
   type        = string
 }
 
-variable "gcp_static_ip" {
-  type = string
-}
-
 variable "gcp_service_account_email" {
   type = string
 }
