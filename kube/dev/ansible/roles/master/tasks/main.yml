@@ -32,7 +32,7 @@
   when: helm_check.rc != 0
 
 - name: Check if Calico is already installed
-  shell: helm list -n calico-system | grep calico
+  shell: helm list -n tigera-operator | grep calico
   register: calico_check
   ignore_errors: true
   changed_when: false
@@ -48,7 +48,7 @@
     name: calico
     chart_ref: projectcalico/tigera-operator
     chart_version: "v3.30.2"
-    release_namespace: calico-system
+    release_namespace: tigera-operator
     create_namespace: true
     wait: true
     timeout: 300s
