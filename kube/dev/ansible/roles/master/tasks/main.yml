@@ -18,9 +18,16 @@
 - name: Install Calico CNI
   shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
 
-- name: Wait until Calico pods are available
-  ansible.builtin.shell: |
-    kubectl wait --for=condition=Ready pod -l k8s-app=calico-node -n kube-system --timeout=300s
+- name: Wait for Calico-node pods to be created
+  shell: kubectl get pods -n kube-system -l k8s-app=calico-node --no-headers
+  register: calico_pods_check
+  until: calico_pods_check.stdout != ""
+  retries: 30
+  delay: 10
+  changed_when: false
+
+- name: Wait until Calico-node pods are ready
+  shell: kubectl wait --for=condition=Ready pod -l k8s-app=calico-node -n kube-system --timeout=300s
   register: calico_wait
   changed_when: false
   failed_when: calico_wait.rc != 0
