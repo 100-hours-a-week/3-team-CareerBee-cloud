@@ -88,9 +88,9 @@ resource "aws_security_group" "sg_ssh" {
 ###################################################################
 
 # BGP
-resource "aws_security_group" "sg_bgp" {
-  name        = "SG-${var.prefix}-bgp"
-  description = "Allow BGP traffic between nodes"
+resource "aws_security_group" "sg_node_base" {
+  name        = "SG-${var.prefix}-node_base"
+  description = "Allow BGP, DNS traffic between nodes"
   vpc_id      = module.aws_vpc.vpc_id
 
   ingress {
@@ -100,8 +100,22 @@ resource "aws_security_group" "sg_bgp" {
     cidr_blocks = [var.gcp_private_subnet_cidr]
   }
 
+  ingress {
+    from_port   = 53
+    to_port     = 53
+    protocol    = "tcp"
+    cidr_blocks = [var.gcp_private_subnet_cidr]
+  }
+
+  ingress {
+    from_port   = 53
+    to_port     = 53
+    protocol    = "udp"
+    cidr_blocks = [var.gcp_private_subnet_cidr]
+  }
+
   tags = {
-    Name = "sg-${var.prefix}-bgp"
+    Name = "sg-${var.prefix}-node-base"
   }
 }
 
@@ -110,8 +124,26 @@ resource "aws_security_group_rule" "bgp_self" {
   from_port                 = 179
   to_port                   = 179
   protocol                  = "tcp"
-  source_security_group_id  = aws_security_group.sg_bgp.id
-  security_group_id         = aws_security_group.sg_bgp.id
+  source_security_group_id  = aws_security_group.sg_node_base.id
+  security_group_id         = aws_security_group.sg_node_base.id
+}
+
+resource "aws_security_group_rule" "dns_self_tcp" {
+  type                      = "ingress"
+  from_port                 = 53
+  to_port                   = 53
+  protocol                  = "tcp"
+  source_security_group_id  = aws_security_group.sg_node_base.id
+  security_group_id         = aws_security_group.sg_node_base.id
+}
+
+resource "aws_security_group_rule" "dns_self_udp" {
+  type                      = "ingress"
+  from_port                 = 53
+  to_port                   = 53
+  protocol                  = "udp"
+  source_security_group_id  = aws_security_group.sg_node_base.id
+  security_group_id         = aws_security_group.sg_node_base.id
 }
 
 ###################################################################
@@ -178,10 +210,10 @@ resource "aws_security_group_rule" "gcp_to_worker_kubelet" {
 
 ###################################################################
 
-# Mysql
-resource "aws_security_group" "sg_mysql" {
-    name        = "SG-${var.prefix}-mysql"
-    description = "Allow Kubernetes Worker mysql traffic"
+# DB
+resource "aws_security_group" "sg_db" {
+    name        = "SG-${var.prefix}-db"
+    description = "Allow Kubernetes Worker db traffic"
     vpc_id      = module.aws_vpc.vpc_id
 
     ingress {
@@ -190,19 +222,6 @@ resource "aws_security_group" "sg_mysql" {
       protocol        = "tcp"
       security_groups = [aws_security_group.sg_worker.id]
     }
-
-    tags = {
-      Name = "sg-${var.prefix}-mysql"
-    }
-}
-
-###################################################################
-
-# Redis
-resource "aws_security_group" "sg_redis" {
-    name        = "SG-${var.prefix}-redis"
-    description = "Allow Kubernetes Worker redis traffic"
-    vpc_id      = module.aws_vpc.vpc_id
 
     ingress {
       from_port       = 6379
@@ -219,53 +238,8 @@ resource "aws_security_group" "sg_redis" {
     }
 
     tags = {
-      Name = "sg-${var.prefix}-redis"
+      Name = "sg-${var.prefix}-db"
     }
-}
-
-###################################################################
-
-# CoreDNS
-resource "aws_security_group" "sg_dns" {
-  name        = "SG-${var.prefix}-dns"
-  description = "Allow DNS traffic (TCP/UDP 53)"
-  vpc_id      = module.aws_vpc.vpc_id
-
-  ingress {
-    from_port   = 53
-    to_port     = 53
-    protocol    = "tcp"
-    cidr_blocks = [var.gcp_private_subnet_cidr]
-  }
-
-  ingress {
-    from_port   = 53
-    to_port     = 53
-    protocol    = "udp"
-    cidr_blocks = [var.gcp_private_subnet_cidr]
-  }
-
-  tags = {
-    Name = "sg-${var.prefix}-dns"
-  }
-}
-
-resource "aws_security_group_rule" "dns_self_tcp" {
-  type                      = "ingress"
-  from_port                 = 53
-  to_port                   = 53
-  protocol                  = "tcp"
-  source_security_group_id  = aws_security_group.sg_dns.id
-  security_group_id         = aws_security_group.sg_dns.id
-}
-
-resource "aws_security_group_rule" "dns_self_udp" {
-  type                      = "ingress"
-  from_port                 = 53
-  to_port                   = 53
-  protocol                  = "udp"
-  source_security_group_id  = aws_security_group.sg_dns.id
-  security_group_id         = aws_security_group.sg_dns.id
 }
 
 ###########################################################################################################################################
@@ -284,8 +258,7 @@ resource "aws_instance" "k8s_master_azone" {
       aws_security_group.sg_master.id,
       aws_security_group.sg_egress_all.id,
       aws_security_group.sg_ssh.id,
-      aws_security_group.sg_bgp.id,
-      aws_security_group.sg_dns.id
+      aws_security_group.sg_node_base.id
       ]
     private_ip                  = var.aws_master_azone_private_ip
     
@@ -324,10 +297,8 @@ resource "aws_instance" "k8s_worker_db_azone" {
       aws_security_group.sg_worker.id,
       aws_security_group.sg_egress_all.id,
       aws_security_group.sg_ssh.id,
-      aws_security_group.sg_bgp.id,
-      aws_security_group.sg_dns.id,
-      aws_security_group.sg_mysql.id,
-      aws_security_group.sg_redis.id
+      aws_security_group.sg_node_base.id,
+      aws_security_group.sg_db.id
       ]
   private_ip                  = var.aws_worker_db_azone_private_ip
   user_data = templatefile("${path.module}/scripts/db.sh.tpl", {
@@ -358,8 +329,7 @@ resource "aws_launch_template" "k8s_worker_azone" {
       aws_security_group.sg_worker.id,
       aws_security_group.sg_egress_all.id,
       aws_security_group.sg_ssh.id,
-      aws_security_group.sg_bgp.id,
-      aws_security_group.sg_dns.id
+      aws_security_group.sg_node_base.id
       ]
   }
   iam_instance_profile {
