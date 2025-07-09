@@ -19,13 +19,11 @@
   shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
 
 - name: Wait until Calico pods are available
-  kubernetes.core.k8s_wait:
-    namespace: kube-system
-    label_selectors:
-      - "k8s-app=calico-node"
-    condition:
-      type: Ready
-    timeout: 300
+  ansible.builtin.shell: |
+    kubectl wait --for=condition=Ready pod -l k8s-app=calico-node -n kube-system --timeout=300s
+  register: calico_wait
+  changed_when: false
+  failed_when: calico_wait.rc != 0
 
 - name: Patch Calico DaemonSet to skip tailscale interfaces
   kubernetes.core.k8s_json_patch:
