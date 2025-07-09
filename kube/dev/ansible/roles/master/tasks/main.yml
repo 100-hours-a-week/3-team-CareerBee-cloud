@@ -67,13 +67,6 @@
   changed_when: false
   when: calico_check.rc != 0
 
-- name: Wait until Calico-node pods are ready
-  shell: kubectl wait --for=condition=Ready pod -l k8s-app=calico-node -n calico-system --timeout=300s
-  register: calico_wait
-  changed_when: false
-  failed_when: calico_wait.rc != 0
-  when: calico_check.rc != 0
-
 - name: Patch Calico DaemonSet to skip tailscale interfaces
   kubernetes.core.k8s_json_patch:
     kind: DaemonSet
@@ -85,6 +78,13 @@
         value:
           name: IP_AUTODETECTION_METHOD
           value: "skip-interface=tailscale.*"
+  when: calico_check.rc != 0
+
+- name: Wait until Calico-node pods are ready
+  shell: kubectl wait --for=condition=Ready pod -l k8s-app=calico-node -n calico-system --timeout=300s
+  register: calico_wait
+  changed_when: false
+  failed_when: calico_wait.rc != 0
   when: calico_check.rc != 0
 
 - name: Load Terraform output from JSON
