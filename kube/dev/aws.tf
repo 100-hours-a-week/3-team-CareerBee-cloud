@@ -87,7 +87,7 @@ resource "aws_security_group" "sg_ssh" {
 
 ###################################################################
 
-# BGP
+# node_base
 resource "aws_security_group" "sg_node_base" {
   name        = "SG-${var.prefix}-node_base"
   description = "Allow BGP, DNS traffic between nodes"
@@ -111,6 +111,13 @@ resource "aws_security_group" "sg_node_base" {
     from_port   = 53
     to_port     = 53
     protocol    = "udp"
+    cidr_blocks = [var.gcp_private_subnet_cidr]
+  }
+
+  ingress {
+    from_port   = 9443
+    to_port     = 9443
+    protocol    = "tcp"
     cidr_blocks = [var.gcp_private_subnet_cidr]
   }
 
@@ -142,6 +149,15 @@ resource "aws_security_group_rule" "dns_self_udp" {
   from_port                 = 53
   to_port                   = 53
   protocol                  = "udp"
+  source_security_group_id  = aws_security_group.sg_node_base.id
+  security_group_id         = aws_security_group.sg_node_base.id
+}
+
+resource "aws_security_group_rule" "kube_proxy_self" {
+  type                      = "ingress"
+  from_port                 = 9443
+  to_port                   = 9443
+  protocol                  = "tcp"
   source_security_group_id  = aws_security_group.sg_node_base.id
   security_group_id         = aws_security_group.sg_node_base.id
 }
