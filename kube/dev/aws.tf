@@ -94,13 +94,6 @@ resource "aws_security_group" "sg_bgp" {
   vpc_id      = module.aws_vpc.vpc_id
 
   ingress {
-    from_port       = 179
-    to_port         = 179
-    protocol        = "tcp"
-    security_groups = [aws_security_group.sg_bgp.id]
-  }
-
-  ingress {
     from_port   = 179
     to_port     = 179
     protocol    = "tcp"
@@ -110,6 +103,15 @@ resource "aws_security_group" "sg_bgp" {
   tags = {
     Name = "sg-${var.prefix}-bgp"
   }
+}
+
+resource "aws_security_group_rule" "bgp_self" {
+  type                      = "ingress"
+  from_port                 = 179
+  to_port                   = 179
+  protocol                  = "tcp"
+  source_security_group_id  = aws_security_group.sg_bgp.id
+  security_group_id         = aws_security_group.sg_bgp.id
 }
 
 ###################################################################
@@ -230,20 +232,6 @@ resource "aws_security_group" "sg_dns" {
   vpc_id      = module.aws_vpc.vpc_id
 
   ingress {
-    from_port       = 53
-    to_port         = 53
-    protocol        = "tcp"
-    security_groups = [aws_security_group.sg_dns.id]
-  }
-
-  ingress {
-    from_port       = 53
-    to_port         = 53
-    protocol        = "udp"
-    security_groups = [aws_security_group.sg_dns.id]
-  }
-
-  ingress {
     from_port   = 53
     to_port     = 53
     protocol    = "tcp"
@@ -260,6 +248,24 @@ resource "aws_security_group" "sg_dns" {
   tags = {
     Name = "sg-${var.prefix}-dns"
   }
+}
+
+resource "aws_security_group_rule" "dns_self_tcp" {
+  type                      = "ingress"
+  from_port                 = 53
+  to_port                   = 53
+  protocol                  = "tcp"
+  source_security_group_id  = aws_security_group.sg_dns.id
+  security_group_id         = aws_security_group.sg_dns.id
+}
+
+resource "aws_security_group_rule" "dns_self_udp" {
+  type                      = "ingress"
+  from_port                 = 53
+  to_port                   = 53
+  protocol                  = "udp"
+  source_security_group_id  = aws_security_group.sg_dns.id
+  security_group_id         = aws_security_group.sg_dns.id
 }
 
 ###########################################################################################################################################
