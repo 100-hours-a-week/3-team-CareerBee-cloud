@@ -22,7 +22,5 @@
         name: aws-load-balancer-controller
       enableCertManager: false
       enableAdmissionWebhook: true
-      annotations:
-        alb.ingress.kubernetes.io/certificate-arn: "{{ tf_output.acm_arn.value }}"
     wait: true
     timeout: 300s
