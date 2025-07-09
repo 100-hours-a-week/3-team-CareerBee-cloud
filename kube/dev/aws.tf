@@ -47,11 +47,31 @@ resource "aws_iam_instance_profile" "ec2_instance_profile" {
 
 # SG
 
-# master
-resource "aws_security_group" "sg_master" {
-  name = "SG-${var.prefix}-master"
-  description = "Allow Kubernetes traffic"
-  vpc_id = module.aws_vpc.vpc_id
+# egress_all
+resource "aws_security_group" "sg_egress_all" {
+  name        = "SG-${var.prefix}-egress-all"
+  description = "Allow all outbound traffic"
+  vpc_id      = module.aws_vpc.vpc_id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "sg-${var.prefix}-egress-all"
+  }
+}
+
+###################################################################
+
+# SSH
+resource "aws_security_group" "sg_ssh" {
+  name        = "SG-${var.prefix}-ssh"
+  description = "Allow SSH Access"
+  vpc_id      = module.aws_vpc.vpc_id
 
   ingress {
     from_port   = 22
@@ -60,119 +80,186 @@ resource "aws_security_group" "sg_master" {
     cidr_blocks = var.ssmu_access_cidr_blocks
   }
 
+  tags = {
+    Name = "sg-${var.prefix}-ssh"
+  }
+}
+
+###################################################################
+
+# BGP
+resource "aws_security_group" "sg_bgp" {
+  name        = "SG-${var.prefix}-bgp"
+  description = "Allow BGP traffic between nodes"
+  vpc_id      = module.aws_vpc.vpc_id
+
+  ingress {
+    from_port       = 179
+    to_port         = 179
+    protocol        = "tcp"
+    security_groups = [aws_security_group.sg_bgp.id]
+  }
+
   ingress {
     from_port   = 179
     to_port     = 179
     protocol    = "tcp"
-    cidr_blocks = [module.aws_vpc.private_subnet_cidrs[0], module.aws_vpc.private_subnet_cidrs[2]]
+    cidr_blocks = [var.gcp_private_subnet_cidr]
   }
 
-  ingress {
-    from_port   = 6443
-    to_port     = 6443
-    protocol    = "tcp"
-    cidr_blocks = [module.aws_vpc.private_subnet_cidrs[0], module.aws_vpc.private_subnet_cidrs[2]]
+  tags = {
+    Name = "sg-${var.prefix}-bgp"
   }
+}
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+###################################################################
+
+# master
+resource "aws_security_group" "sg_master" {
+  name = "SG-${var.prefix}-master"
+  description = "Allow Master traffic"
+  vpc_id = module.aws_vpc.vpc_id
 
   tags = {
       Name = "sg-${var.prefix}-master"
   }
 }
 
+resource "aws_security_group_rule" "worker_to_master_api" {
+  type                     = "ingress"
+  from_port                = 6443
+  to_port                  = 6443
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.sg_worker.id
+  security_group_id        = aws_security_group.sg_master.id
+}
+
+resource "aws_security_group_rule" "gcp_to_master_api" {
+  type                     = "ingress"
+  from_port                = 6443
+  to_port                  = 6443
+  protocol                 = "tcp"
+  cidr_blocks              = [var.gcp_private_subnet_cidr]
+  security_group_id        = aws_security_group.sg_master.id
+}
+
 ###################################################################
 
-# service
+# worker
 resource "aws_security_group" "sg_worker" {
   name        = "SG-${var.prefix}-worker"
-  description = "Allow Service traffic"
+  description = "Allow Worker traffic"
   vpc_id      = module.aws_vpc.vpc_id
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    security_groups = [aws_security_group.sg_master.id]
-  }
-
-  ingress {
-    from_port   = 179
-    to_port     = 179
-    protocol    = "tcp"
-    security_groups = [aws_security_group.sg_master.id]
-  }
-
-  ingress {
-    from_port   = 10250
-    to_port     = 10250
-    protocol    = "tcp"
-    security_groups = [aws_security_group.sg_master.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 
   tags = {
     Name = "sg-${var.prefix}-worker"
   }
 }
 
+resource "aws_security_group_rule" "master_to_worker_kubelet" {
+  type                     = "ingress"
+  from_port                = 10250
+  to_port                  = 10250
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.sg_master.id
+  security_group_id        = aws_security_group.sg_worker.id
+}
+
+resource "aws_security_group_rule" "gcp_to_worker_kubelet" {
+  type                     = "ingress"
+  from_port                = 10250
+  to_port                  = 10250
+  protocol                 = "tcp"
+  cidr_blocks              = [var.gcp_private_subnet_cidr]
+  security_group_id        = aws_security_group.sg_worker.id
+}
+
 ###################################################################
 
-# DB
-resource "aws_security_group" "sg_db" {
-    name        = "SG-${var.prefix}-db"
-    description = "Allow Kubernetes Worker DB traffic"
+# Mysql
+resource "aws_security_group" "sg_mysql" {
+    name        = "SG-${var.prefix}-mysql"
+    description = "Allow Kubernetes Worker mysql traffic"
     vpc_id      = module.aws_vpc.vpc_id
 
     ingress {
-      from_port   = 22
-      to_port     = 22
-      protocol    = "tcp"
-      security_groups = [aws_security_group.sg_master.id]
+      from_port       = 3306
+      to_port         = 3306
+      protocol        = "tcp"
+      security_groups = [aws_security_group.sg_worker.id]
     }
 
+    tags = {
+      Name = "sg-${var.prefix}-mysql"
+    }
+}
+
+###################################################################
+
+# Redis
+resource "aws_security_group" "sg_redis" {
+    name        = "SG-${var.prefix}-redis"
+    description = "Allow Kubernetes Worker redis traffic"
+    vpc_id      = module.aws_vpc.vpc_id
+
     ingress {
-      from_port   = 3306
-      to_port     = 3306
-      protocol    = "tcp"
+      from_port       = 6379
+      to_port         = 6379
+      protocol        = "tcp"
       security_groups = [aws_security_group.sg_worker.id]
     }
 
     ingress {
-      from_port   = 179
-      to_port     = 179
+      from_port   = 6379
+      to_port     = 6379
       protocol    = "tcp"
-      security_groups = [aws_security_group.sg_master.id]
-    }
-
-    ingress {
-      from_port   = 10250
-      to_port     = 10250
-      protocol    = "tcp"
-      security_groups = [aws_security_group.sg_master.id]
-    }
-
-    egress {
-      from_port   = 0
-      to_port     = 0
-      protocol    = "-1"
-      cidr_blocks = ["0.0.0.0/0"]
+      cidr_blocks = [var.gcp_private_subnet_cidr]
     }
 
     tags = {
-      Name = "sg-${var.prefix}-db"
+      Name = "sg-${var.prefix}-redis"
     }
+}
+
+###################################################################
+
+# CoreDNS
+resource "aws_security_group" "sg_dns" {
+  name        = "SG-${var.prefix}-dns"
+  description = "Allow DNS traffic (TCP/UDP 53)"
+  vpc_id      = module.aws_vpc.vpc_id
+
+  ingress {
+    from_port       = 53
+    to_port         = 53
+    protocol        = "tcp"
+    security_groups = [aws_security_group.sg_dns.id]
+  }
+
+  ingress {
+    from_port       = 53
+    to_port         = 53
+    protocol        = "udp"
+    security_groups = [aws_security_group.sg_dns.id]
+  }
+
+  ingress {
+    from_port   = 53
+    to_port     = 53
+    protocol    = "tcp"
+    cidr_blocks = [var.gcp_private_subnet_cidr]
+  }
+
+  ingress {
+    from_port   = 53
+    to_port     = 53
+    protocol    = "udp"
+    cidr_blocks = [var.gcp_private_subnet_cidr]
+  }
+
+  tags = {
+    Name = "sg-${var.prefix}-dns"
+  }
 }
 
 ###########################################################################################################################################
@@ -187,7 +274,13 @@ resource "aws_instance" "k8s_master_azone" {
     associate_public_ip_address = false
     key_name                    = aws_key_pair.key.key_name
     iam_instance_profile        = aws_iam_instance_profile.ec2_instance_profile.name
-    security_groups             = [aws_security_group.sg_master.id]
+    security_groups             = [
+      aws_security_group.sg_master.id,
+      aws_security_group.sg_egress_all.id,
+      aws_security_group.sg_ssh.id,
+      aws_security_group.sg_bgp.id,
+      aws_security_group.sg_dns.id
+      ]
     private_ip                  = var.aws_master_azone_private_ip
     
     root_block_device {
@@ -221,7 +314,15 @@ resource "aws_instance" "k8s_worker_db_azone" {
   associate_public_ip_address = false
   key_name                    = aws_key_pair.key.key_name
   iam_instance_profile        = aws_iam_instance_profile.ec2_instance_profile.name
-  security_groups             = [aws_security_group.sg_db.id]
+  security_groups             = [
+      aws_security_group.sg_worker.id,
+      aws_security_group.sg_egress_all.id,
+      aws_security_group.sg_ssh.id,
+      aws_security_group.sg_bgp.id,
+      aws_security_group.sg_dns.id,
+      aws_security_group.sg_mysql.id,
+      aws_security_group.sg_redis.id
+      ]
   private_ip                  = var.aws_worker_db_azone_private_ip
   user_data = templatefile("${path.module}/scripts/db.sh.tpl", {
       tailscale_key = var.tailscale_key
@@ -247,7 +348,13 @@ resource "aws_launch_template" "k8s_worker_azone" {
   network_interfaces {
     associate_public_ip_address = false
     subnet_id                   = module.aws_vpc.private_subnet_ids[0]
-    security_groups             = [aws_security_group.sg_worker.id]
+    security_groups             = [
+      aws_security_group.sg_worker.id,
+      aws_security_group.sg_egress_all.id,
+      aws_security_group.sg_ssh.id,
+      aws_security_group.sg_bgp.id,
+      aws_security_group.sg_dns.id
+      ]
   }
   iam_instance_profile {
     name = aws_iam_instance_profile.ec2_instance_profile.name

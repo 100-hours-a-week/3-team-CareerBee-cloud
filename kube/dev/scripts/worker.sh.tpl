@@ -78,6 +78,8 @@ chmod 600 /home/ubuntu/.ssh/id_rsa
 
 echo "[5] UFW 방화벽 설정"
 ufw allow 22/tcp
+ufw allow 53/udp
+ufw allow 53/tcp
 ufw allow 179/tcp
 ufw allow 10250/tcp
 ufw --force enable

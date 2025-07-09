@@ -24,12 +24,28 @@ module "gcp_vpc" {
       priority      = 1000
     },
     {
-      name          = "vpn-tcp"
+      name          = "ssh-tcp"
       protocol      = "tcp"
-      ports         = ["22","179","10250","30443"]
+      ports         = ["22"]
       source_ranges = [var.aws_vpc_cidr]
       direction     = "INGRESS"
       priority      = 1000
+    },
+    {
+      name          = "vpn-tcp"
+      protocol      = "tcp"
+      ports         = ["53","179","10250","30443"]
+      source_ranges = [var.aws_vpc_cidr]
+      direction     = "INGRESS"
+      priority      = 1001
+    },
+    {
+      name          = "vpn-udp"
+      protocol      = "udp"
+      ports         = ["53"]
+      source_ranges = [var.aws_vpc_cidr]
+      direction     = "INGRESS"
+      priority      = 1001
     },
     {
     name          = "ipsec-udp"
