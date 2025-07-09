@@ -67,17 +67,24 @@
   changed_when: false
   when: calico_check.rc != 0
 
-- name: Patch Calico DaemonSet to skip tailscale interfaces
-  kubernetes.core.k8s_json_patch:
-    kind: DaemonSet
-    namespace: calico-system
-    name: calico-node
-    patch:
-      - op: add
-        path: /spec/template/spec/containers/0/env/-
-        value:
-          name: IP_AUTODETECTION_METHOD
-          value: "skip-interface=tailscale.*"
+- name: Update Calico DaemonSet IP detection method
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: DaemonSet
+      metadata:
+        name: calico-node
+        namespace: calico-system
+      spec:
+        template:
+          spec:
+            containers:
+            - name: calico-node
+              env:
+              - name: IP_AUTODETECTION_METHOD
+                value: "skip-interface=tailscale.*"
+    merge_type: strategic-merge
   when: calico_check.rc != 0
 
 - name: Wait until Calico-node pods are ready
