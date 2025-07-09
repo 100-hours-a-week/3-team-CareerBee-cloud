@@ -25,7 +25,7 @@
 
 - name: Apply ALB Controller CRDs
   shell: |
-    kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/config/crd/bases/elbv2.k8s.aws_targetgroupbindings.yaml
+    kubectl apply -k "github.com/kubernetes-sigs/aws-load-balancer-controller/config/crd?ref=v2.7.1"
     
 - name: Install ALB Ingress Controller via Helm
   community.kubernetes.helm:
