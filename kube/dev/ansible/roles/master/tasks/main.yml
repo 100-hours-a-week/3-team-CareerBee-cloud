@@ -32,7 +32,7 @@
   when: helm_check.rc != 0
 
 - name: Check if Calico is already installed
-  shell: helm list -n tigera-operator | grep calico
+  shell: helm list -n calico-system | grep calico
   register: calico_check
   ignore_errors: true
   changed_when: false
@@ -48,7 +48,7 @@
     name: calico
     chart_ref: projectcalico/tigera-operator
     chart_version: "v3.30.2"
-    release_namespace: tigera-operator
+    release_namespace: calico-system
     create_namespace: true
     wait: true
     timeout: 300s
@@ -59,7 +59,7 @@
   when: calico_check.rc != 0
 
 - name: Wait for Calico-node pods to be created
-  shell: kubectl get pods -n kube-system -l k8s-app=calico-node --no-headers
+  shell: kubectl get pods -n calico-system -l k8s-app=calico-node --no-headers
   register: calico_pods_check
   until: calico_pods_check.stdout != ""
   retries: 30
@@ -68,7 +68,7 @@
   when: calico_check.rc != 0
 
 - name: Wait until Calico-node pods are ready
-  shell: kubectl wait --for=condition=Ready pod -l k8s-app=calico-node -n kube-system --timeout=300s
+  shell: kubectl wait --for=condition=Ready pod -l k8s-app=calico-node -n calico-system --timeout=300s
   register: calico_wait
   changed_when: false
   failed_when: calico_wait.rc != 0
@@ -77,7 +77,7 @@
 - name: Patch Calico DaemonSet to skip tailscale interfaces
   kubernetes.core.k8s_json_patch:
     kind: DaemonSet
-    namespace: kube-system
+    namespace: calico-system
     name: calico-node
     patch:
       - op: add
