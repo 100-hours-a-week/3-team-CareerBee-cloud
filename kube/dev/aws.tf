@@ -190,6 +190,24 @@ resource "aws_security_group" "sg_worker" {
   }
 }
 
+resource "aws_security_group_rule" "worker_self" {
+  type                     = "ingress"
+  from_port                = 10250
+  to_port                  = 10250
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.sg_worker.id
+  security_group_id        = aws_security_group.sg_worker.id
+}
+
+resource "aws_security_group_rule" "worker_self_https" {
+  type                     = "ingress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.sg_worker.id
+  security_group_id        = aws_security_group.sg_worker.id
+}
+
 resource "aws_security_group_rule" "master_to_worker_kubelet" {
   type                     = "ingress"
   from_port                = 10250
