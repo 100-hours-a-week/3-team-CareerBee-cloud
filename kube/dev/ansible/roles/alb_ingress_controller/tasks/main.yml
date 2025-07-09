@@ -1,11 +1,19 @@
+- name: Check if ALB Controller is already installed
+  shell: helm list -n kube-system | grep aws-load-balancer-controller
+  register: alb_check
+  ignore_errors: true
+  changed_when: false
+
 - name: Add EKS Helm repo
   community.kubernetes.helm_repository:
     name: eks
     repo_url: https://aws.github.io/eks-charts
+  when: alb_check.rc != 0
 
 - name: Apply ALB Controller CRDs
   shell: |
     kubectl apply -k "github.com/kubernetes-sigs/aws-load-balancer-controller/config/crd?ref=v2.7.1"
+  when: alb_check.rc != 0
     
 - name: Install ALB Ingress Controller via Helm
   community.kubernetes.helm:
@@ -24,3 +32,4 @@
       enableAdmissionWebhook: true
     wait: true
     timeout: 300s
+  when: alb_check.rc != 0
