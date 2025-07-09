@@ -12,12 +12,16 @@
   community.kubernetes.helm:
     name: cert-manager
     chart_ref: jetstack/cert-manager
+    chart_version: v1.18.2
     release_namespace: cert-manager
     create_namespace: true
-    values:
-      installCRDs: true
     wait: true
     timeout: 180s
+    values:
+      crds:
+        enabled: true
+      webhook:
+        timeoutSeconds: 30
 
 - name: Apply ALB Controller CRDs
   shell: |
