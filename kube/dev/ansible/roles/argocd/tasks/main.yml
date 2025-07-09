@@ -26,10 +26,6 @@
     create_namespace: false
     chart_version: 8.1.2
     update_repo_cache: true
-    values:
-      server:
-        service:
-          type: ClusterIP
 
 - name: Apply ArgoCD Ingress
   kubernetes.core.k8s:
