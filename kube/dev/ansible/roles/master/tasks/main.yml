@@ -61,6 +61,13 @@
           value: "skip-interface=tailscale.*"
   when: ip_detection_check.stdout == ""
 
+- name: Get IP_AUTODETECTION_METHOD index in Calico DaemonSet
+  shell: kubectl get daemonset calico-node -n kube-system -o json | jq '.spec.template.spec.containers[0].env | to_entries | map(select(.value.name=="IP_AUTODETECTION_METHOD")) | .[0].key'
+  register: ip_detection_index
+  ignore_errors: true
+  changed_when: false
+  when: ip_detection_check.stdout != ""
+
 - name: Replace IP_AUTODETECTION_METHOD in Calico DaemonSet (if exists)
   kubernetes.core.k8s_json_patch:
     kind: DaemonSet
@@ -68,7 +75,7 @@
     name: calico-node
     patch:
       - op: replace
-        path: /spec/template/spec/containers/0/env/1/value
+        path: /spec/template/spec/containers/0/env/{{ ip_detection_index.stdout }}/value
         value: "skip-interface=tailscale.*"
   when: ip_detection_check.stdout != ""
 
