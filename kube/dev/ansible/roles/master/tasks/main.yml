@@ -58,7 +58,6 @@
           bgp: "Enabled"
           nodeAddressAutodetectionV4:
             skipInterface: "tailscale.*"
-            firstFound: true
   when: calico_check.rc != 0
 
 - name: Wait for Calico-node pods to be created
