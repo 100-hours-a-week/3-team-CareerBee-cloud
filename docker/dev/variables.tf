@@ -327,7 +327,10 @@ variable "SARAMIN_SECRET_KEY" {
   sensitive   = true
 }
 
-variable "AWS_S3_BUCKET" {
+variable "AWS_S3_IMAGE_BUCKET" {
+  type        = string
+}
+variable "AWS_S3_RESUME_BUCKET" {
   type        = string
 }
 
