@@ -42,7 +42,26 @@
   delay: 10
   changed_when: false
 
-- name: Patch Calico DaemonSet to skip tailscale interfaces
+- name: Check if IP_AUTODETECTION_METHOD exists in Calico DaemonSet
+  shell: kubectl get daemonset calico-node -n kube-system -o json | jq '.spec.template.spec.containers[0].env[] | select(.name=="IP_AUTODETECTION_METHOD")'
+  register: ip_detection_check
+  ignore_errors: true
+  changed_when: false
+
+- name: Add IP_AUTODETECTION_METHOD to Calico DaemonSet (if not exists)
+  kubernetes.core.k8s_json_patch:
+    kind: DaemonSet
+    namespace: kube-system
+    name: calico-node
+    patch:
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: IP_AUTODETECTION_METHOD
+          value: "skip-interface=tailscale.*"
+  when: ip_detection_check.stdout == ""
+
+- name: Replace IP_AUTODETECTION_METHOD in Calico DaemonSet (if exists)
   kubernetes.core.k8s_json_patch:
     kind: DaemonSet
     namespace: kube-system
@@ -51,6 +70,7 @@
       - op: replace
         path: /spec/template/spec/containers/0/env/1/value
         value: "skip-interface=tailscale.*"
+  when: ip_detection_check.stdout != ""
 
 - name: Wait until Calico-node pods are ready
   shell: kubectl wait --for=condition=Ready pod -l k8s-app=calico-node -n kube-system --timeout=600s
