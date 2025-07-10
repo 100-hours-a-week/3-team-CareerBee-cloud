@@ -31,15 +31,8 @@
   command: /tmp/get_helm.sh
   when: helm_check.rc != 0
 
-- name: Check if Calico is already installed
-  shell: kubectl get pods -n kube-system -l k8s-app=calico-node --no-headers
-  register: calico_check
-  ignore_errors: true
-  changed_when: false
-
 - name: Install Calico via kubectl apply
   shell: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/calico.yaml
-  when: calico_check.rc != 0
 
 - name: Wait for Calico-node pods to be created
   shell: kubectl get pods -n kube-system -l k8s-app=calico-node --no-headers
@@ -48,7 +41,6 @@
   retries: 30
   delay: 10
   changed_when: false
-  when: calico_check.rc != 0
 
 - name: Patch Calico DaemonSet to skip tailscale interfaces
   kubernetes.core.k8s_json_patch:
@@ -58,15 +50,13 @@
     patch:
       - op: replace
         path: /spec/template/spec/containers/0/env/1/value
-        value: "skip-interface=tailscale.*,first-found"
-  when: calico_check.rc != 0
+        value: "skip-interface=tailscale.*"
 
 - name: Wait until Calico-node pods are ready
   shell: kubectl wait --for=condition=Ready pod -l k8s-app=calico-node -n kube-system --timeout=600s
   register: calico_wait
   changed_when: false
   failed_when: calico_wait.rc != 0
-  when: calico_check.rc != 0
 
 - name: Load Terraform output from JSON
   set_fact:
