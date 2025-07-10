@@ -83,7 +83,7 @@
             - name: calico-node
               env:
               - name: IP_AUTODETECTION_METHOD
-                value: "skip-interface=tailscale.*"
+                value: "skip-interface=tailscale.*,first-found"
     merge_type: strategic-merge
   when: calico_check.rc != 0
 
