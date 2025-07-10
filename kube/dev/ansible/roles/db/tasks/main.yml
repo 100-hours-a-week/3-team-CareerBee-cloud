@@ -1,4 +1,12 @@
 #######################
+# Helm Repository 추가
+#######################
+- name: Add Bitnami Helm repository
+  community.kubernetes.helm_repository:
+    name: bitnami
+    repo_url: https://charts.bitnami.com/bitnami
+    
+#######################
 # MySQL 설치
 #######################
 - name: Create MySQL namespace
