@@ -424,3 +424,7 @@ variable "REDIS_STATE_TTL" {
 variable "REDIS_LOCK_TTL" {
   type        = number
 }
+
+variable "SPRING_SERVER_URL" {
+  type = string
+}
