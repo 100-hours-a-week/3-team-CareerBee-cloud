@@ -291,11 +291,6 @@ resource "aws_lambda_permission" "allow_event_6pm" {
 
 # test
 
-# static ip
-resource "aws_eip" "static_ip_test" {
-}
-
-
 resource "google_compute_disk" "ssmu_disk_test" {
   name  = var.gcp_disk_test_name
   type  = var.gcp_disk_type

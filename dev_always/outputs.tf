@@ -20,7 +20,3 @@ output "aws_eip_ip" {
   description = "AWS Elastic IP"
   value       = aws_eip.static_ip.public_ip
 }
-output "aws_eip_test_ip" {
-  description = "AWS Elastic IP for test"
-  value       = aws_eip.static_ip_test.public_ip
-}
