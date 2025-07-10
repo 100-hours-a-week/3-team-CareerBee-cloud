@@ -384,20 +384,52 @@ resource "aws_launch_template" "k8s_worker_azone" {
 
 resource "aws_autoscaling_group" "k8s_worker_azone" {
   name      = "asg-${var.prefix}-worker-azone"
-  launch_template {
-    id      = aws_launch_template.k8s_worker_azone.id
-    version = "$Latest"
-  }
   vpc_zone_identifier = [module.aws_vpc.private_subnet_ids[0]]
-  min_size            = 1
-  max_size            = 5
-  desired_capacity    = 1
+  min_size            = 2
+  max_size            = 6
+  desired_capacity    = 2
+  health_check_type         = "EC2"
+  health_check_grace_period = 300
+
+  mixed_instances_policy {
+    launch_template {
+      launch_template_specification {
+        launch_template_id = aws_launch_template.k8s_worker_azone.id
+        version            = "$Latest"
+      }
+      override {
+        instance_type     = "t3.medium"
+        weighted_capacity = "1"
+      }
+      override {
+        instance_type     = "t3.large"
+        weighted_capacity = "2"
+      }
+    }
+  }
 
   depends_on = [module.aws_vpc]
   
   tag {
     key                 = "kubernetes.io/cluster/${var.prefix}"
     value               = "owned"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key                 = "k8s.io/cluster-autoscaler/enabled"
+    value               = "true"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key                 = "k8s.io/cluster-autoscaler/${var.prefix}"
+    value               = "true"
+    propagate_at_launch = true
+  }
+  tag {
+    key                 = "Name"
+    value               = "asg-${var.prefix}-worker-azone"
     propagate_at_launch = true
   }
 }
