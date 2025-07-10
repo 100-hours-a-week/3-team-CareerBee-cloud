@@ -55,7 +55,6 @@
     values:
       installation:
         calicoNetwork:
-          bgp: Enabled
           nodeAddressAutodetectionV4:
             skipInterface: "tailscale.*"
   when: calico_check.rc != 0
