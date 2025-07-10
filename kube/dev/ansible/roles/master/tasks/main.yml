@@ -56,6 +56,9 @@
       installation:
         calicoNetwork:
           bgp: "Enabled"
+          nodeAddressAutodetectionV4:
+            skipInterface: "tailscale.*"
+            firstFound: true
   when: calico_check.rc != 0
 
 - name: Wait for Calico-node pods to be created
@@ -65,26 +68,6 @@
   retries: 30
   delay: 10
   changed_when: false
-  when: calico_check.rc != 0
-
-- name: Update Calico DaemonSet IP detection method
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: apps/v1
-      kind: DaemonSet
-      metadata:
-        name: calico-node
-        namespace: calico-system
-      spec:
-        template:
-          spec:
-            containers:
-            - name: calico-node
-              env:
-              - name: IP_AUTODETECTION_METHOD
-                value: "skip-interface=tailscale.*,first-found"
-    merge_type: strategic-merge
   when: calico_check.rc != 0
 
 - name: Wait until Calico-node pods are ready
