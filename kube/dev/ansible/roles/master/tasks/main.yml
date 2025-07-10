@@ -52,11 +52,8 @@
     create_namespace: true
     wait: true
     timeout: 300s
-    values:
-      installation:
-        calicoNetwork:
-          nodeAddressAutodetectionV4:
-            skipInterface: "tailscale.*"
+    value_files:
+      - files/calico/values.yml
   when: calico_check.rc != 0
 
 - name: Wait for Calico-node pods to be created
