@@ -22,6 +22,10 @@ variable "prefix" {
   type = string
 }
 
+variable "tailscale_key" {
+  type = string
+}
+
 # AWS
 
 variable "aws_region" {
