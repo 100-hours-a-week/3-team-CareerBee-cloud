@@ -295,6 +295,10 @@ variable "KAKAO_LOCAL_REDIRECT_URI" {
   type        = string
 }
 
+variable "KAKAO_NEXT_LOCAL_REDIRECT_URI" {
+  type        = string
+}
+
 variable "COOKIE_DOMAIN" {
   type        = string
 }
