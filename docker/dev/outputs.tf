@@ -34,21 +34,6 @@ output "gcp_private_subnet_ids" {
 
 # EC2 인스턴스 및 관련 정보
 
-output "openvpn_instance_id" {
-  description = "OpenVPN EC2 인스턴스 ID"
-  value       = aws_instance.openvpn.id
-}
-
-output "openvpn_instance_public_ip" {
-  description = "OpenVPN EC2의 공인 IP 주소"
-  value       = data.aws_eip.existing_eip.public_ip
-}
-
-output "openvpn_eip_allocation_id" {
-  description = "OpenVPN 인스턴스에 연결된 EIP의 할당 ID"
-  value       = aws_eip_association.eip_assoc.allocation_id
-}
-
 output "service_azone_instance_id" {
   description = "서비스(A) EC2 인스턴스 ID"
   value       = aws_instance.service_azone.id
@@ -128,11 +113,6 @@ output "iam_instance_profile_name" {
 output "key_pair_name" {
   description = "배포된 키페어 이름"
   value       = aws_key_pair.key.key_name
-}
-
-output "sg_openvpn_id" {
-  description = "OpenVPN에 연결된 보안 그룹 ID"
-  value       = aws_security_group.sg_openvpn.id
 }
 
 output "sg_private_id" {
