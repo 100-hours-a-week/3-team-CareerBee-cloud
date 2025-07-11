@@ -45,80 +45,6 @@ resource "aws_iam_instance_profile" "ec2_instance_profile" {
 
 ########################################################################
 
-# openvpn
-
-resource "aws_security_group" "sg_openvpn" {
-  name        = "SG-${var.prefix}-openvpn"
-  description = "Allow OpenVPN traffic"
-  vpc_id      = module.aws_vpc.vpc_id
-
-  ingress {
-    from_port   = 1194
-    to_port     = 1194
-    protocol    = "udp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 943
-    to_port     = 943
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = var.ssmu_access_cidr_blocks
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "sg-openvpn-${var.prefix}"
-  }
-}
-
-resource "aws_instance" "openvpn" {
-  ami                         = "ami-0da165fc7156630d7" # OpenVPN Access Server (5 Connected Devices) / Self-Hosted VPN
-  instance_type               = "t2.medium"
-  subnet_id                   = module.aws_vpc.public_subnet_ids[0]
-  associate_public_ip_address = true
-  key_name                    = aws_key_pair.key.key_name
-  iam_instance_profile        = aws_iam_instance_profile.ec2_instance_profile.name
-  security_groups             = [aws_security_group.sg_openvpn.id]
-  
-  user_data = templatefile("${path.module}/scripts/ec2-openvpn-setup.tpl", {
-    openvpn_pw   = var.openvpn_pw
-  })
-
-  depends_on = [module.aws_vpc]
-  
-  tags = {
-    Name = "ec2-${var.prefix}-azone-openvpn"
-  }
-}
-
-resource "aws_eip_association" "eip_assoc" {
-  allocation_id = data.aws_eip.existing_eip.id
-  instance_id   = aws_instance.openvpn.id
-}
-
-########################################################################
-
 # service
 
 resource "aws_security_group" "sg_service" {
@@ -489,12 +415,6 @@ resource "aws_lb_target_group_attachment" "nginx_attachment_azone" {
   port             = 3000
 }
 
-# resource "aws_lb_target_group_attachment" "nginx_attachment_czone" {
-#   target_group_arn = aws_lb_target_group.nginx_target_group.arn
-#   target_id        = aws_instance.service_czone.id
-#   port             = 3000
-# }
-
 ########################################################################
 
 # ALB Listener
@@ -545,20 +465,6 @@ resource "aws_lb_listener_rule" "webhook_rule" {
   condition {
     host_header {
       values = ["webhook.dev.careerbee.co.kr"]
-    }
-  }
-}
-
-resource "aws_lb_listener_rule" "openvpn_rule" {
-  listener_arn     = aws_lb_listener.https.arn
-  priority         = 20
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.nginx_target_group.arn
-  }
-  condition {
-    host_header {
-      values = ["openvpn.dev.careerbee.co.kr"]
     }
   }
 }
@@ -660,18 +566,6 @@ resource "aws_route53_record" "api_dev_alb" {
 resource "aws_route53_record" "ai_dev_alb" {
   zone_id = data.aws_route53_zone.dev.zone_id
   name    = "ai"
-  type    = "A"
-
-  alias {
-    name                   = aws_lb.alb.dns_name
-    zone_id                = aws_lb.alb.zone_id
-    evaluate_target_health = true
-  }
-}
-
-resource "aws_route53_record" "openvpn_dev_alb" {
-  zone_id = data.aws_route53_zone.dev.zone_id
-  name    = "openvpn"
   type    = "A"
 
   alias {

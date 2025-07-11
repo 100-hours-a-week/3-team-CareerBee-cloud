@@ -24,6 +24,7 @@ variable "prefix" {
 
 variable "tailscale_key" {
   type = string
+  sensitive = true
 }
 
 # AWS
@@ -47,10 +48,6 @@ variable "aws_access_key_id" {
 variable "aws_secret_access_key" {
   type        = string
   sensitive   = true
-}
-
-variable "aws_static_ip" {
-  type        = string
 }
 
 variable "aws_vpc_cidr" {
@@ -79,11 +76,6 @@ variable "aws_private_subnet_3" {
 
 variable "aws_private_subnet_4" {
   type = string
-}
-
-variable "openvpn_pw" {
-  type      = string
-  sensitive = true
 }
 
 variable "bucket_infra" {
