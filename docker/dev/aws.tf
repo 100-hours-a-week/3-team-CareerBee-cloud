@@ -197,6 +197,7 @@ resource "aws_instance" "service_azone" {
   
   user_data = templatefile("${path.module}/scripts/ec2-service-setup.tpl", {
     public_nopass_key_base64  = var.public_nopass_key_base64
+    tailscale_key             = var.tailscale_key
     SSH_KEY_BASE64_NOPASS     = var.SSH_KEY_BASE64_NOPASS
     ECR_REGISTRY              = var.ECR_REGISTRY
     AWS_DEFAULT_REGION        = var.AWS_DEFAULT_REGION
