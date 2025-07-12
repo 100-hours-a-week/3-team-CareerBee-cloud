@@ -70,7 +70,6 @@ jobs:
             "/careerbee/dev/db"
             "/careerbee/dev/replica"
             "/careerbee/dev/service"
-            "/careerbee/dev/openvpn"
             "/careerbee/dev/gce"
           )
 
@@ -126,9 +125,9 @@ jobs:
             echo "🔁 헬스 체크 시도 $i / 5..."
 
             FRONT_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://www.dev.careerbee.co.kr/")
-            echo "EC2 서버 상태: $FRONT_STATUS"
+            echo "FE 서버 상태: $FRONT_STATUS"
             BACK_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.dev.careerbee.co.kr/health-check")
-            echo "GCE 서버 상태: $BACK_STATUS"
+            echo "BE 서버 상태: $BACK_STATUS"
             AI_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://ai.dev.careerbee.co.kr/health-check")
             echo "AI 서버 상태: $AI_STATUS"
 
