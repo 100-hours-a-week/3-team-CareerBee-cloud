@@ -82,6 +82,18 @@ resource "aws_s3_bucket" "ssmu_bucket_infra" {
   tags = var.s3_infra_bucket_tags
 }
 
+resource "aws_s3_bucket_cors_configuration" "ssmu_bucket_infra_cors" {
+  bucket = aws_s3_bucket.ssmu_bucket_infra.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["PUT"]
+    allowed_origins = ["https://www.dev.careerbee.co.kr", "http://localhost:5173"]
+    expose_headers  = []
+    max_age_seconds = 3000
+  }
+}
+
 ##########################################################################################################
 
 # ecr
@@ -140,7 +152,6 @@ resource "aws_acm_certificate" "careerbee_cert" {
     "www.dev.careerbee.co.kr",
     "api.dev.careerbee.co.kr",
     "ai.dev.careerbee.co.kr",
-    "openvpn.dev.careerbee.co.kr",
     "webhook.dev.careerbee.co.kr",
     "argocd.dev.careerbee.co.kr",
     "grafana.dev.careerbee.co.kr",
@@ -318,7 +329,6 @@ resource "aws_acm_certificate" "careerbee_cert_test" {
     "www.test.dev.careerbee.co.kr",
     "api.test.dev.careerbee.co.kr",
     "ai.test.dev.careerbee.co.kr",
-    "openvpn.test.dev.careerbee.co.kr",
     "argocd.test.dev.careerbee.co.kr",
     "grafana.test.dev.careerbee.co.kr",
     "prometheus.test.dev.careerbee.co.kr"
