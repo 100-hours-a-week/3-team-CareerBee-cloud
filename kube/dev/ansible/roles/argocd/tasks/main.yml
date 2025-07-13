@@ -28,6 +28,10 @@
     update_repo_cache: true
     wait: true
     timeout: 300s
+  register: argocd_install_result
+  until: argocd_install_result is succeeded
+  retries: 3
+  delay: 30
 
 - name: Apply ArgoCD Ingress
   kubernetes.core.k8s:
