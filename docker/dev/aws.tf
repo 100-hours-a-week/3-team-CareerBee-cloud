@@ -41,6 +41,7 @@ resource "aws_iam_role_policy_attachment" "admin_policy_attach" {
 resource "aws_iam_instance_profile" "ec2_instance_profile" {
   name = "profile-${var.prefix}"
   role = aws_iam_role.ec2_admin_role.name
+  depends_on = [aws_iam_role_policy_attachment.admin_policy_attach]
 }
 
 ########################################################################
