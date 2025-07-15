@@ -30,6 +30,9 @@
         name: aws-load-balancer-controller
       enableCertManager: false
       enableAdmissionWebhook: true
+      enableServiceMutatorWebhook: false
+      enableWAFv2: true
+      enableShield: true
     wait: true
     timeout: 300s
   when: alb_check.rc != 0
