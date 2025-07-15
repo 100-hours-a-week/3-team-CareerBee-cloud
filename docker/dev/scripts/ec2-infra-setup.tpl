@@ -47,6 +47,20 @@ sudo chmod 600 /var/lib/tailscale/tailscaled.state
 systemctl start tailscaled
 tailscale up --authkey=${tailscale_key} --hostname=dev-docker-service
 
+echo "[5] WEBHOOK 관련 패키지 설치"
+wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+dpkg -i cloudflared-linux-amd64.deb
+
+echo "[6] Cloudflare 실행"
+aws s3 cp s3://s3-careerbee-dev-infra/.cloudflared ~/.cloudflared --recursive
+mkdir -p /etc/cloudflared
+cp ~/.cloudflared/* /etc/cloudflared/
+rm -rf ~/.cloudflared
+
+cloudflared service install
+systemctl enable cloudflared
+systemctl start cloudflared
+
 ####################################################################################################################
 
 echo "[7] 환경변수 파일 및 compose 폴더 다운로드"
@@ -60,23 +74,23 @@ source /home/ubuntu/.env
 set +a
 
 # deploy 폴더 다운로드
-aws s3 cp s3://s3-careerbee-dev-infra/compose/service /home/ubuntu --recursive
+aws s3 cp s3://s3-careerbee-dev-infra/compose/infra /home/ubuntu --recursive
+chmod +x /home/ubuntu/deploy.sh \
+  /home/ubuntu/db_backup.sh \
+  /home/ubuntu/db_restore.sh
 
 ####################################################################################################################
 
 echo "[8] UFW 방화벽 설정"
 ufw allow OpenSSH
-ufw allow 5173
-ufw allow 8080
+ufw allow 3000
+ufw allow 5000
+ufw allow 9090
 ufw --force enable
 
 ####################################################################################################################
 
-echo "[10] ECR latest 이미지 기반 프론트/백엔드 실행"
-# Docker 로그인 (필요시, AWS CLI v2 기준)
-aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
-  | docker login --username AWS --password-stdin ${ECR_REGISTRY}
-
+echo "[10] Docker Compose 실행"
 cd /home/ubuntu
 docker compose \
   -f docker-compose.yml \
@@ -87,7 +101,7 @@ docker compose \
 
 echo "[11] SSM에 상태 기록"
 aws ssm put-parameter \
-  --name "/careerbee/dev/service" \
+  --name "/careerbee/dev/infra" \
   --value "ready" \
   --type "String" \
   --overwrite \

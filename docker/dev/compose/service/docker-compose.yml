@@ -1,11 +1,18 @@
 services:
+  frontend:
+    image: ${ECR_REGISTRY}/frontend:${TAG}
+    network_mode: host
+    platform: linux/amd64
+    ports:
+      - "5173:5173"
+    restart: always
+
   backend:
     image: ${ECR_REGISTRY}/backend:${TAG}
     container_name: backend
-    network_mode: host
     platform: linux/amd64
-    expose:
-      - "8080"
+    ports:
+      - "8080:8080"
     volumes:
       - /home/ubuntu/scouter:/scouter
     command: [
@@ -20,11 +27,6 @@ services:
       "-Djdk.attach.allowAttachSelf=true",
       "-jar", "careerbee-api.jar"
     ]
-    logging:
-      driver: fluentd
-      options:
-        fluentd-address: localhost:24224
-        tag: service/{{.Name}}
     restart: always
     env_file:
       - /home/ubuntu/.env
