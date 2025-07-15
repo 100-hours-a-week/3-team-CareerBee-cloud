@@ -34,37 +34,37 @@
   roles:
     - alb_ingress_controller
 
-- name: "Setup External DNS"
-  hosts: master
-  become: yes
-  environment:
-    KUBECONFIG: /etc/kubernetes/admin.conf
-  roles:
-    - externalDNS
+# - name: "Setup External DNS"
+#   hosts: master
+#   become: yes
+#   environment:
+#     KUBECONFIG: /etc/kubernetes/admin.conf
+#   roles:
+#     - externalDNS
     
-- name: "Setup ArgoCD"
-  hosts: master
-  become: yes
-  environment:
-    KUBECONFIG: /etc/kubernetes/admin.conf
-  roles:
-    - argocd
+# - name: "Setup ArgoCD"
+#   hosts: master
+#   become: yes
+#   environment:
+#     KUBECONFIG: /etc/kubernetes/admin.conf
+#   roles:
+#     - argocd
 
-- name: "Setup Database Nodes"
-  hosts: master
-  become: yes
-  environment:
-    KUBECONFIG: /etc/kubernetes/admin.conf
-  roles:
-    - db
+# - name: "Setup Database Nodes"
+#   hosts: master
+#   become: yes
+#   environment:
+#     KUBECONFIG: /etc/kubernetes/admin.conf
+#   roles:
+#     - db
 
-- name: "Setup Kubernetes Workers"
-  hosts: master
-  become: yes
-  environment:
-    KUBECONFIG: /etc/kubernetes/admin.conf
-  roles:
-    - ai
-    - ai_ingress
-    - fe
-    - be
+# - name: "Setup Kubernetes Workers"
+#   hosts: master
+#   become: yes
+#   environment:
+#     KUBECONFIG: /etc/kubernetes/admin.conf
+#   roles:
+#     - ai
+#     - ai_ingress
+#     - fe
+#     - be
