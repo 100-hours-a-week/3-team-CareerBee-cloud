@@ -512,6 +512,34 @@ resource "aws_lb_listener_rule" "ai_rule" {
   }
 }
 
+resource "aws_lb_listener_rule" "prometheus_rule" {
+  listener_arn     = aws_lb_listener.https.arn
+  priority         = 60
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.nginx_target_group.arn
+  }
+  condition {
+    host_header {
+      values = ["prometheus.dev.careerbee.co.kr"]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "grafana_rule" {
+  listener_arn     = aws_lb_listener.https.arn
+  priority         = 70
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.nginx_target_group.arn
+  }
+  condition {
+    host_header {
+      values = ["grafana.dev.careerbee.co.kr"]
+    }
+  }
+}
+
 ########################################################################
 
 # Route53
@@ -567,6 +595,30 @@ resource "aws_route53_record" "api_dev_alb" {
 resource "aws_route53_record" "ai_dev_alb" {
   zone_id = data.aws_route53_zone.dev.zone_id
   name    = "ai"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.alb.dns_name
+    zone_id                = aws_lb.alb.zone_id
+    evaluate_target_health = true
+  }
+}
+
+resource "aws_route53_record" "prometheus_dev_alb" {
+  zone_id = data.aws_route53_zone.dev.zone_id
+  name    = "prometheus"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.alb.dns_name
+    zone_id                = aws_lb.alb.zone_id
+    evaluate_target_health = true
+  }
+}
+
+resource "aws_route53_record" "grafana_dev_alb" {
+  zone_id = data.aws_route53_zone.dev.zone_id
+  name    = "grafana"
   type    = "A"
 
   alias {
