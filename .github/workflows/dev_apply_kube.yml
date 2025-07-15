@@ -62,7 +62,7 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
         with:
-          ref: develop
+          ref: feature/argocd
 
       - name: Download tf_output.json from S3
         working-directory: ${{ env.ANSIBLE_DIR }}
