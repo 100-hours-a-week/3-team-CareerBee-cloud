@@ -165,7 +165,7 @@ docker compose \
   -f docker-compose.vllm.yml \
   up -d
 docker compose \
-  -f docker-compose.png.yml
+  -f docker-compose.png.yml \
   up -d
 
 echo "[9] SSM에 상태 기록"
