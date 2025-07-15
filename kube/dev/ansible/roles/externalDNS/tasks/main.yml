@@ -1,0 +1,22 @@
+- name: Add Bitnami Helm repository
+  community.kubernetes.helm_repository:
+    name: bitnami
+    repo_url: https://charts.bitnami.com/bitnami
+
+- name: Install External DNS via Helm
+  community.kubernetes.helm:
+    name: external-dns
+    chart_ref: bitnami/external-dns
+    release_namespace: kube-system
+    create_namespace: false
+    values:
+      provider: aws
+      aws:
+        region: "{{ tf_output.aws_region.value }}"
+        zoneType: public
+      domainFilters:
+        - test.dev.careerbee.co.kr
+      txt.ownerId: "{{ tf_output.prefix.value }}"
+      policy: upsert-only
+      serviceAccount:
+        create: true
