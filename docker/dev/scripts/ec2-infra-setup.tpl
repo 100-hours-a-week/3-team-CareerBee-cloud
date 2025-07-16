@@ -81,7 +81,6 @@ ufw --force enable
 echo "[10] Docker Compose 실행"
 cd /home/ubuntu
 docker compose \
-  -f docker-compose.yml \
   --env-file /home/ubuntu/.env \
   up -d --build
 

@@ -91,7 +91,6 @@ aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
 
 cd /home/ubuntu
 docker compose \
-  -f docker-compose.yml \
   --env-file /home/ubuntu/.env \
   up -d --build
 
