@@ -38,28 +38,22 @@ unzip awscliv2.zip
 
 echo "[4] Tailscale 설치 및 복원"
 curl -fsSL https://tailscale.com/install.sh | sh
+tailscale up --authkey=${tailscale_key} --hostname=dev-docker-infra
+aws s3 cp /var/lib/tailscale/tailscaled.state s3://s3-careerbee-dev-infra/docker/tailscaled_infra.state
 
-# 복원
-systemctl stop tailscaled
-aws s3 cp s3://s3-careerbee-dev-infra/docker/tailscaled.state /var/lib/tailscale/tailscaled.state
-sudo chown root:root /var/lib/tailscale/tailscaled.state
-sudo chmod 600 /var/lib/tailscale/tailscaled.state
-systemctl start tailscaled
-tailscale up --authkey=${tailscale_key} --hostname=dev-docker-service
+# echo "[5] WEBHOOK 관련 패키지 설치"
+# wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+# dpkg -i cloudflared-linux-amd64.deb
 
-echo "[5] WEBHOOK 관련 패키지 설치"
-wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-dpkg -i cloudflared-linux-amd64.deb
+# echo "[6] Cloudflare 실행"
+# aws s3 cp s3://s3-careerbee-dev-infra/.cloudflared ~/.cloudflared --recursive
+# mkdir -p /etc/cloudflared
+# cp ~/.cloudflared/* /etc/cloudflared/
+# rm -rf ~/.cloudflared
 
-echo "[6] Cloudflare 실행"
-aws s3 cp s3://s3-careerbee-dev-infra/.cloudflared ~/.cloudflared --recursive
-mkdir -p /etc/cloudflared
-cp ~/.cloudflared/* /etc/cloudflared/
-rm -rf ~/.cloudflared
-
-cloudflared service install
-systemctl enable cloudflared
-systemctl start cloudflared
+# cloudflared service install
+# systemctl enable cloudflared
+# systemctl start cloudflared
 
 ####################################################################################################################
 

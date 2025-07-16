@@ -36,16 +36,27 @@ curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip
 unzip awscliv2.zip
 ./aws/install > /dev/null 2>&1
 
-echo "[4] Tailscale 설치 및 복원"
-curl -fsSL https://tailscale.com/install.sh | sh
+if aws ssm put-parameter \
+  --name "/careerbee/dev/tailscale-lock" \
+  --value "ready" \
+  --type "String" \
+  --region ap-northeast-2 2>/dev/null; then
+      
+  echo "[4] Tailscale 설치 및 복원"
+  curl -fsSL https://tailscale.com/install.sh | sh
 
-# 복원
-systemctl stop tailscaled
-aws s3 cp s3://s3-careerbee-dev-infra/docker/tailscaled.state /var/lib/tailscale/tailscaled.state
-sudo chown root:root /var/lib/tailscale/tailscaled.state
-sudo chmod 600 /var/lib/tailscale/tailscaled.state
-systemctl start tailscaled
-tailscale up --authkey=${tailscale_key} --hostname=dev-docker-service
+  # 복원
+  systemctl stop tailscaled
+  aws s3 cp s3://s3-careerbee-dev-infra/docker/tailscaled.state /var/lib/tailscale/tailscaled.state
+  sudo chown root:root /var/lib/tailscale/tailscaled.state
+  sudo chmod 600 /var/lib/tailscale/tailscaled.state
+  systemctl start tailscaled
+  tailscale up --authkey=${tailscale_key} --hostname=dev-docker-service
+
+  echo "Tailscale 설정 완료"
+else
+    echo "이미 다른 인스턴스에서 Tailscale이 설정되었습니다. 스킵합니다."
+fi
 
 ####################################################################################################################
 
