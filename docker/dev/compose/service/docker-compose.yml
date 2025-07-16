@@ -13,13 +13,9 @@ services:
     platform: linux/amd64
     ports:
       - "8080:8080"
-    volumes:
-      - /home/ubuntu/scouter:/scouter
     command: [
       "java",
       "-Dspring.profiles.active=dev",
-      "-javaagent:/scouter/agent.java/scouter.agent.jar",
-      "-Dscouter.config=/scouter/agent.java/conf/scouter.conf",
       "-Dobj_name=careerbee-api",
       "-Duser.timezone=Asia/Seoul",
       "--add-opens", "java.base/java.lang=ALL-UNNAMED",
