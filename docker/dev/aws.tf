@@ -414,7 +414,7 @@ resource "aws_lb_target_group" "tg_nginx" {
 
   health_check {
     enabled             = true
-    path                = "/health-check"
+    path                = "/nginx/health-check"
     protocol            = "HTTP"
     matcher             = "200-399"
     interval            = 30
