@@ -44,16 +44,18 @@ if [[ -n "$FE_TAG" ]] || [[ -n "$BE_TAG" ]]; then
       # 프론트엔드 배포
       if [[ -n "$FE_TAG" ]]; then
         export TAG=$FE_TAG
-        docker compose -f docker-compose.yml pull frontend
-        docker compose -f docker-compose.yml up -d frontend
+        docker rm -f frontend && \
+        docker image prune -a -f && \
+        docker compose up -d frontend --pull always
         echo "✅ Frontend 배포 완료: $FE_TAG"
       fi
       
       # 백엔드 배포
       if [[ -n "$BE_TAG" ]]; then
         export TAG=$BE_TAG
-        docker compose -f docker-compose.yml pull backend
-        docker compose -f docker-compose.yml up -d backend
+        docker rm -f backend && \
+        docker image prune -a -f && \
+        docker compose up -d backend --pull always
         echo "✅ Backend 배포 완료: $BE_TAG"
       fi
       
@@ -80,8 +82,8 @@ if [[ -n "$AI_TAG" ]]; then
 
     cd ${MOUNT_DIR} && \
     docker rm -f ai-server && \
-    docker compose -f docker-compose.ai.yml up -d --pull always && \
-    docker image prune -f
+    docker image prune -a -f && \
+    docker compose up -d ai-server --pull always
 EOF
 fi
 echo "✅ 선택된 서비스 배포 완료"
