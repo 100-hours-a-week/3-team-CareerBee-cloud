@@ -26,3 +26,12 @@ services:
     restart: always
     env_file:
       - /home/ubuntu/.env
+
+  promtail:
+    container_name: promtail
+    image: grafana/promtail:latest
+    volumes:
+      - /home/ubuntu/promtail/promtail-config.yml:/etc/promtail/config.yml
+      - /var/log:/var/log
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    restart: always

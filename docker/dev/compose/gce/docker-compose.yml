@@ -32,3 +32,12 @@ services:
     ports:
       - "8000:8000"
     restart: always
+
+  promtail:
+    container_name: promtail
+    image: grafana/promtail:latest
+    volumes:
+      - /home/ubuntu/promtail/promtail-config.yml:/etc/promtail/config.yml
+      - /var/log:/var/log
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    restart: always

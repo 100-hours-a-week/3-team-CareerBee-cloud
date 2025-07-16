@@ -17,6 +17,24 @@ services:
       - "9090:9090"
     restart: always
 
+  loki:
+    container_name: loki
+    image: grafana/loki:latest
+    volumes:
+      - /home/ubuntu/loki/loki-config.yml:/etc/loki/loki-config.yml
+    ports:
+      - "3100:3100"
+    restart: always
+
+  promtail:
+    container_name: promtail
+    image: grafana/promtail:latest
+    volumes:
+      - /home/ubuntu/promtail/promtail-config.yml:/etc/promtail/config.yml
+      - /var/log:/var/log
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    restart: always
+
   grafana:
     container_name: grafana
     image: grafana/grafana:latest
