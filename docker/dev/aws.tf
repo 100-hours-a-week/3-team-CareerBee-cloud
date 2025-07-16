@@ -234,7 +234,7 @@ resource "aws_security_group" "sg_service" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks     = ["100.0.0.0/8"] # Tailscale
+    cidr_blocks     = ["100.0.0.0/8", "192.168.110.100/32"] # Tailscale & infra server
   }
 
   ingress {
