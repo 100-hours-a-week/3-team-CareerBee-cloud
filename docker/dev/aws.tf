@@ -258,6 +258,13 @@ resource "aws_security_group" "sg_service" {
     security_groups = [aws_security_group.sg_alb.id]
   }
 
+  ingress {
+    from_port   = 9100
+    to_port     = 9100
+    protocol    = "tcp"
+    security_groups = [aws_security_group.sg_infra.id]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
