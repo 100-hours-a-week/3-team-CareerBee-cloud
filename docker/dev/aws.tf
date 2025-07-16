@@ -171,6 +171,13 @@ resource "aws_security_group" "sg_infra" {
   }
 
   ingress {
+    from_port   = 3100
+    to_port     = 3100
+    protocol    = "tcp"
+    cidr_blocks = [var.aws_vpc_cidr, var.gcp_vpc_cidr]
+  }
+
+  ingress {
     from_port   = 5000
     to_port     = 5000
     protocol    = "tcp"
@@ -249,6 +256,13 @@ resource "aws_security_group" "sg_service" {
     to_port     = 8080
     protocol    = "tcp"
     security_groups = [aws_security_group.sg_alb.id]
+  }
+
+  ingress {
+    from_port   = 9100
+    to_port     = 9100
+    protocol    = "tcp"
+    security_groups = [aws_security_group.sg_infra.id]
   }
 
   egress {
