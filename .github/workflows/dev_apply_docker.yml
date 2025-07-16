@@ -71,6 +71,7 @@ jobs:
             "/careerbee/dev/replica"
             "/careerbee/dev/service"
             "/careerbee/dev/gce"
+            "/careerbee/dev/infra"
           )
 
           while [ $COUNT -lt $MAX_RETRIES ]; do
@@ -130,8 +131,14 @@ jobs:
             echo "BE 서버 상태: $BACK_STATUS"
             AI_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://ai.dev.careerbee.co.kr/health-check")
             echo "AI 서버 상태: $AI_STATUS"
+            WEBHOOK_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://webhook.dev.careerbee.co.kr/health-check")
+            echo "Webhook 서버 상태: $WEBHOOK_STATUS"
+            PROMETHEUS_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://prometheus.dev.careerbee.co.kr")
+            echo "Prometheus 상태: $PROMETHEUS_STATUS"
+            GRAFANA_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://grafana.dev.careerbee.co.kr")
+            echo "Grafana 상태: $GRAFANA_STATUS"
 
-            if [ "$FRONT_STATUS" = "200" ] && [ "$BACK_STATUS" = "200" ] && [ "$AI_STATUS" = "200" ]; then
+            if [ "$FRONT_STATUS" = "200" ] && [ "$BACK_STATUS" = "200" ] && [ "$AI_STATUS" = "200" ] && [ "$WEBHOOK_STATUS" = "200" ] && [ "$PROMETHEUS_STATUS" = "200" ] && [ "$GRAFANA_STATUS" = "200" ]; then
               echo "✅ 모든 서버 상태 정상"
               exit 0
             fi

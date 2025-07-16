@@ -59,6 +59,9 @@ jobs:
       - name: Terraform Destroy
         working-directory: ${{ env.TERRAFORM_DIR }}
         run: terraform destroy -auto-approve -var-file=terraform.tfvars
+
+      - name: Tailscale Lock Remove
+        run: aws ssm delete-parameter --name "/careerbee/dev/tailscale-lock" --region ap-northeast-2
       
       - name: Notify Discord on Success
         if: success()
