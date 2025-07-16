@@ -1,7 +1,7 @@
 services:
   frontend:
     image: ${ECR_REGISTRY}/frontend:${TAG}
-    network_mode: host
+    container_name: frontend
     platform: linux/amd64
     ports:
       - "5173:5173"
