@@ -35,7 +35,7 @@ if [[ -n "$FE_TAG" ]] || [[ -n "$BE_TAG" ]]; then
       --output text)
 
     ssh -T -i "/home/ubuntu/.ssh/id_rsa" -o StrictHostKeyChecking=no ubuntu@$PRIVATE_IP <<EOF
-      
+      sudo -i
       aws ecr get-login-password --region $AWS_DEFAULT_REGION | \
         docker login --username AWS --password-stdin $ECR_REGISTRY
 
