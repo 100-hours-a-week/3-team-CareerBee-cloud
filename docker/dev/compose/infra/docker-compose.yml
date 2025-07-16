@@ -22,6 +22,7 @@ services:
     image: grafana/loki:latest
     volumes:
       - /home/ubuntu/loki/loki-config.yml:/etc/loki/loki-config.yml
+      - /home/ubuntu/grafana/provisioning:etc/grafana/provisioning
     ports:
       - "3100:3100"
     restart: always
