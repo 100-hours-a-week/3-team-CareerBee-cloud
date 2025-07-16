@@ -47,7 +47,7 @@ if aws ssm put-parameter \
 
   # 복원
   systemctl stop tailscaled
-  aws s3 cp s3://s3-careerbee-dev-infra/docker/tailscaled.state /var/lib/tailscale/tailscaled.state
+  aws s3 cp s3://s3-careerbee-dev-infra/docker/tailscaled_service.state /var/lib/tailscale/tailscaled.state
   sudo chown root:root /var/lib/tailscale/tailscaled.state
   sudo chmod 600 /var/lib/tailscale/tailscaled.state
   systemctl start tailscaled
