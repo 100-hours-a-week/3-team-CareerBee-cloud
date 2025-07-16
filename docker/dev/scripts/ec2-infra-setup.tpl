@@ -69,6 +69,7 @@ chmod +x /home/ubuntu/deploy.sh \
 
 echo "[8] UFW 방화벽 설정"
 ufw allow OpenSSH
+ufw allow 80
 ufw allow 3000
 ufw allow 5000
 ufw allow 9090
