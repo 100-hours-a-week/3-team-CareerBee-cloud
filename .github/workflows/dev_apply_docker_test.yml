@@ -1,4 +1,4 @@
-name: Terraform Apply - Docker (Dev)
+name: Terraform Apply Test - Docker (Dev)
 
 on:
   workflow_dispatch:
@@ -150,48 +150,3 @@ jobs:
           else
             exit 1
           fi
-
-      - name: Notify Discord on Success
-        if: success()
-        run: |
-          jq -n \
-            '{
-              "embeds": [
-                {
-                  "title": "🚀 DEV 서버 시작",
-                  "description": "커리어비 DEV 서버가 시작되었습니다.\n\n오늘도 열심히 일해요! 💪🏻💪🏻",
-                  "color": 5763719,
-                  "footer": { "text": "Cloud Functions - DEV Server" },
-                  "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
-                }
-              ]
-            }' > payload.json
-
-          curl -H "Content-Type: application/json" \
-              -X POST \
-              -d @payload.json \
-              ${{ secrets.SERVER_DISCORD_WEBHOOK_URL }}
-
-      - name: Notify Discord on Failure
-        if: failure()
-        run: |
-          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-
-          jq -n \
-            --arg RUN_URL "$RUN_URL" \
-            '{
-              "embeds": [
-                {
-                  "title": "❌ DEV 서버 배포 실패",
-                  "description": "워크플로 실행 중 오류가 발생했습니다.\n\n로그를 확인해 주세요. 🔍\n\n[🔗 실행 로그 보기](\($RUN_URL))",
-                  "color": 15548997,
-                  "footer": { "text": "Cloud Functions - DEV Server" },
-                  "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
-                }
-              ]
-            }' > payload.json
-
-          curl -H "Content-Type: application/json" \
-              -X POST \
-              -d @payload.json \
-              ${{ secrets.DISCORD_WEBHOOK_URL }}
