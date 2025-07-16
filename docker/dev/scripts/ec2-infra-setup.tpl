@@ -47,20 +47,6 @@ sudo chmod 600 /var/lib/tailscale/tailscaled.state
 systemctl start tailscaled
 tailscale up --authkey=${tailscale_key} --hostname=dev-docker-infra
 
-# echo "[5] WEBHOOK 관련 패키지 설치"
-# wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-# dpkg -i cloudflared-linux-amd64.deb
-
-# echo "[6] Cloudflare 실행"
-# aws s3 cp s3://s3-careerbee-dev-infra/.cloudflared ~/.cloudflared --recursive
-# mkdir -p /etc/cloudflared
-# cp ~/.cloudflared/* /etc/cloudflared/
-# rm -rf ~/.cloudflared
-
-# cloudflared service install
-# systemctl enable cloudflared
-# systemctl start cloudflared
-
 ####################################################################################################################
 
 echo "[7] 환경변수 파일 및 compose 폴더 다운로드"
