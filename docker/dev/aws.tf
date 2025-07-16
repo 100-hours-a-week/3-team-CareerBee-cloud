@@ -46,205 +46,6 @@ resource "aws_iam_instance_profile" "ec2_instance_profile" {
 
 ########################################################################
 
-# service
-
-resource "aws_security_group" "sg_service" {
-  name        = "SG-${var.prefix}-service"
-  description = "Allow SSH, HTTP, HTTPS, MySQL, Scouter, FE, BE"
-  vpc_id      = module.aws_vpc.vpc_id
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 3000
-    to_port     = 3000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 3306
-    to_port     = 3306
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 5000
-    to_port     = 5000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 6100
-    to_port     = 6100
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "sg-service-${var.prefix}"
-  }
-}
-
-resource "aws_instance" "service_azone" {
-  ami                         = "ami-0d5bb3742db8fc264"
-  instance_type               = "t3.medium"
-  subnet_id                   = module.aws_vpc.private_subnet_ids[0]
-  associate_public_ip_address = false
-  key_name                    = aws_key_pair.key.key_name
-  iam_instance_profile        = aws_iam_instance_profile.ec2_instance_profile.name
-  security_groups             = [aws_security_group.sg_service.id]
-  private_ip                  = "192.168.110.10"
-
-  root_block_device {
-    volume_size = 20
-    volume_type = "gp3"
-  }
-  
-  user_data = templatefile("${path.module}/scripts/ec2-service-setup.tpl", {
-    public_nopass_key_base64  = var.public_nopass_key_base64
-    tailscale_key             = var.tailscale_key
-    SSH_KEY_BASE64_NOPASS     = var.SSH_KEY_BASE64_NOPASS
-    ECR_REGISTRY              = var.ECR_REGISTRY
-    AWS_DEFAULT_REGION        = var.AWS_DEFAULT_REGION
-    DEV_TFVARS_ENC_PW         = var.DEV_TFVARS_ENC_PW
-  })
-  depends_on = [module.aws_vpc]
-
-  tags = {
-    Name = "ec2-${var.prefix}-azone-service"
-  }
-}
-
-########################################################################
-
-# Wait for service to be ready
-# resource "null_resource" "wait_for_service_ready" {
-#   provisioner "local-exec" {
-#     interpreter = ["/bin/bash", "-c"]
-#     command = <<EOT
-#       for i in {1..60}; do
-#         VALUE=$(aws ssm get-parameter --name "/careerbee/dev/service" --region ap-northeast-2 --query "Parameter.Value" --output text 2>/dev/null || echo "notyet")
-#         if [ "$VALUE" == "ready" ]; then
-#           echo "Service is ready"
-#           exit 0
-#         fi
-#         echo "Waiting for Service to be ready..."
-#         sleep 10
-#       done
-#       echo "Timeout waiting for Service readiness"
-#       exit 1
-#   EOT
-#   }
-# }
-
-# AMI 생성
-# resource "aws_ami_from_instance" "service_ami" {
-#   name               = "ami-${var.prefix}-${formatdate("2025-06-25-150723", timestamp())}"
-#   source_instance_id = aws_instance.service_azone.id
-#   description        = "AMI created from existing instance"
-#   lifecycle {
-#     create_before_destroy = true
-#   }
-#   depends_on = [null_resource.wait_for_service_ready]
-# }
-
-########################################################################
-
-# AutoScaling
-
-# resource "aws_launch_template" "service_lt" {
-#   name_prefix   = "lt-${var.prefix}-service"
-#   image_id      = aws_ami_from_instance.service_ami.id
-#   instance_type = "t3.medium"
-#   key_name      = aws_key_pair.key.key_name
-
-#   iam_instance_profile {
-#     name = aws_iam_instance_profile.ec2_instance_profile.name
-#   }
-
-#   vpc_security_group_ids = [aws_security_group.sg_service.id]
-
-#   user_data = base64encode(templatefile("${path.module}/scripts/ec2-service-lt-setup.tpl", {
-#     ECR_REGISTRY              = var.ECR_REGISTRY
-#     AWS_DEFAULT_REGION        = var.AWS_DEFAULT_REGION
-#   }))
-
-#   lifecycle {
-#     create_before_destroy = true
-#   }
-
-#   tag_specifications {
-#     resource_type = "instance"
-#     tags = {
-#       Name = "ec2-${var.prefix}-service-asg"
-#     }
-#   }
-# }
-
-# resource "aws_autoscaling_group" "service_asg" {
-#   name                      = "asg-${var.prefix}-service"
-#   desired_capacity          = 0
-#   min_size                  = 0
-#   max_size                  = 4
-#   vpc_zone_identifier       = [module.aws_vpc.private_subnet_ids[0]]
-#   health_check_type         = "EC2"
-#   health_check_grace_period = 180
-#   force_delete              = true
-
-#   launch_template {
-#     id      = aws_launch_template.service_lt.id
-#     version = "$Latest"
-#   }
-
-#   target_group_arns = [aws_lb_target_group.nginx_target_group.arn]
-
-#   tag {
-#     key                 = "Name"
-#     value               = "asg-${var.prefix}-service"
-#     propagate_at_launch = true
-#   }
-
-#   depends_on = [aws_lb_target_group.nginx_target_group]
-# }
-
-# resource "aws_autoscaling_policy" "scale_on_cpu" {
-#   name                   = "scale-on-cpu-${var.prefix}"
-#   policy_type            = "TargetTrackingScaling"
-#   autoscaling_group_name = aws_autoscaling_group.service_asg.name
-
-#   target_tracking_configuration {
-#     predefined_metric_specification {
-#       predefined_metric_type = "ASGAverageCPUUtilization"
-#     }
-
-#     target_value = 50.0
-#   }
-# }
-
-########################################################################
-
 # DB
 
 resource "aws_security_group" "sg_db" {
@@ -341,6 +142,190 @@ resource "aws_instance" "db_replica_azone" {
 
 ########################################################################
 
+# infra
+
+resource "aws_security_group" "sg_infra" {
+  name        = "SG-${var.prefix}-infra"
+  description = "Allow SSH, Webhook, Prometheus, Grafana"
+  vpc_id      = module.aws_vpc.vpc_id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks     = ["100.0.0.0/8"] # Tailscale
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    security_groups = [aws_security_group.sg_alb.id]
+  }
+
+  ingress {
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    security_groups = [aws_security_group.sg_alb.id]
+  }
+
+  ingress {
+    from_port   = 5000
+    to_port     = 5000
+    protocol    = "tcp"
+    security_groups = [aws_security_group.sg_alb.id]
+  }
+
+  ingress {
+    from_port   = 9090
+    to_port     = 9090
+    protocol    = "tcp"
+    security_groups = [aws_security_group.sg_alb.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "sg-infra-${var.prefix}"
+  }
+}
+
+resource "aws_instance" "infra_azone" {
+  ami                         = "ami-0d5bb3742db8fc264"
+  instance_type               = "t3.medium"
+  subnet_id                   = module.aws_vpc.private_subnet_ids[0]
+  associate_public_ip_address = false
+  key_name                    = aws_key_pair.key.key_name
+  iam_instance_profile        = aws_iam_instance_profile.ec2_instance_profile.name
+  security_groups             = [aws_security_group.sg_infra.id]
+  private_ip                  = "192.168.110.100"
+  
+  user_data = templatefile("${path.module}/scripts/ec2-infra-setup.tpl", {
+    public_nopass_key_base64  = var.public_nopass_key_base64
+    tailscale_key             = var.tailscale_key
+    SSH_KEY_BASE64_NOPASS     = var.SSH_KEY_BASE64_NOPASS
+    ECR_REGISTRY              = var.ECR_REGISTRY
+    AWS_DEFAULT_REGION        = var.AWS_DEFAULT_REGION
+    DEV_TFVARS_ENC_PW         = var.DEV_TFVARS_ENC_PW
+  })
+  depends_on = [module.aws_vpc]
+
+  tags = {
+    Name = "ec2-${var.prefix}-azone-infra"
+  }
+}
+
+########################################################################
+
+# service
+
+resource "aws_security_group" "sg_service" {
+  name        = "SG-${var.prefix}-service"
+  description = "Allow SSH, FE, BE"
+  vpc_id      = module.aws_vpc.vpc_id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks     = ["100.0.0.0/8", "192.168.110.100/32"] # Tailscale & infra server
+  }
+
+  ingress {
+    from_port   = 5173
+    to_port     = 5173
+    protocol    = "tcp"
+    security_groups = [aws_security_group.sg_alb.id]
+  }
+
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    security_groups = [aws_security_group.sg_alb.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "sg-service-${var.prefix}"
+  }
+}
+
+# AutoScaling
+
+resource "aws_launch_template" "service_lt" {
+  name_prefix   = "lt-${var.prefix}-service"
+  image_id      = "ami-0d5bb3742db8fc264"
+  instance_type = "t3.large"
+  key_name      = aws_key_pair.key.key_name
+
+  iam_instance_profile {
+    name = aws_iam_instance_profile.ec2_instance_profile.name
+  }
+
+  vpc_security_group_ids = [aws_security_group.sg_service.id]
+
+  user_data = base64encode(templatefile("${path.module}/scripts/ec2-service-setup.tpl", {
+    public_nopass_key_base64  = var.public_nopass_key_base64
+    tailscale_key             = var.tailscale_key
+    SSH_KEY_BASE64_NOPASS     = var.SSH_KEY_BASE64_NOPASS
+    ECR_REGISTRY              = var.ECR_REGISTRY
+    AWS_DEFAULT_REGION        = var.AWS_DEFAULT_REGION
+    DEV_TFVARS_ENC_PW         = var.DEV_TFVARS_ENC_PW
+  }))
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Name = "asg-${var.prefix}-service"
+    }
+  }
+}
+
+resource "aws_autoscaling_group" "service_asg" {
+  name                      = "asg-${var.prefix}-service"
+  desired_capacity          = 1
+  min_size                  = 1
+  max_size                  = 5
+  vpc_zone_identifier       = [module.aws_vpc.private_subnet_ids[0]]
+  health_check_type         = "EC2"
+  health_check_grace_period = 180
+  force_delete              = true
+
+  launch_template {
+    id      = aws_launch_template.service_lt.id
+    version = "$Latest"
+  }
+
+  target_group_arns = [aws_lb_target_group.tg_frontend.arn, aws_lb_target_group.tg_backend.arn]
+
+  tag {
+    key                 = "Name"
+    value               = "asg-${var.prefix}-service"
+    propagate_at_launch = true
+  }
+
+  depends_on = [aws_lb_target_group.tg_frontend, aws_lb_target_group.tg_backend, module.aws_vpc]
+}
+
+########################################################################
+
 # ALB
 
 resource "aws_security_group" "sg_alb" {
@@ -390,11 +375,31 @@ resource "aws_lb" "alb" {
 
 # Target Group
 
-resource "aws_lb_target_group" "nginx_target_group" {
-  name     = "tg-nginx-${var.prefix}"
-  port     = 3000
+resource "aws_lb_target_group" "tg_frontend" {
+  name     = "tg-frontend-${var.prefix}"
+  port     = 5173
   protocol = "HTTP"
   vpc_id   = module.aws_vpc.vpc_id
+  target_type = "instance"
+
+  health_check {
+    enabled             = true
+    path                = "/"
+    protocol            = "HTTP"
+    matcher             = "200-399"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+  }
+}
+
+resource "aws_lb_target_group" "tg_backend" {
+  name     = "tg-backend-${var.prefix}"
+  port     = 8080
+  protocol = "HTTP"
+  vpc_id   = module.aws_vpc.vpc_id
+  target_type = "instance"
 
   health_check {
     enabled             = true
@@ -408,11 +413,104 @@ resource "aws_lb_target_group" "nginx_target_group" {
   }
 }
 
+resource "aws_lb_target_group" "tg_nginx" {
+  name     = "tg-nginx-${var.prefix}"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = module.aws_vpc.vpc_id
+
+  health_check {
+    enabled             = true
+    path                = "/nginx/health-check"
+    protocol            = "HTTP"
+    matcher             = "200-399"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+  }
+}
+
+resource "aws_lb_target_group" "tg_webhook" {
+  name     = "tg-webhook-${var.prefix}"
+  port     = 5000
+  protocol = "HTTP"
+  vpc_id   = module.aws_vpc.vpc_id
+  target_type = "instance"
+
+  health_check {
+    enabled             = true
+    path                = "/health-check"
+    protocol            = "HTTP"
+    matcher             = "200-399"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+  }
+}
+
+resource "aws_lb_target_group" "tg_prometheus" {
+  name     = "tg-prometheus-${var.prefix}"
+  port     = 9090
+  protocol = "HTTP"
+  vpc_id   = module.aws_vpc.vpc_id
+  target_type = "instance"
+
+  health_check {
+    enabled             = true
+    path                = "/"
+    protocol            = "HTTP"
+    matcher             = "200-399"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+  }
+}
+
+resource "aws_lb_target_group" "tg_grafana" {
+  name     = "tg-grafana-${var.prefix}"
+  port     = 3000
+  protocol = "HTTP"
+  vpc_id   = module.aws_vpc.vpc_id
+  target_type = "instance"
+
+  health_check {
+    enabled             = true
+    path                = "/"
+    protocol            = "HTTP"
+    matcher             = "200-399"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+  }
+}
+
 # Target 등록
 
 resource "aws_lb_target_group_attachment" "nginx_attachment_azone" {
-  target_group_arn = aws_lb_target_group.nginx_target_group.arn
-  target_id        = aws_instance.service_azone.id
+  target_group_arn = aws_lb_target_group.tg_nginx.arn
+  target_id        = aws_instance.infra_azone.id
+  port             = 80
+}
+
+resource "aws_lb_target_group_attachment" "webhook_attachment_azone" {
+  target_group_arn = aws_lb_target_group.tg_webhook.arn
+  target_id        = aws_instance.infra_azone.id
+  port             = 5000
+}
+
+resource "aws_lb_target_group_attachment" "prometheus_attachment_azone" {
+  target_group_arn = aws_lb_target_group.tg_prometheus.arn
+  target_id        = aws_instance.infra_azone.id
+  port             = 9090
+}
+
+resource "aws_lb_target_group_attachment" "grafana_attachment_azone" {
+  target_group_arn = aws_lb_target_group.tg_grafana.arn
+  target_id        = aws_instance.infra_azone.id
   port             = 3000
 }
 
@@ -461,7 +559,7 @@ resource "aws_lb_listener_rule" "webhook_rule" {
   priority         = 10
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.nginx_target_group.arn
+    target_group_arn = aws_lb_target_group.tg_webhook.arn
   }
   condition {
     host_header {
@@ -475,7 +573,7 @@ resource "aws_lb_listener_rule" "fe_rule" {
   priority         = 30
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.nginx_target_group.arn
+    target_group_arn = aws_lb_target_group.tg_frontend.arn
   }
   condition {
     host_header {
@@ -489,7 +587,7 @@ resource "aws_lb_listener_rule" "be_rule" {
   priority         = 40
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.nginx_target_group.arn
+    target_group_arn = aws_lb_target_group.tg_backend.arn
   }
   condition {
     host_header {
@@ -503,7 +601,7 @@ resource "aws_lb_listener_rule" "ai_rule" {
   priority         = 50
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.nginx_target_group.arn
+    target_group_arn = aws_lb_target_group.tg_nginx.arn
   }
   condition {
     host_header {
@@ -517,7 +615,7 @@ resource "aws_lb_listener_rule" "prometheus_rule" {
   priority         = 60
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.nginx_target_group.arn
+    target_group_arn = aws_lb_target_group.tg_prometheus.arn
   }
   condition {
     host_header {
@@ -531,7 +629,7 @@ resource "aws_lb_listener_rule" "grafana_rule" {
   priority         = 70
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.nginx_target_group.arn
+    target_group_arn = aws_lb_target_group.tg_grafana.arn
   }
   condition {
     host_header {
@@ -685,29 +783,6 @@ resource "aws_route53_record" "grafana_dev_alb" {
 #       sampled_requests_enabled   = true
 #     }
 #   }
-
-#   # # Geo Match 규칙 
-#   # rule {
-#   #   name     = "AllowOnlyKR"
-#   #   priority = 3
-#   #   action {
-#   #     block {}
-#   #   }
-#   #   statement {
-#   #     not_statement {
-#   #       statement {
-#   #         geo_match_statement {
-#   #           country_codes = ["KR"]
-#   #         }
-#   #       }
-#   #     }
-#   #   }
-#   #   visibility_config {
-#   #     cloudwatch_metrics_enabled = true
-#   #     metric_name                = "AllowOnlyKR"
-#   #     sampled_requests_enabled   = true
-#   #   }
-#   # }
 
 #   tags = {
 #     Name = "waf-${var.prefix}-acl"

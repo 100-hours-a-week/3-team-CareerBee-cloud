@@ -49,8 +49,6 @@ echo "[3] UFW 방화벽 열기"
 ufw allow OpenSSH
 ufw allow 8000
 ufw allow 8001
-ufw allow 3000
-ufw allow 9090
 ufw --force enable
 
 echo "[4] 디스크 마운트 시작"
@@ -158,14 +156,7 @@ aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
 
 cd ${MOUNT_DIR}
 docker compose \
-  -f docker-compose.fluent-bit.yml \
-  up -d
-docker compose \
-  -f docker-compose.ai.yml \
-  -f docker-compose.vllm.yml \
-  up -d
-docker compose \
-  -f docker-compose.png.yml \
+  -f docker-compose.yml \
   up -d
 
 echo "[9] SSM에 상태 기록"

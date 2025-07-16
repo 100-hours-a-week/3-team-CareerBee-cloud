@@ -2,8 +2,8 @@ services:
   vllm:
     image: vllm/vllm-openai:latest
     container_name: vllm
-    network_mode: host
-    restart: always
+    ports:
+      - "8001:8001"
     runtime: nvidia
     deploy:
       resources:
@@ -22,8 +22,13 @@ services:
     ]
     volumes:
       - ${MOUNT_DIR}/aya-expanse-8b:${MOUNT_DIR}/aya-expanse-8b
-    logging:
-      driver: fluentd
-      options:
-        fluentd-address: localhost:24224
-        tag: gce/{{.Name}}
+    restart: always
+
+  ai-server:
+    image: ${ECR_REGISTRY}/ai-server:${TAG}
+    container_name: ai-server
+    env_file:
+      - /home/ubuntu/.env
+    ports:
+      - "8000:8000"
+    restart: always

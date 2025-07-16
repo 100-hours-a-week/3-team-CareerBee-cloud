@@ -36,27 +36,16 @@ curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip
 unzip awscliv2.zip
 ./aws/install > /dev/null 2>&1
 
-if aws ssm put-parameter \
-  --name "/careerbee/dev/tailscale-lock" \
-  --value "ready" \
-  --type "String" \
-  --region ap-northeast-2 2>/dev/null; then
-      
-  echo "[4] Tailscale 설치 및 복원"
-  curl -fsSL https://tailscale.com/install.sh | sh
+echo "[4] Tailscale 설치 및 복원"
+curl -fsSL https://tailscale.com/install.sh | sh
 
-  # 복원
-  systemctl stop tailscaled
-  aws s3 cp s3://s3-careerbee-dev-infra/docker/tailscaled_service.state /var/lib/tailscale/tailscaled.state
-  sudo chown root:root /var/lib/tailscale/tailscaled.state
-  sudo chmod 600 /var/lib/tailscale/tailscaled.state
-  systemctl start tailscaled
-  tailscale up --authkey=${tailscale_key} --hostname=dev-docker-service
-
-  echo "Tailscale 설정 완료"
-else
-    echo "이미 다른 인스턴스에서 Tailscale이 설정되었습니다. 스킵합니다."
-fi
+# 복원
+systemctl stop tailscaled
+aws s3 cp s3://s3-careerbee-dev-infra/docker/tailscaled_infra.state /var/lib/tailscale/tailscaled.state
+sudo chown root:root /var/lib/tailscale/tailscaled.state
+sudo chmod 600 /var/lib/tailscale/tailscaled.state
+systemctl start tailscaled
+tailscale up --authkey=${tailscale_key} --hostname=dev-docker-infra
 
 ####################################################################################################################
 
@@ -71,23 +60,24 @@ source /home/ubuntu/.env
 set +a
 
 # deploy 폴더 다운로드
-aws s3 cp s3://s3-careerbee-dev-infra/compose/service /home/ubuntu --recursive
+aws s3 cp s3://s3-careerbee-dev-infra/compose/infra /home/ubuntu --recursive
+chmod +x /home/ubuntu/deploy.sh \
+  /home/ubuntu/db_backup.sh \
+  /home/ubuntu/db_restore.sh
 
 ####################################################################################################################
 
 echo "[8] UFW 방화벽 설정"
 ufw allow OpenSSH
-ufw allow 5173
-ufw allow 8080
+ufw allow 80
+ufw allow 3000
+ufw allow 5000
+ufw allow 9090
 ufw --force enable
 
 ####################################################################################################################
 
-echo "[10] ECR latest 이미지 기반 프론트/백엔드 실행"
-# Docker 로그인 (필요시, AWS CLI v2 기준)
-aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
-  | docker login --username AWS --password-stdin ${ECR_REGISTRY}
-
+echo "[10] Docker Compose 실행"
 cd /home/ubuntu
 docker compose \
   -f docker-compose.yml \
@@ -98,7 +88,7 @@ docker compose \
 
 echo "[11] SSM에 상태 기록"
 aws ssm put-parameter \
-  --name "/careerbee/dev/service" \
+  --name "/careerbee/dev/infra" \
   --value "ready" \
   --type "String" \
   --overwrite \

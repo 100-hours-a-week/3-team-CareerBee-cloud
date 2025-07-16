@@ -34,25 +34,15 @@ output "gcp_private_subnet_ids" {
 
 # EC2 인스턴스 및 관련 정보
 
-output "service_azone_instance_id" {
+output "infra_azone_instance_id" {
   description = "서비스(A) EC2 인스턴스 ID"
-  value       = aws_instance.service_azone.id
+  value       = aws_instance.infra_azone.id
 }
 
-output "service_azone_instance_private_ip" {
+output "infra_azone_instance_private_ip" {
   description = "서비스(A) EC2 인스턴스의 프라이빗 IP"
-  value       = aws_instance.service_azone.private_ip
+  value       = aws_instance.infra_azone.private_ip
 }
-
-# output "service_czone_instance_id" {
-#   description = "서비스(C) EC2 인스턴스 ID"
-#   value       = aws_instance.service_czone.id
-# }
-
-# output "service_czone_instance_private_ip" {
-#   description = "서비스(C) EC2 인스턴스의 프라이빗 IP"
-#   value       = aws_instance.service_czone.private_ip
-# }
 
 # GCE 인스턴스
 
@@ -91,11 +81,6 @@ output "alb_arn" {
 output "alb_listener_https_arn" {
   description = "HTTPS ALB 리스너 ARN"
   value       = aws_lb_listener.https.arn
-}
-
-output "alb_target_group_arn" {
-  description = "ALB 타겟 그룹 ARN"
-  value       = aws_lb_target_group.nginx_target_group.arn
 }
 
 # IAM, Key, 보안 그룹 등
