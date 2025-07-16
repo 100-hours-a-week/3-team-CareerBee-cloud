@@ -13,26 +13,53 @@ fi
 echo "📦 ECR Registry: $ECR_REGISTRY"
 echo "📍 Region: $AWS_DEFAULT_REGION"
 
-aws ecr get-login-password --region $AWS_DEFAULT_REGION | \
-  docker login --username AWS --password-stdin $ECR_REGISTRY
+if [[ -n "$FE_TAG" ]] || [[ -n "$BE_TAG" ]]; then
+  echo "🚀 오토스케일링 그룹에 롤링 배포 시작"
 
-cd /app
+  ASG_INSTANCES=$(aws autoscaling describe-auto-scaling-groups \
+    --auto-scaling-group-names "asg-careerbee-dev-service" \
+    --region $AWS_DEFAULT_REGION \
+    --query 'AutoScalingGroups[0].Instances[?LifecycleState==`InService`].InstanceId' \
+    --output text)
 
-if [[ -n "$FE_TAG" ]]; then
-  FE_IMAGE="$ECR_REGISTRY/frontend:$FE_TAG"
-  echo "🚀 프론트 배포: $FE_IMAGE"
-  export TAG=$FE_TAG
-  docker rm -f frontend && \
-  docker compose -f docker-compose.fe.yml up -d --pull always && \
-  docker image prune -f
-fi
+  echo "📋 배포 대상 인스턴스: $ASG_INSTANCES"
 
-if [[ -n "$BE_TAG" ]]; then
-  BE_IMAGE="$ECR_REGISTRY/backend:$BE_TAG"
-  export TAG=$BE_TAG
-  docker rm -f backend && \
-  docker compose -f docker-compose.be.yml up -d --pull always && \
-  docker image prune -f
+  for INSTANCE_ID in $ASG_INSTANCES; do
+    echo "📦 인스턴스 $INSTANCE_ID에 배포 중..."
+    
+    # 인스턴스의 프라이빗 IP 가져오기
+    PRIVATE_IP=$(aws ec2 describe-instances \
+      --instance-ids $INSTANCE_ID \
+      --region $AWS_DEFAULT_REGION \
+      --query 'Reservations[0].Instances[0].PrivateIpAddress' \
+      --output text)
+
+    ssh -T -i "/home/ubuntu/.ssh/id_rsa" -o StrictHostKeyChecking=no ubuntu@$PRIVATE_IP <<EOF
+      
+      aws ecr get-login-password --region $AWS_DEFAULT_REGION | \
+        docker login --username AWS --password-stdin $ECR_REGISTRY
+
+      cd /home/ubuntu
+
+      # 프론트엔드 배포
+      if [[ -n "$FE_TAG" ]]; then
+        export TAG=$FE_TAG
+        docker compose -f docker-compose.yml pull frontend
+        docker compose -f docker-compose.yml up -d frontend
+        echo "✅ Frontend 배포 완료: $FE_TAG"
+      fi
+      
+      # 백엔드 배포
+      if [[ -n "$BE_TAG" ]]; then
+        export TAG=$BE_TAG
+        docker compose -f docker-compose.yml pull backend
+        docker compose -f docker-compose.yml up -d backend
+        echo "✅ Backend 배포 완료: $BE_TAG"
+      fi
+      
+      docker image prune -f
+EOF
+  done
 fi
 
 if [[ -n "$AI_TAG" ]]; then
