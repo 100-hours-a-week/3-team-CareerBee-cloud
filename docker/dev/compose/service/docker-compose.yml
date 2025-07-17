@@ -5,10 +5,6 @@ services:
     platform: linux/amd64
     ports:
       - "5173:5173"
-    logging:
-      driver: syslog
-      options:
-        tag: "{{.Name}}"
     restart: always
 
   backend:
@@ -27,10 +23,6 @@ services:
       "-Djdk.attach.allowAttachSelf=true",
       "-jar", "careerbee-api.jar"
     ]
-    logging:
-      driver: syslog
-      options:
-        tag: "{{.Name}}"
     restart: always
     env_file:
       - /home/ubuntu/.env
@@ -42,10 +34,6 @@ services:
       - /home/ubuntu/promtail/promtail-config.yml:/etc/promtail/config.yml
       - /var/log:/var/log
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-    logging:
-      driver: syslog
-      options:
-        tag: "{{.Name}}"
     restart: always
 
   node-exporter:
@@ -57,8 +45,4 @@ services:
       - '--path.rootfs=/host'
     volumes:
       - /:/host:ro,rslave
-    logging:
-      driver: syslog
-      options:
-        tag: "{{.Name}}"
     restart: always

@@ -8,10 +8,6 @@ services:
     volumes:
       - /home/ubuntu/mysql/data:/var/lib/mysql
       - /home/ubuntu/mysql/conf/replica.cnf:/etc/mysql/conf.d/replica.cnf
-    logging:
-      driver: syslog
-      options:
-        tag: "{{.Name}}"
     restart: always
 
   promtail:
@@ -21,10 +17,6 @@ services:
       - /home/ubuntu/promtail/promtail-config.yml:/etc/promtail/config.yml
       - /var/log:/var/log
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-    logging:
-      driver: syslog
-      options:
-        tag: "{{.Name}}"
     restart: always
 
   node-exporter:
@@ -36,8 +28,4 @@ services:
       - '--path.rootfs=/host'
     volumes:
       - /:/host:ro,rslave
-    logging:
-      driver: syslog
-      options:
-        tag: "{{.Name}}"
     restart: always

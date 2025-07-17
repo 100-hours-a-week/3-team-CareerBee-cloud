@@ -30,6 +30,18 @@ apt install -y unzip curl wget openssl git python3-pip python3-venv jq mysql-cli
 
 echo "[2] Docker 설치"
 curl -fsSL https://get.docker.com | bash
+docker plugin install grafana/loki-docker-driver:3.3.2-amd64 --alias loki --grant-all-permissions
+# 로그 드라이버 설정
+mkdir -p /etc/docker
+sudo tee /etc/docker/daemon.json > /dev/null <<EOF
+{
+  "log-driver": "loki",
+  "log-opts": {
+    "loki-url": "http://localhost:3100/loki/api/v1/push"
+  }
+}
+EOF
+systemctl restart docker
 
 echo "[3] AWS CLI 설치"
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"

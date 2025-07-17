@@ -26,9 +26,18 @@ apt install -y unzip curl wget
 
 echo "[2] Docker 설치"
 curl -fsSL https://get.docker.com | bash
-# Docker 유저 권한 부여
-usermod -aG docker ubuntu
-newgrp docker
+docker plugin install grafana/loki-docker-driver:3.3.2-amd64 --alias loki --grant-all-permissions
+# 로그 드라이버 설정
+mkdir -p /etc/docker
+sudo tee /etc/docker/daemon.json > /dev/null <<EOF
+{
+  "log-driver": "loki",
+  "log-opts": {
+    "loki-url": "http://192.168.110.100:3100/loki/api/v1/push"
+  }
+}
+EOF
+systemctl restart docker
 
 echo "[4] AWS CLI 설치"
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"

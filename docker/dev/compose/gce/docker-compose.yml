@@ -22,10 +22,6 @@ services:
     ]
     volumes:
       - ${MOUNT_DIR}/aya-expanse-8b:${MOUNT_DIR}/aya-expanse-8b
-    logging:
-      driver: syslog
-      options:
-        tag: "{{.Name}}"
     restart: always
 
   ai-server:
@@ -35,10 +31,6 @@ services:
       - /home/ubuntu/.env
     ports:
       - "8000:8000"
-    logging:
-      driver: syslog
-      options:
-        tag: "{{.Name}}"
     restart: always
 
   promtail:
@@ -48,10 +40,6 @@ services:
       - /mnt/ssd/promtail/promtail-config.yml:/etc/promtail/config.yml
       - /var/log:/var/log
       - /mnt/ssd/docker/containers:/var/lib/docker/containers:ro
-    logging:
-      driver: syslog
-      options:
-        tag: "{{.Name}}"
     restart: always
 
   node-exporter:
@@ -63,8 +51,4 @@ services:
       - '--path.rootfs=/host'
     volumes:
       - /:/host:ro,rslave
-    logging:
-      driver: syslog
-      options:
-        tag: "{{.Name}}"
     restart: always
