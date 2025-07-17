@@ -23,6 +23,9 @@ curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.
 unzip -q awscliv2.zip
 ./aws/install
 
+echo "[2-2] Docker 설치"
+curl -fsSL https://get.docker.com | bash
+
 cat > ~/.aws/credentials <<EOF
 [default]
 aws_access_key_id = ${AWS_ACCESS_KEY_ID}
@@ -68,8 +71,10 @@ fi
 
 ####################################################################################################################
 
-echo "[5] Docker 설치 및 설정"
-curl -fsSL https://get.docker.com | bash
+
+echo "[5] 도커 설정 및 플러그인 설치"
+# 1. 도커 플러그인 설치
+docker plugin install grafana/loki-docker-driver:3.3.2-amd64 --alias loki --grant-all-permissions || true
 
 # 2. Docker 중지
 systemctl stop docker
@@ -112,10 +117,6 @@ nvidia-ctk runtime configure --runtime=docker
 # 6. 도커 시작 및 상태 확인
 systemctl enable docker
 systemctl start docker
-
-# 7. 도커 플러그인 설치
-docker plugin install grafana/loki-docker-driver:3.3.2-amd64 --alias loki --grant-all-permissions || true
-systemctl restart docker
 
 echo "[6] 가상환경 구성"
 # Python 설치 완료 대기
