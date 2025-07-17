@@ -14,7 +14,7 @@ services:
     logging:
       driver: syslog
       options:
-        tag: {{.Name}}
+        tag: "{{.Name}}"
     restart: always
 
   redis:
@@ -26,7 +26,7 @@ services:
     logging:
       driver: syslog
       options:
-        tag: {{.Name}}
+        tag: "{{.Name}}"
     restart: always
 
   promtail:
@@ -39,7 +39,7 @@ services:
     logging:
       driver: syslog
       options:
-        tag: {{.Name}}
+        tag: "{{.Name}}"
     restart: always
 
   node-exporter:
@@ -54,5 +54,5 @@ services:
     logging:
       driver: syslog
       options:
-        tag: {{.Name}}
+        tag: "{{.Name}}"
     restart: always

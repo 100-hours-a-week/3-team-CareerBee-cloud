@@ -25,7 +25,7 @@ services:
     logging:
       driver: syslog
       options:
-        tag: {{.Name}}
+        tag: "{{.Name}}"
     restart: always
 
   ai-server:
@@ -38,7 +38,7 @@ services:
     logging:
       driver: syslog
       options:
-        tag: {{.Name}}
+        tag: "{{.Name}}"
     restart: always
 
   promtail:
@@ -51,7 +51,7 @@ services:
     logging:
       driver: syslog
       options:
-        tag: {{.Name}}
+        tag: "{{.Name}}"
     restart: always
 
   node-exporter:
@@ -66,5 +66,5 @@ services:
     logging:
       driver: syslog
       options:
-        tag: {{.Name}}
+        tag: "{{.Name}}"
     restart: always

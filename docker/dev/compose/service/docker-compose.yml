@@ -8,7 +8,7 @@ services:
     logging:
       driver: syslog
       options:
-        tag: {{.Name}}
+        tag: "{{.Name}}"
     restart: always
 
   backend:
@@ -30,7 +30,7 @@ services:
     logging:
       driver: syslog
       options:
-        tag: {{.Name}}
+        tag: "{{.Name}}"
     restart: always
     env_file:
       - /home/ubuntu/.env
@@ -45,7 +45,7 @@ services:
     logging:
       driver: syslog
       options:
-        tag: {{.Name}}
+        tag: "{{.Name}}"
     restart: always
 
   node-exporter:
@@ -60,5 +60,5 @@ services:
     logging:
       driver: syslog
       options:
-        tag: {{.Name}}
+        tag: "{{.Name}}"
     restart: always

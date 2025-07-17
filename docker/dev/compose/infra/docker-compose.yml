@@ -9,7 +9,7 @@ services:
     logging:
       driver: syslog
       options:
-        tag: {{.Name}}
+        tag: "{{.Name}}"
     restart: always
 
   prometheus:
@@ -22,7 +22,7 @@ services:
     logging:
       driver: syslog
       options:
-        tag: {{.Name}}
+        tag: "{{.Name}}"
     restart: always
 
   loki:
@@ -35,7 +35,7 @@ services:
     logging:
       driver: syslog
       options:
-        tag: {{.Name}}
+        tag: "{{.Name}}"
     restart: always
 
   promtail:
@@ -48,7 +48,7 @@ services:
     logging:
       driver: syslog
       options:
-        tag: {{.Name}}
+        tag: "{{.Name}}"
     restart: always
 
   node-exporter:
@@ -63,7 +63,7 @@ services:
     logging:
       driver: syslog
       options:
-        tag: {{.Name}}
+        tag: "{{.Name}}"
     restart: always
     
   grafana:
@@ -79,7 +79,7 @@ services:
     logging:
       driver: syslog
       options:
-        tag: {{.Name}}
+        tag: "{{.Name}}"
     restart: always
 
   webhook:
@@ -105,5 +105,5 @@ services:
     logging:
       driver: syslog
       options:
-        tag: {{.Name}}
+        tag: "{{.Name}}"
     restart: always
