@@ -84,15 +84,14 @@ ufw --force enable
 
 ####################################################################################################################
 
-echo "[10] ECR latest 이미지 기반 프론트/백엔드 실행"
+echo "[10] ECR latest 이미지 기반 프론트/백엔드, Promtail 실행"
 # Docker 로그인 (필요시, AWS CLI v2 기준)
 aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
   | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
+mkdir -p /var/log/promtail
 cd /home/ubuntu
-docker compose \
-  --env-file /home/ubuntu/.env \
-  up -d --build
+docker compose --env-file /home/ubuntu/.env up -d --build
 
 ####################################################################################################################
 

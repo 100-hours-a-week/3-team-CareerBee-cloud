@@ -155,6 +155,7 @@ echo "[8] ECR 최신 이미지 기반 AI 실행"
 aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
   | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
+mkdir -p /var/log/promtail
 cd ${MOUNT_DIR}
 docker compose up -d
 

@@ -79,6 +79,7 @@ ufw --force enable
 ####################################################################################################################
 
 echo "[10] Docker Compose 실행"
+mkdir -p /var/log/promtail
 cd /home/ubuntu
 docker compose \
   --env-file /home/ubuntu/.env \
