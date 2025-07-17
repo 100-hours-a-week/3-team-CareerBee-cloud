@@ -84,7 +84,7 @@ fi
 
 # 5. 도커 설정파일 작성 - 도커 저장소 변경, 로그 드라이버 설정
 mkdir -p /etc/docker
-sudo tee /etc/docker/daemon.json > /dev/null <<EOF
+tee /etc/docker/daemon.json > /dev/null <<EOF
 {
   "data-root": "${MOUNT_DIR}/docker",
   "log-driver": "loki",
@@ -115,6 +115,7 @@ systemctl start docker
 
 # 7. 도커 플러그인 설치
 docker plugin install grafana/loki-docker-driver:3.3.2-amd64 --alias loki --grant-all-permissions || true
+systemctl restart docker
 
 echo "[6] 가상환경 구성"
 # Python 설치 완료 대기
