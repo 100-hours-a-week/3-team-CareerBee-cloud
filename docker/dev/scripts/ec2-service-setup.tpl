@@ -30,6 +30,18 @@ apt install -y unzip curl wget openssl git python3-pip python3-venv jq mysql-cli
 
 echo "[2] Docker 설치"
 curl -fsSL https://get.docker.com | bash
+docker plugin install grafana/loki-docker-driver:3.3.2-amd64 --alias loki --grant-all-permissions
+# 로그 드라이버 설정
+mkdir -p /etc/docker
+sudo tee /etc/docker/daemon.json > /dev/null <<EOF
+{
+  "log-driver": "loki",
+  "log-opts": {
+    "loki-url": "http://192.168.110.100:3100/loki/api/v1/push"
+  }
+}
+EOF
+systemctl restart docker
 
 echo "[3] AWS CLI 설치"
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -84,15 +96,14 @@ ufw --force enable
 
 ####################################################################################################################
 
-echo "[10] ECR latest 이미지 기반 프론트/백엔드 실행"
+echo "[10] ECR latest 이미지 기반 프론트/백엔드, Promtail 실행"
 # Docker 로그인 (필요시, AWS CLI v2 기준)
 aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
   | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
+mkdir -p /var/log/promtail
 cd /home/ubuntu
-docker compose \
-  --env-file /home/ubuntu/.env \
-  up -d --build
+docker compose --env-file /home/ubuntu/.env up -d --build
 
 ####################################################################################################################
 

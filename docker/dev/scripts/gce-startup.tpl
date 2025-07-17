@@ -72,40 +72,49 @@ echo "[5] Docker 설치 및 설정"
 curl -fsSL https://get.docker.com | bash
 
 # 2. Docker 중지
-sudo systemctl stop docker
+systemctl stop docker
 
 # 3. SSD 디렉토리 준비
-sudo mkdir -p ${MOUNT_DIR}/docker
+mkdir -p ${MOUNT_DIR}/docker
 
 # 4. 기존 도커 데이터가 있으면 이동
 if [ -d "/var/lib/docker" ] && [ ! -L "/var/lib/docker" ]; then
-  sudo mv /var/lib/docker/* ${MOUNT_DIR}/docker/
+  mv /var/lib/docker/* ${MOUNT_DIR}/docker/
 fi
 
-# 5. 도커 설정파일 작성 - 도커 저장소 변경
-sudo mkdir -p /etc/docker
-echo "{
-  \"data-root\": \"${MOUNT_DIR}/docker\"
-}" | sudo tee /etc/docker/daemon.json
+# 5. 도커 설정파일 작성 - 도커 저장소 변경, 로그 드라이버 설정
+mkdir -p /etc/docker
+sudo tee /etc/docker/daemon.json > /dev/null <<EOF
+{
+  "data-root": "${MOUNT_DIR}/docker",
+  "log-driver": "loki",
+  "log-opts": {
+    "loki-url": "http://192.168.110.100:3100/loki/api/v1/push"
+  }
+}
+EOF
 
 # nvidia-container-toolkit 설치
-curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
 && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
   sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
-  sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+  tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
 sed -i -e '/experimental/ s/^#//g' /etc/apt/sources.list.d/nvidia-container-toolkit.list
-sudo apt-get update
+apt-get update
 export NVIDIA_CONTAINER_TOOLKIT_VERSION=1.17.8-1
-sudo apt-get install -y \
+apt-get install -y \
     nvidia-container-toolkit=$${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
     nvidia-container-toolkit-base=$${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
     libnvidia-container-tools=$${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
     libnvidia-container1=$${NVIDIA_CONTAINER_TOOLKIT_VERSION}
-sudo nvidia-ctk runtime configure --runtime=docker
+nvidia-ctk runtime configure --runtime=docker
 
 # 6. 도커 시작 및 상태 확인
-sudo systemctl enable docker
-sudo systemctl start docker
+systemctl enable docker
+systemctl start docker
+
+# 7. 도커 플러그인 설치
+docker plugin install grafana/loki-docker-driver:3.3.2-amd64 --alias loki --grant-all-permissions || true
 
 echo "[6] 가상환경 구성"
 # Python 설치 완료 대기
@@ -155,6 +164,7 @@ echo "[8] ECR 최신 이미지 기반 AI 실행"
 aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
   | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
+mkdir -p /var/log/promtail
 cd ${MOUNT_DIR}
 docker compose up -d
 

@@ -6,21 +6,12 @@ positions:
   filename: /var/log/promtail/positions.yaml
 
 clients:
-  - url: http://loki:3100/loki/api/v1/push
+  - url: http://localhost:3100/loki/api/v1/push
 
 scrape_configs:
-  - job_name: system
+  - job_name: system-infra
     static_configs:
       - targets: ['localhost']
         labels:
-          job: system
+          job: system-infra
           __path__: /var/log/cloud-init-output.log
-          
-  - job_name: docker
-    pipeline_stages:
-      - docker: {}
-    static_configs:
-      - targets: ['localhost']
-        labels:
-          job: docker
-          __path__: /var/lib/docker/containers/*/*.log

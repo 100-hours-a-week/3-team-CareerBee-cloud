@@ -27,9 +27,18 @@ apt install -y unzip curl wget
 
 echo "[2] Docker 설치"
 curl -fsSL https://get.docker.com | bash
-# Docker 유저 권한 부여
-usermod -aG docker ubuntu
-newgrp docker
+docker plugin install grafana/loki-docker-driver:3.3.2-amd64 --alias loki --grant-all-permissions
+# 로그 드라이버 설정
+mkdir -p /etc/docker
+sudo tee /etc/docker/daemon.json > /dev/null <<EOF
+{
+  "log-driver": "loki",
+  "log-opts": {
+    "loki-url": "http://192.168.110.100:3100/loki/api/v1/push"
+  }
+}
+EOF
+systemctl restart docker
 
 echo "[4] AWS CLI 설치"
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -45,7 +54,8 @@ mkdir -p /home/ubuntu/{log,mysql/data}
 aws s3 cp s3://s3-careerbee-dev-infra/compose/db /home/ubuntu --recursive
 chown -R 999:999 /home/ubuntu/mysql
 
-echo "[5-1] Mysql, Redis 실행"
+echo "[5-1] Mysql, Redis, Promtail 실행"
+mkdir -p /var/log/promtail
 cd /home/ubuntu
 docker compose up -d
 
@@ -55,6 +65,7 @@ echo "[6] UFW 방화벽 설정"
 ufw allow OpenSSH
 ufw allow 3306
 ufw allow 6379
+ufw allow 9100
 ufw --force enable
 
 echo "[7] SSM에 상태 기록"

@@ -9,18 +9,17 @@ clients:
   - url: http://192.168.110.100:3100/loki/api/v1/push
 
 scrape_configs:
-  - job_name: system
+  - job_name: system-gce
     static_configs:
       - targets: ['localhost']
         labels:
-          job: system
+          job: system-gce
           __path__: /var/log/syslog
-          
-  - job_name: docker
     pipeline_stages:
-      - docker: {}
-    static_configs:
-      - targets: ['localhost']
-        labels:
-          job: docker
-          __path__: /var/lib/docker/containers/*/*.log
+      - match:
+          selector: '{job="system-gce"}'
+          stages:
+            - regex:
+                expression: '.*startup-script.*'
+            - output:
+                source: entry
