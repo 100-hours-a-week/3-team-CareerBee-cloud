@@ -22,7 +22,6 @@ services:
     image: grafana/loki:latest
     volumes:
       - /home/ubuntu/loki/loki-config.yml:/etc/loki/loki-config.yml
-      - /home/ubuntu/grafana/provisioning:etc/grafana/provisioning
     ports:
       - "3100:3100"
     restart: always
@@ -55,6 +54,8 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${DB_PASSWORD}
     ports:
       - "3000:3000"
+    volumes:
+      - /home/ubuntu/grafana/provisioning:/etc/grafana/provisioning
     restart: always
 
   webhook:
