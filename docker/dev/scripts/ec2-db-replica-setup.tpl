@@ -55,6 +55,7 @@ echo "[6] UFW 방화벽 설정"
 ufw allow OpenSSH
 ufw allow 3306
 ufw allow 6379
+ufw allow 9100
 ufw --force enable
 
 echo "[7] Replica 설정"

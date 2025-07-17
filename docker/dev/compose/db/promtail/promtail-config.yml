@@ -74,3 +74,18 @@ scrape_configs:
                 expression: '^.* (promtail)(?:\[\d+\])?: .*'
             - output:
                 source: entry
+
+  - job_name: node-exporter-db
+    static_configs:
+      - targets: ['localhost']
+        labels:
+          job: node-exporter-db
+          __path__: /var/log/syslog
+    pipeline_stages:
+      - match:
+          selector: '{job="node-exporter-db"}'
+          stages:
+            - regex:
+                expression: '^.* (node-exporter)(?:\[\d+\])?: .*'
+            - output:
+                source: entry

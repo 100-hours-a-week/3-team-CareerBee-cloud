@@ -26,3 +26,18 @@ services:
       options:
         tag: {{.Name}}
     restart: always
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - /:/host:ro,rslave
+    logging:
+      driver: syslog
+      options:
+        tag: {{.Name}}
+    restart: always

@@ -81,6 +81,13 @@ resource "aws_security_group" "sg_db" {
     cidr_blocks     = [var.gcp_private_subnet_cidr]
   }
 
+  ingress {
+    from_port   = 9100
+    to_port     = 9100
+    protocol    = "tcp"
+    security_groups = [aws_security_group.sg_infra.id]
+  }
+  
   egress {
     from_port   = 0
     to_port     = 0
