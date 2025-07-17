@@ -9,18 +9,68 @@ clients:
   - url: http://192.168.110.100:3100/loki/api/v1/push
 
 scrape_configs:
-  - job_name: system
+  - job_name: system-db
     static_configs:
       - targets: ['localhost']
         labels:
-          job: system
+          job: system-db
           __path__: /var/log/cloud-init-output.log
-          
-  - job_name: docker
-    pipeline_stages:
-      - docker: {}
+
+  - job_name: mysql-master
     static_configs:
       - targets: ['localhost']
         labels:
-          job: docker
-          __path__: /var/lib/docker/containers/*/*.log
+          job: mysql-master
+          __path__: /var/log/syslog
+    pipeline_stages:
+      - match:
+          selector: '{job="mysql-master"}'
+          stages:
+            - regex:
+                expression: '^.* (mysql)(?:\[\d+\])?: .*'
+            - output:
+                source: entry
+
+  - job_name: mysql-master-error
+    static_configs:
+      - targets: ['localhost']
+        labels:
+          job: mysql-master-error
+          __path__: /var/log/mysql/error.log
+
+  - job_name: mysql-master-general
+    static_configs:
+      - targets: ['localhost']
+        labels:
+          job: mysql-master-general
+          __path__: /var/log/mysql/general.log
+
+  - job_name: redis
+    static_configs:
+      - targets: ['localhost']
+        labels:
+          job: redis
+          __path__: /var/log/syslog
+    pipeline_stages:
+      - match:
+          selector: '{job="redis"}'
+          stages:
+            - regex:
+                expression: '^.* (redis)(?:\[\d+\])?: .*'
+            - output:
+                source: entry
+
+  - job_name: promtail-db
+    static_configs:
+      - targets: ['localhost']
+        labels:
+          job: promtail-db
+          __path__: /var/log/syslog
+    pipeline_stages:
+      - match:
+          selector: '{job="promtail-db"}'
+          stages:
+            - regex:
+                expression: '^.* (promtail)(?:\[\d+\])?: .*'
+            - output:
+                source: entry

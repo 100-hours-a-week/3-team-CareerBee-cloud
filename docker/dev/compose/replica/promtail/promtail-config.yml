@@ -9,18 +9,53 @@ clients:
   - url: http://192.168.110.100:3100/loki/api/v1/push
 
 scrape_configs:
-  - job_name: system
+  - job_name: system-replica
     static_configs:
       - targets: ['localhost']
         labels:
-          job: system
+          job: system-replica
           __path__: /var/log/cloud-init-output.log
           
-  - job_name: docker
-    pipeline_stages:
-      - docker: {}
+  - job_name: mysql-replica
     static_configs:
       - targets: ['localhost']
         labels:
-          job: docker
-          __path__: /var/lib/docker/containers/*/*.log
+          job: mysql-replica
+          __path__: /var/log/syslog
+    pipeline_stages:
+      - match:
+          selector: '{job="mysql-replica"}'
+          stages:
+            - regex:
+                expression: '^.* (mysql)(?:\[\d+\])?: .*'
+            - output:
+                source: entry
+
+  - job_name: mysql-replica-error
+    static_configs:
+      - targets: ['localhost']
+        labels:
+          job: mysql-replica-error
+          __path__: /var/log/mysql/error.log
+
+  - job_name: mysql-replica-general
+    static_configs:
+      - targets: ['localhost']
+        labels:
+          job: mysql-replica-general
+          __path__: /var/log/mysql/general.log
+
+  - job_name: promtail-replica
+    static_configs:
+      - targets: ['localhost']
+        labels:
+          job: promtail-replica
+          __path__: /var/log/syslog
+    pipeline_stages:
+      - match:
+          selector: '{job="promtail-replica"}'
+          stages:
+            - regex:
+                expression: '^.* (promtail)(?:\[\d+\])?: .*'
+            - output:
+                source: entry

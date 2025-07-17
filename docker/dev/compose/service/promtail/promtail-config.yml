@@ -9,18 +9,69 @@ clients:
   - url: http://192.168.110.100:3100/loki/api/v1/push
 
 scrape_configs:
-  - job_name: system
+  - job_name: system-service
     static_configs:
       - targets: ['localhost']
         labels:
-          job: system
+          job: system-service
           __path__: /var/log/cloud-init-output.log
-          
-  - job_name: docker
-    pipeline_stages:
-      - docker: {}
+  
+  - job_name: frontend
     static_configs:
       - targets: ['localhost']
         labels:
-          job: docker
-          __path__: /var/lib/docker/containers/*/*.log
+          job: frontend
+          __path__: /var/log/syslog
+    pipeline_stages:
+      - match:
+          selector: '{job="frontend"}'
+          stages:
+            - regex:
+                expression: '^.* (frontend)(?:\[\d+\])?: .*'
+            - output:
+                source: entry
+
+  - job_name: backend
+    static_configs:
+      - targets: ['localhost']
+        labels:
+          job: backend
+          __path__: /var/log/syslog
+    pipeline_stages:
+      - match:
+          selector: '{job="backend"}'
+          stages:
+            - regex:
+                expression: '^.* (backend)(?:\[\d+\])?: .*'
+            - output:
+                source: entry
+
+  - job_name: promtail-service
+    static_configs:
+      - targets: ['localhost']
+        labels:
+          job: promtail-service
+          __path__: /var/log/syslog
+    pipeline_stages:
+      - match:    
+          selector: '{job="promtail-service"}'
+          stages:
+            - regex:
+                expression: '^.* (promtail)(?:\[\d+\])?: .*'
+            - output:
+                source: entry
+
+  - job_name: node-exporter-service
+    static_configs:
+      - targets: ['localhost']
+        labels:
+          job: node-exporter-service
+          __path__: /var/log/syslog
+    pipeline_stages:
+      - match:
+          selector: '{job="node-exporter-service"}'
+          stages:
+            - regex:
+                expression: '^.* (node-exporter)(?:\[\d+\])?: .*'
+            - output:
+                source: entry

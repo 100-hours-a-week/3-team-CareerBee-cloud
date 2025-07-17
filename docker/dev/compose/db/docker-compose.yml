@@ -11,6 +11,10 @@ services:
     volumes:
       - /home/ubuntu/mysql/data:/var/lib/mysql
       - /home/ubuntu/mysql/conf/master.conf:/etc/mysql/conf.d/master.conf
+    logging:
+      driver: syslog
+      options:
+        tag: {{.Name}}
     restart: always
 
   redis:
@@ -19,6 +23,10 @@ services:
     network_mode: host
     volumes:
       - /home/ubuntu/redis/data:/data
+    logging:
+      driver: syslog
+      options:
+        tag: {{.Name}}
     restart: always
 
   promtail:
@@ -28,4 +36,8 @@ services:
       - /home/ubuntu/promtail/promtail-config.yml:/etc/promtail/config.yml
       - /var/log:/var/log
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    logging:
+      driver: syslog
+      options:
+        tag: {{.Name}}
     restart: always

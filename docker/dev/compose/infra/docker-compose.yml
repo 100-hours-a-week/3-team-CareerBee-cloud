@@ -6,6 +6,10 @@ services:
       - "80:80"
     volumes:
       - /home/ubuntu/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    logging:
+      driver: syslog
+      options:
+        tag: {{.Name}}
     restart: always
 
   prometheus:
@@ -15,6 +19,10 @@ services:
       - /home/ubuntu/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
+    logging:
+      driver: syslog
+      options:
+        tag: {{.Name}}
     restart: always
 
   loki:
@@ -24,6 +32,10 @@ services:
       - /home/ubuntu/loki/loki-config.yml:/etc/loki/loki-config.yml
     ports:
       - "3100:3100"
+    logging:
+      driver: syslog
+      options:
+        tag: {{.Name}}
     restart: always
 
   promtail:
@@ -33,6 +45,10 @@ services:
       - /home/ubuntu/promtail/promtail-config.yml:/etc/promtail/config.yml
       - /var/log:/var/log
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    logging:
+      driver: syslog
+      options:
+        tag: {{.Name}}
     restart: always
 
   node-exporter:
@@ -44,6 +60,10 @@ services:
       - '--path.rootfs=/host'
     volumes:
       - /:/host:ro,rslave
+    logging:
+      driver: syslog
+      options:
+        tag: {{.Name}}
     restart: always
     
   grafana:
@@ -56,6 +76,10 @@ services:
       - "3000:3000"
     volumes:
       - /home/ubuntu/grafana/provisioning:/etc/grafana/provisioning
+    logging:
+      driver: syslog
+      options:
+        tag: {{.Name}}
     restart: always
 
   webhook:
@@ -78,4 +102,8 @@ services:
     working_dir: /app/webhook
     ports:
       - "5000:5000"
+    logging:
+      driver: syslog
+      options:
+        tag: {{.Name}}
     restart: always

@@ -9,18 +9,77 @@ clients:
   - url: http://192.168.110.100:3100/loki/api/v1/push
 
 scrape_configs:
-  - job_name: system
+  - job_name: system-gce
     static_configs:
       - targets: ['localhost']
         labels:
-          job: system
+          job: system-gce
           __path__: /var/log/syslog
-          
-  - job_name: docker
     pipeline_stages:
-      - docker: {}
+      - match:
+          selector: '{job="system-gce"}'
+          stages:
+            - regex:
+                expression: '.*startup-script.*'
+            - output:
+                source: entry
+
+  - job_name: vllm
     static_configs:
       - targets: ['localhost']
         labels:
-          job: docker
-          __path__: /var/lib/docker/containers/*/*.log
+          job: vllm
+          __path__: /var/log/syslog
+    pipeline_stages:
+      - match:
+          selector: '{job="vllm"}'
+          stages:
+            - regex:
+                expression: '^.* (vllm)(?:\[\d+\])?: .*'
+            - output:
+                source: entry
+
+  - job_name: ai-server
+    static_configs:
+      - targets: ['localhost']
+        labels:
+          job: ai-server
+          __path__: /var/log/syslog
+    pipeline_stages:
+      - match:
+          selector: '{job="ai-server"}'
+          stages:
+            - regex:
+                expression: '^.* (ai-server)(?:\[\d+\])?: .*'
+            - output:
+                source: entry
+
+  - job_name: promtail-gce
+    static_configs:
+      - targets: ['localhost']
+        labels:
+          job: promtail-gce
+          __path__: /var/log/syslog
+    pipeline_stages:
+      - match:
+          selector: '{job="promtail-gce"}'
+          stages:
+            - regex:
+                expression: '^.* (promtail)(?:\[\d+\])?: .*'
+            - output:
+                source: entry
+
+  - job_name: node-exporter-gce
+    static_configs:
+      - targets: ['localhost']
+        labels:
+          job: node-exporter-gce
+          __path__: /var/log/syslog
+    pipeline_stages:
+      - match:
+          selector: '{job="node-exporter-gce"}'
+          stages:
+            - regex:
+                expression: '^.* (node-exporter)(?:\[\d+\])?: .*'
+            - output:
+                source: entry
