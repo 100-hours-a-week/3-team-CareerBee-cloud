@@ -157,7 +157,6 @@ source /home/ubuntu/.env
 set +a
 
 # compose 폴더 다운로드
-mkdir -p ${MOUNT_DIR}/compose/gce
 aws s3 cp s3://s3-careerbee-dev-infra/compose/gce ${MOUNT_DIR} --recursive
 
 ####################################################################################################################
