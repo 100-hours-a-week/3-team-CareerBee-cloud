@@ -133,9 +133,9 @@ jobs:
             echo "AI 서버 상태: $AI_STATUS"
             WEBHOOK_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://webhook.dev.careerbee.co.kr/health-check")
             echo "Webhook 서버 상태: $WEBHOOK_STATUS"
-            PROMETHEUS_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://prometheus.dev.careerbee.co.kr/")
+            PROMETHEUS_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://prometheus.dev.careerbee.co.kr/-/healthy")
             echo "Prometheus 상태: $PROMETHEUS_STATUS"
-            GRAFANA_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://grafana.dev.careerbee.co.kr/")
+            GRAFANA_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://grafana.dev.careerbee.co.kr/api/health")
             echo "Grafana 상태: $GRAFANA_STATUS"
 
             if [ "$FRONT_STATUS" = "200" ] && [ "$BACK_STATUS" = "200" ] && [ "$AI_STATUS" = "200" ] && [ "$WEBHOOK_STATUS" = "200" ] && [ "$PROMETHEUS_STATUS" = "200" ] && [ "$GRAFANA_STATUS" = "200" ]; then
