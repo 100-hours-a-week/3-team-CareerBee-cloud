@@ -379,6 +379,7 @@ resource "aws_lb" "alb" {
   load_balancer_type = "application"
   security_groups    = [aws_security_group.sg_alb.id]
   subnets            = module.aws_vpc.public_subnet_ids
+  idle_timeout       = 300
 
   tags = {
     Name = "alb-${var.prefix}"
