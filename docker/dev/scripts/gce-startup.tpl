@@ -80,6 +80,7 @@ docker plugin install grafana/loki-docker-driver:3.3.2-amd64 --alias loki --gran
 systemctl stop docker
 
 # 3. SSD 디렉토리 준비
+rm -rf ${MOUNT_DIR}/docker
 mkdir -p ${MOUNT_DIR}/docker
 
 # 4. 기존 도커 데이터가 있으면 이동
