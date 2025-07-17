@@ -6,9 +6,10 @@
 # 변수 값
 terraform.tfvars
 *.tfvars
+tf_*.json
 
 # GCP/SSH 키
-*.json
+careerbee-*.json
 *.pem
 *.key
 id_rsa*
