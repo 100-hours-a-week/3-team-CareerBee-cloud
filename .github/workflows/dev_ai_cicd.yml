@@ -50,7 +50,7 @@ jobs:
             --repository-name ai-server \
             --region ap-northeast-2 \
             --query "reverse(sort_by(imageDetails[?imageTags && imageTags[0] != 'cache' && imageTags[0] != '${{ env.DEPLOY_TAG }}' && imageTags[0] != 'latest'], & imagePushedAt))[:1].imageTags[0]" \
-            --output text)
+            --output text | head -n 1)
           echo "🪃 Rollback tag: $ROLLBACK_TAG"
           echo "ROLLBACK_TAG=$ROLLBACK_TAG" >> $GITHUB_ENV
           
