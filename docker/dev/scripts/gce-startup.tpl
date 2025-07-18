@@ -168,6 +168,7 @@ aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
 
 mkdir -p /var/log/promtail
 cd ${MOUNT_DIR}
+docker compose -f docker-compose.infra.yml up -d
 docker compose up -d
 
 echo "[9] SSM에 상태 기록"

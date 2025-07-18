@@ -62,6 +62,7 @@ systemctl restart docker
 echo "[6] Mysql, Promtail 실행"
 mkdir -p /var/log/promtail
 cd /home/ubuntu
+docker compose -f docker-compose.infra.yml up -d
 docker compose up -d
 
 ####################################################################################################################

@@ -108,6 +108,7 @@ aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
 
 mkdir -p /var/log/promtail
 cd /home/ubuntu
+docker compose -f docker-compose.infra.yml up -d
 docker compose --env-file /home/ubuntu/.env up -d --build
 
 ####################################################################################################################
