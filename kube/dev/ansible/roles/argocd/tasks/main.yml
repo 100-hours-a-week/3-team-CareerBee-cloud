@@ -28,6 +28,9 @@
     update_repo_cache: true
     wait: true
     timeout: 300s
+    set:
+      - name: server.extraArgs[0]
+        value: --insecure
   register: argocd_install_result
   until: argocd_install_result is succeeded
   retries: 3
