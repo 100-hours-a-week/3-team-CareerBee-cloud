@@ -210,6 +210,10 @@ variable "NEXT_PUBLIC_COMPETITION_AGGREGATE_MS" {
   type        = string
 }
 
+variable "NEXT_PUBLIC_GOOGLE_ANALYTICS" {
+  type        = string
+}
+
 variable "VITE_KAKAOMAP_KEY" {
   type        = string
   description = "Kakao map key for Vite frontend"
