@@ -368,6 +368,10 @@ variable "DB_USER" {
   type        = string
 }
 
+variable "OPENAI_API_BASE" {
+  type        = string
+}
+
 variable "OPENAI_API_KEY" {
   type        = string
   sensitive   = true
