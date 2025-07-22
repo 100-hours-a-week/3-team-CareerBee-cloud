@@ -30,6 +30,27 @@ resource "google_compute_disk" "ssmu_disk" {
 
 ##########################################################################################################
 
+# dynamodb
+
+resource "aws_dynamodb_table" "terraform_lock" {
+  name           = "terraform-docker-lock"
+  billing_mode   = "PROVISIONED"
+  read_capacity  = 5
+  write_capacity = 5
+  hash_key       = "LockID"
+
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
+
+  tags = {
+    Name        = "Terraform Docker State Lock Table"
+    Environment = "dev"
+  }
+}
+
+##########################################################################################################
 # s3
 resource "aws_s3_bucket" "ssmu_bucket_image" {
   bucket = var.s3_image_bucket_name
