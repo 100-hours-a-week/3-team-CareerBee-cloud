@@ -201,6 +201,13 @@ resource "aws_security_group" "sg_worker" {
   description = "Allow Worker traffic"
   vpc_id      = module.aws_vpc.vpc_id
 
+  ingress {
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    cidr_blocks     = [var.aws_vpc_cidr]
+  }
+
   tags = {
     Name = "sg-${var.prefix}-worker"
   }
@@ -210,15 +217,6 @@ resource "aws_security_group_rule" "worker_self" {
   type                     = "ingress"
   from_port                = 10250
   to_port                  = 10250
-  protocol                 = "tcp"
-  source_security_group_id = aws_security_group.sg_worker.id
-  security_group_id        = aws_security_group.sg_worker.id
-}
-
-resource "aws_security_group_rule" "worker_self_https" {
-  type                     = "ingress"
-  from_port                = 443
-  to_port                  = 443
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.sg_worker.id
   security_group_id        = aws_security_group.sg_worker.id
