@@ -33,7 +33,7 @@ resource "google_compute_disk" "ssmu_disk" {
 # dynamodb
 
 resource "aws_dynamodb_table" "terraform_lock" {
-  name           = "terraform-docker-lock"
+  name           = "terraform-lock-table"
   billing_mode   = "PROVISIONED"
   read_capacity  = 5
   write_capacity = 5
