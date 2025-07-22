@@ -350,6 +350,10 @@ variable "REDIS_PORT" {
   type        = number
 }
 
+variable "NEXT_BASE_URL" {
+  type        = string
+}
+
 # AI
 
 variable "APP_ENV" {
