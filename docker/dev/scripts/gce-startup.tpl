@@ -53,6 +53,7 @@ ufw allow OpenSSH
 ufw allow 8000
 ufw allow 8001
 ufw allow 9100
+ufw allow 9400
 ufw --force enable
 
 echo "[4] 디스크 마운트 시작"

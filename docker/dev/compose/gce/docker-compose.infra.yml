@@ -18,3 +18,15 @@ services:
     volumes:
       - /:/host:ro,rslave
     restart: always
+  
+  dcgm-exporter:
+    image: nvidia/dcgm-exporter:latest
+    container_name: dcgm-exporter
+    runtime: nvidia
+    ports:
+      - "9400:9400"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    cap_add:
+    - SYS_ADMIN
+    restart: always
