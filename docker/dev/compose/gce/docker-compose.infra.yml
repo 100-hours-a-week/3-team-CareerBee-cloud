@@ -28,5 +28,5 @@ services:
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
     cap_add:
-    - SYS_ADMIN
+      - SYS_ADMIN
     restart: always
