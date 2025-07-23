@@ -1,67 +1,67 @@
-- name: Create namespace for ArgoCD
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: v1
-      kind: Namespace
-      metadata:
-        name: argocd
+# - name: Create namespace for ArgoCD
+#   kubernetes.core.k8s:
+#     state: present
+#     definition:
+#       apiVersion: v1
+#       kind: Namespace
+#       metadata:
+#         name: argocd
 
 - name: Load Terraform output from JSON
   set_fact:
     tf_output: "{{ lookup('file', 'tf_output.json') | from_json }}"
 
-- name: Render Helm ingress file from template
-  template:
-    src: files/argocd/ingress.yml.j2
-    dest: files/argocd/ingress.yml
+# - name: Render Helm ingress file from template
+#   template:
+#     src: files/argocd/ingress.yml.j2
+#     dest: files/argocd/ingress.yml
 
-- name: Add Argo Helm repo
-  community.kubernetes.helm_repository:
-    name: argo
-    repo_url: https://argoproj.github.io/argo-helm
+# - name: Add Argo Helm repo
+#   community.kubernetes.helm_repository:
+#     name: argo
+#     repo_url: https://argoproj.github.io/argo-helm
 
-- name: Install Argo CD via Helm
-  community.kubernetes.helm:
-    name: argocd
-    chart_ref: argo/argo-cd
-    release_namespace: argocd
-    create_namespace: false
-    chart_version: 8.1.2
-    update_repo_cache: true
-    wait: true
-    timeout: 300s
-    values:
-      server:
-        extraArgs:
-          - "--insecure"
-  register: argocd_install_result
-  until: argocd_install_result is succeeded
-  retries: 3
-  delay: 30
+# - name: Install Argo CD via Helm
+#   community.kubernetes.helm:
+#     name: argocd
+#     chart_ref: argo/argo-cd
+#     release_namespace: argocd
+#     create_namespace: false
+#     chart_version: 8.1.2
+#     update_repo_cache: true
+#     wait: true
+#     timeout: 300s
+#     values:
+#       server:
+#         extraArgs:
+#           - "--insecure"
+#   register: argocd_install_result
+#   until: argocd_install_result is succeeded
+#   retries: 3
+#   delay: 30
 
 - name: Apply ArgoCD Ingress
   kubernetes.core.k8s:
     state: present
     definition: "{{ lookup('file', 'files/argocd/ingress.yml') | from_yaml }}"
 
-- name: Wait for ArgoCD server rollout
-  shell: kubectl -n argocd rollout status deployment argocd-server
-  register: rollout_status
-  until: rollout_status.rc == 0
-  retries: 10
-  delay: 10
+# - name: Wait for ArgoCD server rollout
+#   shell: kubectl -n argocd rollout status deployment argocd-server
+#   register: rollout_status
+#   until: rollout_status.rc == 0
+#   retries: 10
+#   delay: 10
 
-- name: Set ArgoCD admin password
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: v1
-      kind: Secret
-      metadata:
-        name: argocd-secret
-        namespace: argocd
-      type: Opaque
-      stringData:
-        admin.password: "{{ tf_output.argocd_admin_password_hash.value }}"
-        admin.passwordMtime: "{{ lookup('pipe', 'date +%FT%T%Z') }}"
+# - name: Set ArgoCD admin password
+#   kubernetes.core.k8s:
+#     state: present
+#     definition:
+#       apiVersion: v1
+#       kind: Secret
+#       metadata:
+#         name: argocd-secret
+#         namespace: argocd
+#       type: Opaque
+#       stringData:
+#         admin.password: "{{ tf_output.argocd_admin_password_hash.value }}"
+#         admin.passwordMtime: "{{ lookup('pipe', 'date +%FT%T%Z') }}"
