@@ -11,6 +11,7 @@ metadata:
     alb.ingress.kubernetes.io/ssl-redirect: '443'
     alb.ingress.kubernetes.io/backend-protocol: HTTP
     alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=60
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
     external-dns.alpha.kubernetes.io/hostname: argocd.test.dev.careerbee.co.kr
 spec:
   ingressClassName: alb
