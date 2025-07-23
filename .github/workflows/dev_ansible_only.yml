@@ -1,0 +1,36 @@
+name: Ansible Only - Kube (Dev)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ansible:
+    name: Ansible Playbook Execution
+    runs-on: self-hosted
+    env:
+      ANSIBLE_DIR: kube/dev/ansible
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          ref: feature/argocd
+
+      - name: Download tf_output.json from S3
+        working-directory: ${{ env.ANSIBLE_DIR }}
+        run: |
+          aws s3 cp s3://${{ secrets.DEV_S3_INFRA_NAME }}/kube/tf_output.json tf_output.json
+
+      - name: Install Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
+
+      - name: Install Ansible Collections
+        run: |
+          ansible-galaxy collection install kubernetes.core
+          ansible-galaxy collection install community.kubernetes
+          
+      - name: Run Ansible Playbook
+        working-directory: ${{ env.ANSIBLE_DIR }}
+        run: |
+          ansible-playbook -i inventory.ini playbook.yml
