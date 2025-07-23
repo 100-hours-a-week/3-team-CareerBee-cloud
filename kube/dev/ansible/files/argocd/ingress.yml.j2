@@ -8,9 +8,9 @@ metadata:
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
     alb.ingress.kubernetes.io/certificate-arn: "{{ tf_output.acm_arn.value }}"
-    alb.ingress.kubernetes.io/group.name: argocd
     alb.ingress.kubernetes.io/ssl-redirect: '443'
     alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=60
     external-dns.alpha.kubernetes.io/hostname: argocd.test.dev.careerbee.co.kr
 spec:
   ingressClassName: alb
@@ -25,3 +25,6 @@ spec:
                 name: argocd-server
                 port:
                   number: 80
+  tls:
+    - hosts:
+        - argocd.test.dev.careerbee.co.kr
