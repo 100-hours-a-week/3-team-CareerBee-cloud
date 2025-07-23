@@ -1,46 +1,46 @@
-- name: "All Kubernetes Nodes Setup"
-  hosts: all
-  become: yes
-  roles:
-    - common
+# - name: "All Kubernetes Nodes Setup"
+#   hosts: all
+#   become: yes
+#   roles:
+#     - common
 
-- name: "Install Kubernetes Master"
-  hosts: master
-  become: yes
-  environment:
-    KUBECONFIG: /etc/kubernetes/admin.conf
-  roles:
-    - master
+# - name: "Install Kubernetes Master"
+#   hosts: master
+#   become: yes
+#   environment:
+#     KUBECONFIG: /etc/kubernetes/admin.conf
+#   roles:
+#     - master
 
-- name: "Run join.sh on worker nodes"
-  hosts: ai_nodes,db_nodes
-  become: yes
-  roles:
-    - worker
+# - name: "Run join.sh on worker nodes"
+#   hosts: ai_nodes,db_nodes
+#   become: yes
+#   roles:
+#     - worker
 
-- name: "Taint"
-  hosts: master
-  become: yes
-  environment:
-    KUBECONFIG: /etc/kubernetes/admin.conf
-  roles:
-    - taint
+# - name: "Taint"
+#   hosts: master
+#   become: yes
+#   environment:
+#     KUBECONFIG: /etc/kubernetes/admin.conf
+#   roles:
+#     - taint
 
-- name: Install AWS ALB Ingress Controller
-  hosts: master
-  become: yes
-  environment:
-    KUBECONFIG: /etc/kubernetes/admin.conf
-  roles:
-    - alb_ingress_controller
+# - name: Install AWS ALB Ingress Controller
+#   hosts: master
+#   become: yes
+#   environment:
+#     KUBECONFIG: /etc/kubernetes/admin.conf
+#   roles:
+#     - alb_ingress_controller
 
-- name: "Setup External DNS"
-  hosts: master
-  become: yes
-  environment:
-    KUBECONFIG: /etc/kubernetes/admin.conf
-  roles:
-    - externalDNS
+# - name: "Setup External DNS"
+#   hosts: master
+#   become: yes
+#   environment:
+#     KUBECONFIG: /etc/kubernetes/admin.conf
+#   roles:
+#     - externalDNS
     
 - name: "Setup ArgoCD"
   hosts: master
