@@ -215,172 +215,172 @@ resource "aws_route53_record" "cert_validation_records" {
 
 ##########################################################################################################
 
-# lambda
-resource "aws_iam_role" "lambda_exec" {
-  name = "lambda-github-trigger-role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Action = "sts:AssumeRole",
-      Effect = "Allow",
-      Principal = {
-        Service = "lambda.amazonaws.com"
-      }
-    }]
-  })
-}
+# # lambda
+# resource "aws_iam_role" "lambda_exec" {
+#   name = "lambda-github-trigger-role"
+#   assume_role_policy = jsonencode({
+#     Version = "2012-10-17",
+#     Statement = [{
+#       Action = "sts:AssumeRole",
+#       Effect = "Allow",
+#       Principal = {
+#         Service = "lambda.amazonaws.com"
+#       }
+#     }]
+#   })
+# }
 
 
-resource "aws_iam_role_policy_attachment" "lambda_basic" {
-  role       = aws_iam_role.lambda_exec.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
+# resource "aws_iam_role_policy_attachment" "lambda_basic" {
+#   role       = aws_iam_role.lambda_exec.name
+#   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+# }
 
-data "archive_file" "lambda_zip" {
-  type        = "zip"
-  source_file = "${path.module}/lambda/trigger_github.py"
-  output_path = "${path.module}/lambda/trigger_github.zip"
-}
+# data "archive_file" "lambda_zip" {
+#   type        = "zip"
+#   source_file = "${path.module}/lambda/trigger_github.py"
+#   output_path = "${path.module}/lambda/trigger_github.zip"
+# }
 
-# Lambda 1 - 오전 10시 워크플로
-resource "aws_lambda_function" "github_trigger_10am" {
-  function_name = "github-workflow-10am"
-  handler       = "trigger_github.lambda_handler"
-  runtime       = "python3.9"
-  role          = aws_iam_role.lambda_exec.arn
-  filename      = data.archive_file.lambda_zip.output_path
+# # Lambda 1 - 오전 10시 워크플로
+# resource "aws_lambda_function" "github_trigger_10am" {
+#   function_name = "github-workflow-10am"
+#   handler       = "trigger_github.lambda_handler"
+#   runtime       = "python3.9"
+#   role          = aws_iam_role.lambda_exec.arn
+#   filename      = data.archive_file.lambda_zip.output_path
 
-  environment {
-    variables = {
-      GITHUB_TOKEN    = var.github_token
-      GITHUB_REPO     = var.github_repo
-      GITHUB_WORKFLOW = var.workflow_1
-    }
-  }
-}
+#   environment {
+#     variables = {
+#       GITHUB_TOKEN    = var.github_token
+#       GITHUB_REPO     = var.github_repo
+#       GITHUB_WORKFLOW = var.workflow_1
+#     }
+#   }
+# }
 
-# Lambda 2 - 오후 6시 워크플로
-resource "aws_lambda_function" "github_trigger_6pm" {
-  function_name = "github-workflow-6pm"
-  handler       = "trigger_github.lambda_handler"
-  runtime       = "python3.9"
-  role          = aws_iam_role.lambda_exec.arn
-  filename      = data.archive_file.lambda_zip.output_path
+# # Lambda 2 - 오후 6시 워크플로
+# resource "aws_lambda_function" "github_trigger_6pm" {
+#   function_name = "github-workflow-6pm"
+#   handler       = "trigger_github.lambda_handler"
+#   runtime       = "python3.9"
+#   role          = aws_iam_role.lambda_exec.arn
+#   filename      = data.archive_file.lambda_zip.output_path
 
-  environment {
-    variables = {
-      GITHUB_TOKEN    = var.github_token
-      GITHUB_REPO     = var.github_repo
-      GITHUB_WORKFLOW = var.workflow_2
-    }
-  }
-}
+#   environment {
+#     variables = {
+#       GITHUB_TOKEN    = var.github_token
+#       GITHUB_REPO     = var.github_repo
+#       GITHUB_WORKFLOW = var.workflow_2
+#     }
+#   }
+# }
 
-# Schedule Rule 1 - 10AM KST = 01:00 UTC
-resource "aws_cloudwatch_event_rule" "trigger_10am" {
-  name                = "trigger-github-10am"
-  schedule_expression = "cron(50 0 ? * MON-FRI *)"
-}
+# # Schedule Rule 1 - 10AM KST = 01:00 UTC
+# resource "aws_cloudwatch_event_rule" "trigger_10am" {
+#   name                = "trigger-github-10am"
+#   schedule_expression = "cron(50 0 ? * MON-FRI *)"
+# }
 
-# Schedule Rule 2 - 6PM KST = 09:00 UTC
-resource "aws_cloudwatch_event_rule" "trigger_6pm" {
-  name                = "trigger-github-6pm"
-  schedule_expression = "cron(0 9 ? * MON-FRI *)"
-}
+# # Schedule Rule 2 - 6PM KST = 09:00 UTC
+# resource "aws_cloudwatch_event_rule" "trigger_6pm" {
+#   name                = "trigger-github-6pm"
+#   schedule_expression = "cron(0 9 ? * MON-FRI *)"
+# }
 
-# Event Targets
-resource "aws_cloudwatch_event_target" "target_10am" {
-  rule      = aws_cloudwatch_event_rule.trigger_10am.name
-  target_id = "Lambda10AM"
-  arn       = aws_lambda_function.github_trigger_10am.arn
-}
+# # Event Targets
+# resource "aws_cloudwatch_event_target" "target_10am" {
+#   rule      = aws_cloudwatch_event_rule.trigger_10am.name
+#   target_id = "Lambda10AM"
+#   arn       = aws_lambda_function.github_trigger_10am.arn
+# }
 
-resource "aws_cloudwatch_event_target" "target_6pm" {
-  rule      = aws_cloudwatch_event_rule.trigger_6pm.name
-  target_id = "Lambda6PM"
-  arn       = aws_lambda_function.github_trigger_6pm.arn
-}
+# resource "aws_cloudwatch_event_target" "target_6pm" {
+#   rule      = aws_cloudwatch_event_rule.trigger_6pm.name
+#   target_id = "Lambda6PM"
+#   arn       = aws_lambda_function.github_trigger_6pm.arn
+# }
 
-# Lambda Permissions
-resource "aws_lambda_permission" "allow_event_10am" {
-  statement_id  = "AllowExecution10AM"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.github_trigger_10am.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.trigger_10am.arn
-}
+# # Lambda Permissions
+# resource "aws_lambda_permission" "allow_event_10am" {
+#   statement_id  = "AllowExecution10AM"
+#   action        = "lambda:InvokeFunction"
+#   function_name = aws_lambda_function.github_trigger_10am.function_name
+#   principal     = "events.amazonaws.com"
+#   source_arn    = aws_cloudwatch_event_rule.trigger_10am.arn
+# }
 
-resource "aws_lambda_permission" "allow_event_6pm" {
-  statement_id  = "AllowExecution6PM"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.github_trigger_6pm.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.trigger_6pm.arn
-}
+# resource "aws_lambda_permission" "allow_event_6pm" {
+#   statement_id  = "AllowExecution6PM"
+#   action        = "lambda:InvokeFunction"
+#   function_name = aws_lambda_function.github_trigger_6pm.function_name
+#   principal     = "events.amazonaws.com"
+#   source_arn    = aws_cloudwatch_event_rule.trigger_6pm.arn
+# }
 
-##########################################################################################################
-##########################################################################################################
+# ##########################################################################################################
+# ##########################################################################################################
 
-# test
+# # test
 
-resource "google_compute_disk" "ssmu_disk_test" {
-  name  = var.gcp_disk_test_name
-  type  = var.gcp_disk_type
-  zone  = var.gcp_zone
-  size  = 80
-}
+# resource "google_compute_disk" "ssmu_disk_test" {
+#   name  = var.gcp_disk_test_name
+#   type  = var.gcp_disk_type
+#   zone  = var.gcp_zone
+#   size  = 80
+# }
 
-# route53
-resource "aws_route53_zone" "test" {
-  name = "test.dev.careerbee.co.kr"
-}
+# # route53
+# resource "aws_route53_zone" "test" {
+#   name = "test.dev.careerbee.co.kr"
+# }
 
-resource "aws_route53_record" "test_ns" {
-  zone_id = aws_route53_zone.dev.zone_id
-  name    = "test"
-  type    = "NS"
-  ttl     = 300
-  records = aws_route53_zone.test.name_servers
-}
+# resource "aws_route53_record" "test_ns" {
+#   zone_id = aws_route53_zone.dev.zone_id
+#   name    = "test"
+#   type    = "NS"
+#   ttl     = 300
+#   records = aws_route53_zone.test.name_servers
+# }
 
-# acm
-resource "aws_acm_certificate" "careerbee_cert_test" {
-  domain_name       = "test.dev.careerbee.co.kr"
-  subject_alternative_names = [
-    "www.test.dev.careerbee.co.kr",
-    "api.test.dev.careerbee.co.kr",
-    "ai.test.dev.careerbee.co.kr",
-    "argocd.test.dev.careerbee.co.kr",
-    "grafana.test.dev.careerbee.co.kr",
-    "prometheus.test.dev.careerbee.co.kr"
-  ]
-  validation_method = "DNS"
-  tags = {
-    Name = "test-careerbee-acm-cert"
-  }
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-resource "aws_acm_certificate_validation" "careerbee_cert_validation_test" {
-  certificate_arn         = aws_acm_certificate.careerbee_cert_test.arn
+# # acm
+# resource "aws_acm_certificate" "careerbee_cert_test" {
+#   domain_name       = "test.dev.careerbee.co.kr"
+#   subject_alternative_names = [
+#     "www.test.dev.careerbee.co.kr",
+#     "api.test.dev.careerbee.co.kr",
+#     "ai.test.dev.careerbee.co.kr",
+#     "argocd.test.dev.careerbee.co.kr",
+#     "grafana.test.dev.careerbee.co.kr",
+#     "prometheus.test.dev.careerbee.co.kr"
+#   ]
+#   validation_method = "DNS"
+#   tags = {
+#     Name = "test-careerbee-acm-cert"
+#   }
+#   lifecycle {
+#     create_before_destroy = true
+#   }
+# }
+# resource "aws_acm_certificate_validation" "careerbee_cert_validation_test" {
+#   certificate_arn         = aws_acm_certificate.careerbee_cert_test.arn
 
-  validation_record_fqdns = [
-    for record in aws_route53_record.cert_validation_records_test : record.fqdn
-  ]
-}
-resource "aws_route53_record" "cert_validation_records_test" {
-  for_each = {
-    for dvo in aws_acm_certificate.careerbee_cert_test.domain_validation_options : dvo.domain_name => {
-      name   = dvo.resource_record_name
-      type   = dvo.resource_record_type
-      record = dvo.resource_record_value
-    }
-  }
+#   validation_record_fqdns = [
+#     for record in aws_route53_record.cert_validation_records_test : record.fqdn
+#   ]
+# }
+# resource "aws_route53_record" "cert_validation_records_test" {
+#   for_each = {
+#     for dvo in aws_acm_certificate.careerbee_cert_test.domain_validation_options : dvo.domain_name => {
+#       name   = dvo.resource_record_name
+#       type   = dvo.resource_record_type
+#       record = dvo.resource_record_value
+#     }
+#   }
 
-  zone_id = aws_route53_zone.test.zone_id
-  name    = each.value.name
-  type    = each.value.type
-  records = [each.value.record]
-  ttl     = 300
-}
+#   zone_id = aws_route53_zone.test.zone_id
+#   name    = each.value.name
+#   type    = each.value.type
+#   records = [each.value.record]
+#   ttl     = 300
+# }
