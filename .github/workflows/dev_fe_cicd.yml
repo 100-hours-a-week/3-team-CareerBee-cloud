@@ -2,8 +2,8 @@ name: DEV Frontend Docker CICD
 
 on:
   workflow_dispatch:
-  repository_dispatch:
-    types: [fe-updated]
+  # repository_dispatch:
+  #   types: [fe-updated]
 
 jobs:
   build-and-deploy:

@@ -2,8 +2,8 @@ name: DEV Backend Docker CICD
 
 on:
   workflow_dispatch:
-  repository_dispatch:
-    types: [be-updated]
+  # repository_dispatch:
+  #   types: [be-updated]
 
 jobs:
   build-and-deploy:

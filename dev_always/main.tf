@@ -14,19 +14,19 @@ provider "aws" {
 ##########################################################################################################
 
 # static ip
-resource "aws_eip" "static_ip" {
-}
+# resource "aws_eip" "static_ip" {
+# }
 
 ##########################################################################################################
 
 # disk
 
-resource "google_compute_disk" "ssmu_disk" {
-  name  = var.gcp_disk_name
-  type  = var.gcp_disk_type
-  zone  = var.gcp_zone
-  size  = var.gcp_disk_size
-}
+# resource "google_compute_disk" "ssmu_disk" {
+#   name  = var.gcp_disk_name
+#   type  = var.gcp_disk_type
+#   zone  = var.gcp_zone
+#   size  = var.gcp_disk_size
+# }
 
 ##########################################################################################################
 
@@ -333,6 +333,7 @@ resource "aws_route53_record" "cert_validation_records" {
 # # route53
 # resource "aws_route53_zone" "test" {
 #   name = "test.dev.careerbee.co.kr"
+#   force_destroy = true
 # }
 
 # resource "aws_route53_record" "test_ns" {

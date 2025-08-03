@@ -2,8 +2,8 @@ name: DEV AI Docker CICD
 
 on:
   workflow_dispatch:
-  repository_dispatch:
-    types: [ai-updated]
+  # repository_dispatch:
+  #   types: [ai-updated]
 
 jobs:
   build-and-deploy:
